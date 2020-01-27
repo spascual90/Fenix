@@ -8,7 +8,7 @@
 #ifndef IF_NMEA_H_
 #define IF_NMEA_H_
 
-#include "GPSPort.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
+#include "..\..\libraries_ext\GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 
 #ifdef SERIAL_IF_AVAILABLE
 

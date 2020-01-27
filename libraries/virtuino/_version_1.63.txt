@@ -1,0 +1,2 @@
+Virtuino library version 1.63
+Supports Virtuino app ver 1.2.0 or higher 

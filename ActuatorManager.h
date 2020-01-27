@@ -8,14 +8,14 @@
 #ifndef ACTUATORMANAGER_H_
 #define ACTUATORMANAGER_H_
 
-#include <PID_v1.h>
+#include "libraries_ext\PID_v1_ext.h"
 #include "RudderFeedback.h"
 #include "ActuatorController.h"
 #include "DeadbandTrim.h"
 
 
 //for DEBUGGING
-#include "GPSPort.h"
+#include "libraries_ext\GPSport.h"
 #include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
 // ACTUATOR PARAMETERS
@@ -33,7 +33,7 @@
 // Installation side
 typedef enum type_instSide {STARBOARD, PORTBOARD} type_instSide;
 
-class ActuatorManager: public PID,
+class ActuatorManager: public PID_ext,
 		public RudderFeedback,
 		public ActuatorController {
 public:

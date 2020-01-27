@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include <VirtuinoBluetooth.h>                           // Include VirtuinoBluetooth library to your code
-#include "GPSport.h" // Ports configuration
+#include "libraries_ext\GPSport.h" // Ports configuration
 
 // PUSH buttons BT_*
 // INDICATIVE SWITCH IS_*

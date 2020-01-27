@@ -8,7 +8,7 @@
 #include "ActuatorManager.h"
 
 ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback)
-	: PID(&_Input, &_Output, &_Setpoint, Kp, Ki, Kd, ControllerDirection),
+	: PID_ext(&_Input, &_Output, &_Setpoint, Kp, Ki, Kd, ControllerDirection),
 	RudderFeedback(MRA, error, deltaCenterOfRudder, minFeedback, maxFeedback)
 {
 

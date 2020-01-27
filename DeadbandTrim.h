@@ -11,7 +11,7 @@
 #include <LinearRegression.h>
 
 //for DEBUGGING
-#include "GPSPort.h"
+#include "libraries_ext\GPSport.h"
 
 // Period definition
 #define DELAY_SAMPLING_PERIOD 1000 //mSec long period for evaluation
