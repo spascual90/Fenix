@@ -20,7 +20,7 @@
 
 #include <Arduino.h>
 
-#include "..\..\libraries_ext\NeoGPS_cfg.h"
+#include "NeoGPS_cfg.h"
 #include "CosaCompat.h"
 
 namespace NeoGPS {

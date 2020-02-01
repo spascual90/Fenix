@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#include "..\..\libraries_ext\NeoGPS_cfg.h"
+#include "NeoGPS_cfg.h"
 
 //  Copyright (C) 2014-2017, SlashDevin
 //

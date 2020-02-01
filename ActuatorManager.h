@@ -8,14 +8,14 @@
 #ifndef ACTUATORMANAGER_H_
 #define ACTUATORMANAGER_H_
 
-#include "libraries_ext\PID_v1_ext.h"
+#include "PID_v1_ext.h"
 #include "RudderFeedback.h"
 #include "ActuatorController.h"
 #include "DeadbandTrim.h"
 
 
 //for DEBUGGING
-#include "libraries_ext\GPSport.h"
+#include "GPSport.h"
 #include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
 // ACTUATOR PARAMETERS

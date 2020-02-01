@@ -22,7 +22,7 @@
 
 #include "ActuatorManager.h"
 #include "BearingMonitor.h"
-#include "libraries_ext\GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
+#include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 
 // setup status
 enum e_setup_status {SETUP_OK, IMU_ERROR, FEEDBACK_ERROR};

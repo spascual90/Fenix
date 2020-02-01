@@ -26,7 +26,7 @@
 #endif
 
 #include "GPSfix.h"
-#include "..\..\libraries_ext\NMEAGPS_cfg.h"
+#include "NMEAGPS_cfg.h"
 
 //------------------------------------------------------
 //

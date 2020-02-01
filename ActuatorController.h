@@ -9,7 +9,7 @@
 #define ACTUATORCONTROLLER_H_
 
 #include <Arduino.h>
-#include "libraries_ext\GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
+#include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 
 #define PIN_PWM 6
 #define PIN_DIR 7

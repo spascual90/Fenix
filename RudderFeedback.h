@@ -9,7 +9,7 @@
 #define RUDDERFEEDBACK_H_
 
 #include <Arduino.h>
-#include "libraries_ext\GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
+#include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 
 //#define VIRTUAL_ACTUATOR // SPM TODO: Comment when actuator is connected
 

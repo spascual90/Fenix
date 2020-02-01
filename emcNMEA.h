@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#include "libraries_ext\NMEAGPS_cfg.h"
+#include "NMEAGPS_cfg.h"
 
 #include <NMEAGPS.h>
 #include "Order.h"
@@ -11,8 +11,8 @@
 #include "StringStream.h"
 
 //NEW
-#include "libraries_ext\NeoGPS_cfg.h"
-#include "libraries_ext\GPSport.h"
+#include "NeoGPS_cfg.h"
+#include "GPSport.h"
 
 # define DELAY_TX_TIME 1000 // period of NMEA transmission in millisecs (1000 = 1sec)
 

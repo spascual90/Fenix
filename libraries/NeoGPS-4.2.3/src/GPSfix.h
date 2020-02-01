@@ -18,8 +18,8 @@
 //  You should have received a copy of the GNU General Public License
 //  along with NeoGPS.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "..\..\libraries_ext\NeoGPS_cfg.h"
-#include "..\..\libraries_ext\GPSfix_cfg.h"
+#include "NeoGPS_cfg.h"
+#include "GPSfix_cfg.h"
 
 #if defined( GPS_FIX_DATE ) | defined( GPS_FIX_TIME )
   #include "NeoTime.h"

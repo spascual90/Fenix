@@ -4,7 +4,7 @@
 
 // Comment any IF not implemented. Activating an IF without HW device installed will cause unexpected effects
 //#define HMI_LCDKEYPAD // LCDKeypad IF
-#include "libraries_ext\GPSport.h" // Serial NMEA,Debug and Bluetooth IF Configuration in GPSPort.h not in Fenix.ino!
+#include "GPSport.h" // Serial NMEA,Debug and Bluetooth IF Configuration in GPSPort.h not in Fenix.ino!
 
 #ifdef HMI_BT
 

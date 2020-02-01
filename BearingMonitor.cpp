@@ -7,7 +7,7 @@
 
 #include "BearingMonitor.h"
 
-#include "libraries_ext\GPSport.h" // Include this library to output to DEBUG_PORT
+#include "GPSport.h" // Include this library to output to DEBUG_PORT
 
 Bearing_Monitor::Bearing_Monitor(float headingDev = 0) {
 	setHeadingDev( headingDev);
