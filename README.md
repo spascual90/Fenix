@@ -8,6 +8,9 @@ The goals of Fenix project are,
 ## How to contribute?
 https://emacua.fandom.com/wiki/EMacua_Wiki
 
+## Released versions
+- V0.1 Initial version
+
 ## How to start?
 First of all integrate your hardware.
 
