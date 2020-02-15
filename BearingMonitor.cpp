@@ -35,8 +35,8 @@ void Bearing_Monitor::IBIT(){
 	//TODO: include routine to whait until bearing data is available (except calib IMU mode) While Sys<3 loop if not in x secs-->ask for calibration.
 }
 
-// check=true performs complete initial calibration + check
-// check=false ensures minimum recalibration after each power-on
+// check=true performs complete initial calibration + check (system==3 required)
+// check=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
 e_IMU_status Bearing_Monitor::BNO_GetCal(bool check){
 
 		    int i =0;
@@ -73,6 +73,11 @@ e_IMU_status Bearing_Monitor::BNO_GetCal(bool check){
 	    _bno.getSensorOffsets(newCalib);
 
 	    DEBUG_print("\nCalibrated! Ok\n");
+	    // Heading value is not received until a slight movement is detected by IMU
+	    // Practicaly speaking this is not an issue, but some info is provided to user
+	    updateHeading();
+	    if (int(_heading)==0) DEBUG_print("Move slightly to start receiving IMU data\n");
+
 	    if (check) {
 	    	DEBUG_print("Calibration Results:\n");
 		    displaySensorOffsets(newCalib);
@@ -121,17 +126,14 @@ void Bearing_Monitor::displayCalStatus(void)
 	DEBUG_PORT.flush();
 }
 
+// updates heading even if data is not of sufficient quality
+// return = true: accurate data; false= low data quality
 bool Bearing_Monitor::updateHeading(){
-	uint8_t system;
-	// Only updates heading if data is of sufficient quality:2, 3
-	bool calStatus = getCalibrationStatus(system);
-	if (system>1) {
-		// - VECTOR_EULER         - degrees
-		imu::Vector<3> euler = _bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-		_heading = euler.x();
-	}
-
-  return calStatus;
+	bool calStatus = getCalibrationStatus();
+	// - VECTOR_EULER         - degrees
+	imu::Vector<3> euler = _bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+	_heading = euler.x();
+	return calStatus;
 }
 
 // fn available if system status value is not required
@@ -140,12 +142,14 @@ bool Bearing_Monitor::getCalibrationStatus(void) {
 	return getCalibrationStatus(system);
 }
 
-// return true if all sensors except accel are completelly calibrated
+// return true if all sensors except accel are completely calibrated
 // return false on the contrary
+// Based on this solution to Technical Query, as long as mag and gyro are 3, data is realiable.
+// https://community.bosch-sensortec.com/t5/MEMS-sensors-forum/BNO055-Calibration-Staus-not-stable/td-p/8375
 bool Bearing_Monitor::getCalibrationStatus(uint8_t &system) {
 	uint8_t gyro, accel, mag = 0;
 	_bno.getCalibration(&system, &gyro, &accel, &mag);
-	return (system==3 and gyro==3 and mag==3);
+	return (gyro==3 and mag==3);// (system==3 and gyro==3 and mag==3);
 }
 
 void Bearing_Monitor::displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)

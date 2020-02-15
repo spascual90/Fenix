@@ -15,8 +15,8 @@ enum e_BT_push_button {
 		  START_BT=			-1
 
 		, BT_START_STOP=	0
-		, BT_K_MUL2=		1
-		, BT_K_DIV2=		2
+		, BT_USER_REQUEST_ACCEPTED = 1
+		, BT_USER_REQUEST_REJECTED = 2
 		, BT_INC_MIX_1=		3
 		, BT_INC_MIX_10= 	4
 		, BT_DEC_MIX_1= 	5
@@ -27,18 +27,14 @@ enum e_BT_push_button {
 		, BT_DEC_COURSE_1=	10
 		, BT_DEC_COURSE_10=	11
 		, BT_RESET_PID= 	12
-		, BT_K_MUL10=		13
-		, BT_K_DIV10=		14
-		, BT_START_STOP_TARGET=	15
-		, BT_USER_REQUEST_ACCEPTED = 16
-		, BT_USER_REQUEST_REJECTED = 17
+		, BT_START_STOP_TARGET=	13
 		, MAX_BT
 		, BT_NO_BTN
 		, BT_BTN_REPEATED
 	};
 
 // Special DV PINS
-#define IS_BLOCK_PID	25
+//#define IS_BLOCK_PID	25
 #define LED_START 		26
 #define LED_DBACTIVE	27
 
@@ -59,18 +55,16 @@ enum e_BT_AI_PIN {
 , AI_DELTA_CRUDDER=	9
 , AI_DEADBAND_VALUE = 10
 , AI_TRIM_VALUE = 11
+, AI_KP = 12
+, AI_KI = 13
+, AI_KD = 14
 , MAX_AI
 };
 
-
 // Special A PINS
-#define AI_KP 		15
-#define AI_KI 		16
-#define AI_KD 		17
-#define AI_KSELECT	18
+//#define AI_KSELECT	18
 #define AI_USER_MESSAGE 19
 #define AI_DELTA_TARGET 20
-
 
 class BTArq: public VirtuinoBluetooth {
 

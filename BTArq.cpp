@@ -9,7 +9,8 @@ BTArq::BTArq()
 	// Code to use HardwareSerial
 	// VirtuinoBluetooth virtuino(Serial1);            // enable this line and disable all SoftwareSerial lines
 	                                                   // Open VirtuinoBluetooth.h file on the virtuino library folder ->  disable the line: #define BLUETOOTH_USE_SOFTWARE_SERIAL
-	}
+
+}
 
 BTArq::~BTArq() {
 	// TODO Auto-generated destructor stub

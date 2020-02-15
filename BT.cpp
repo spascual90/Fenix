@@ -23,7 +23,7 @@ void BT::setup() {
 
 	  //SPM original: Serial1.begin(9600);               // Enable this line if you want to use hardware serial (Mega, DUE etc.)
 	  //SPM modified:
-	  BTPort.begin(9600);//(38400)               // Enable this line if you want to use hardware serial (Mega, DUE etc.)
+	  BTPort.begin(38400);               // Enable this line if you want to use hardware serial (Mega, DUE etc.)
 
 	  // Use virtuino.vPinMode instead default pinMode method for digital input or digital output pins.
 	  // Don't use vPinMode for PWM pins, or pins that their values change many times per second
@@ -45,14 +45,13 @@ void BT::setup() {
 }
 
 void BT::refresh() {
-	float M[MAX_AI];
+	float M[MAX_AI], temp=0;
 
 	//Float Virtual PIN
 	M[AI_HEADING] = MyPilot->getCurrentHeading();
 	M[AI_TARGET] = MyPilot->getTargetBearing();
 	M[AI_DELTA] = MyPilot->getInput();
 	M[AI_RUDDER] = MyPilot->getCurrentRudder();
-
 	M[AI_KPCONTRIB] = float (MyPilot->getKpContrib());
 	M[AI_ITERM] = float (MyPilot->getITerm());
 	M[AI_KDCONTRIB] = float(MyPilot->getKdContrib());
@@ -178,18 +177,18 @@ void BT::refresh() {
     	ResetPID();
     	break;
 
-    case BT_K_MUL2:
-    	Change_PID_rel (_k_change, OP_MULT, 2 );
-    	break;
-    case BT_K_DIV2:
-    	Change_PID_rel (_k_change, OP_DIV, 2 );
-    	break;
-    case BT_K_MUL10:
-    	Change_PID_rel (_k_change, OP_MULT, 10 );
-    	break;
-    case BT_K_DIV10:
-    	Change_PID_rel (_k_change, OP_DIV, 10 );
-    	break;
+//    case BT_K_MUL2:
+//    	Change_PID_rel (_k_change, OP_MULT, 2 );
+//    	break;
+//    case BT_K_DIV2:
+//    	Change_PID_rel (_k_change, OP_DIV, 2 );
+//    	break;
+//    case BT_K_MUL10:
+//    	Change_PID_rel (_k_change, OP_MULT, 10 );
+//    	break;
+//    case BT_K_DIV10:
+//    	Change_PID_rel (_k_change, OP_DIV, 10 );
+//    	break;
     default: //Other values not managed
     	break;
 	}
@@ -226,30 +225,32 @@ void BT::updateSpecialBT() {
 	//Only one message displayed, highest priority
 	vMemoryWrite(AI_USER_MESSAGE, message);
 
-
-	//INDICATIVE SWITCH buttons
-	switch (vDigitalMemoryRead(IS_BLOCK_PID)) {
-			case HIGH:
-				// If unblocked, update AUTOPILOT with APP figures
-				//Change_PID(true, true, true, vMemoryRead(AI_KP), vMemoryRead(AI_KI), vMemoryRead(AI_KD));
-				s_gain gain;
-				gain.Kp.Towf_00(vMemoryRead(AI_KP));
-				gain.Ki.Towf_00(vMemoryRead(AI_KI));
-				gain.Kd.Towf_00(vMemoryRead(AI_KD));
-				Change_PID({true, true, true}, gain);
-				break;
-			case LOW:
-				// If blocked, update APP with AUTOPILOT figures
-				vMemoryWrite(AI_KP, MyPilot->GetKp());
-				vMemoryWrite(AI_KI, MyPilot->GetKi());
-				vMemoryWrite(AI_KD, MyPilot->GetKd());
-				break;
-	}
-
-	// SELECTOR SWITCH
-	_k_change.Kp=(vMemoryRead(AI_KSELECT)==0?true:false);
-	_k_change.Ki=(vMemoryRead(AI_KSELECT)==1?true:false);
-	_k_change.Kd=(vMemoryRead(AI_KSELECT)==2?true:false);
+	vMemoryWrite(AI_KP, MyPilot->GetKp());
+	vMemoryWrite(AI_KI, MyPilot->GetKi());
+	vMemoryWrite(AI_KD, MyPilot->GetKd());
+//	//INDICATIVE SWITCH buttons
+//	switch (vDigitalMemoryRead(IS_BLOCK_PID)) {
+//			case HIGH:
+//				// If unblocked, update AUTOPILOT with APP figures
+//				Change_PID(true, true, true, vMemoryRead(AI_KP), vMemoryRead(AI_KI), vMemoryRead(AI_KD));
+//				s_gain gain;
+//				gain.Kp.Towf_00(vMemoryRead(AI_KP));
+//				gain.Ki.Towf_00(vMemoryRead(AI_KI));
+//				gain.Kd.Towf_00(vMemoryRead(AI_KD));
+//				Change_PID({true, true, true}, gain);
+//				break;
+//			case LOW:
+//				// If blocked, update APP with AUTOPILOT figures
+//				vMemoryWrite(AI_KP, MyPilot->GetKp());
+//				vMemoryWrite(AI_KI, MyPilot->GetKi());
+//				vMemoryWrite(AI_KD, MyPilot->GetKd());
+//				break;
+//	}
+//
+//	// SELECTOR SWITCH
+//	_k_change.Kp=(vMemoryRead(AI_KSELECT)==0?true:false);
+//	_k_change.Ki=(vMemoryRead(AI_KSELECT)==1?true:false);
+//	_k_change.Kd=(vMemoryRead(AI_KSELECT)==2?true:false);
 
 
 	// REGULATOR

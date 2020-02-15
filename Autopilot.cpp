@@ -42,6 +42,10 @@ e_setup_status Macua_Autopilot::setup() {
 	// Setup linear actuator
 	ActuatorController::setup();
 
+	// Setup Actuator manager
+	ActuatorManager::setup();
+
+
 	// Setup rudder feedback
 	e_feedback_status f_status = RudderFeedback::setup(true);
 
@@ -269,7 +273,7 @@ void Macua_Autopilot::SetTunings(double Kp, double Ki, double Kd) {
 	case CAL_IMU:
 		break;
 	default:
-		ActuatorManager::PID::SetTunings(Kp, Ki, Kd);
+		ActuatorManager::PID_ext::SetTunings(Kp, Ki, Kd);
 		break;
 	}
 }

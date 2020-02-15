@@ -27,6 +27,27 @@ ActuatorManager::~ActuatorManager() {
 	// TODO Auto-generated destructor stub
 }
 
+
+void ActuatorManager::setup(){
+	int feedback = updateCurrentRudder();
+	bool out_min = feedback < getLimitMinFeedback();
+	bool out_max = feedback > getLimitMaxFeedback();
+
+	if (out_min) {
+		setDir(EXTEND);
+		DEBUG_print("Warning: Linear actuator below limit\n");
+	}
+
+	if (out_max) {
+		setDir(RETRACT);
+		DEBUG_print("Warning: Linear actuator over limit\n");
+	}
+
+}
+
+
+
+
 void ActuatorManager::startAutoMode(){
 	//turn the PID on
 	SetMode(AUTOMATIC);
@@ -68,7 +89,7 @@ int ActuatorManager::Compute(float setPoint, float processVariable) {
 int ActuatorManager::Compute(float PIDerrorPrima) {
 		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 		//setSetpoint(0); If always 0 it is not necessary to update value...
-		PID::Compute();
+		PID_ext::Compute();
 
 		dbt.calculateDBTrim(PIDerrorPrima, getCurrentRudder());
 
@@ -115,11 +136,15 @@ int ActuatorManager::controlActuator(int target_rudder, boolean deadband, int tr
 	static int lastStopRudder = getCurrentRudder();
 	bool out_min = feedback < getLimitMinFeedback();
 	bool out_max = feedback > getLimitMaxFeedback();
-	//static bool point=false;
+
+	#ifdef DEBUG
+	static bool point=false;
+	#endif
 
 	if (deadband) target_rudder = trim;
 
 	delta = getSpeed()==0?target_rudder - lastStopRudder:target_rudder - getCurrentRudder();
+
 	if ((abs(delta)<toRudder(getErrorFeedback ())) or
 		(out_min and getDir()==RETRACT) or
 		(out_max and getDir()==EXTEND)) { //WHATEVER SPEED, IF DELTA IS SMALL OR ACTUATOR ARRIVES TO LIMIT STOP ACTUATOR
@@ -127,24 +152,28 @@ int ActuatorManager::controlActuator(int target_rudder, boolean deadband, int tr
 			if (getSpeed()!=0) {
 				setSpeed (0);
 				lastStopRudder=getCurrentRudder();
-				//sprintf(DEBUG_buffer,"|%i\n",lastStopRudder);
-				//DEBUG_print(DEBUG_buffer);
-				//delay(10);
-				//point=false;
-			}// else if (!point) {
-			//	point=true;
-			//	DEBUG_print(".");
-			//	delay(10);
-			//}
+				#ifdef DEBUG
+				sprintf(DEBUG_buffer,"|%i\n",lastStopRudder);
+				DEBUG_print(DEBUG_buffer);
+				delay(10);
+				point=false;
+			} else if (!point) {
+				point=true;
+				DEBUG_print(".");
+				delay(10);
+				#endif
+			}
 
 		return delta;
 	}
 
 	e_dir dir = delta==abs(delta)?EXTEND:RETRACT;
 
-	//DEBUG_print((dir==EXTEND?">":"<"));
-	//delay(10);
-	//point=false;
+	#ifdef DEBUG
+	DEBUG_print((dir==EXTEND?">":"<"));
+	delay(10);
+	point=false;
+	#endif
 
 	if (dir!=getDir()) setDir(dir);
 	if (getSpeed()!=SPEED_CRUISE) setSpeed (SPEED_CRUISE);
@@ -162,5 +191,5 @@ void ActuatorManager::SetMode(int Mode)
 	//Modifies initialization method.
 	_Output=0;
 	_Input=0;
-	PID::SetMode(Mode);
+	PID_ext::SetMode(Mode);
 }

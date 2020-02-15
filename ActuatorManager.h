@@ -17,6 +17,8 @@
 //for DEBUGGING
 #include "GPSport.h"
 #include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
+//#define DEBUG
+
 
 // ACTUATOR PARAMETERS
 #define SPEED_CRUISE 255
@@ -39,6 +41,7 @@ class ActuatorManager: public PID_ext,
 public:
 	ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback);
 	virtual ~ActuatorManager();
+	void setup();
 	void startAutoMode();
 	void stopAutoMode();
 	int Compute(float setPoint, float processVariable);
