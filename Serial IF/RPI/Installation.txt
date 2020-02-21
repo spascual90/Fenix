@@ -1,0 +1,10 @@
+Install and Run Putty on your Raspberry Pi
+Putty is a very useful application that can be used to connect to serial ports and Secure Shell(SSH) to Raspberry Pi’s.
+
+Putty is mostly used on Windows to connect to remote devices but it can also run on a Raspberry Pi.
+
+Steps to installing Putty on a Raspberry Pi:
+
+Open a terminal/shell window on your Raspbery Pi and run the following command:
+sudo apt-get install putty -y
+After the installation Putty should appear in the menu bar under the ‘Other’ menu.

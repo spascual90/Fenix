@@ -37,14 +37,13 @@
 | ------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | AP-2    | Closed | Protection by design of mechanical and electronic parts from blockage, intense use, short-cirtuit and humidity. Parts exposed to weather conditions shall have IPX4 equivalent protection.                  | High         |
 | AP-5    | Closed | Capability to use as alternative an external compass  | Nice to have |  
-| AP-9    | Closed | Mounting at starboard or portboard                                                                                                                                                                          | High           |
+| AP-9    | Closed | Mounting at starboard or portboard | High           |
 | AP-10   | Open   | Autotrim of tiller to keep current heading when lateral forces (wind, tide, non-centered engine) require permanent correction of tiller to follow the current way-route. Maximum 1 minute for autotrimming. | To be cheked |     |     |     |     |
-| AP-11   | Closed | Predefined pilot gain configurations for different speeds and boats.                                                                                                                                        | High           |
-| AP-12   | Closed | Autogain for different SOW (speed over water).                                                                                                                                                              | Low            |
-| AP-13   | Closed | If SOW is not available, user configurable speed shall be used.                                                                                                                                             | Medium         |
-| AP.-14  | Closed | User configurable gain for testing purposes.                                                                                                                                                                | High           |
-| AP-15   | Closed | Capability to record required parameters to analyze AP performance for different external conditions for testing purposes.                                                                                  | High           |
-| AP-16   | Closed | Different deadband configurations for bad weather conditions: predefined, user defined, desactivated.                                                                                                       | High           |
+| AP-11   | Closed | Predefined pilot gain configurations for different speeds and boats. | High  |
+| AP-12   | Closed | Autogain for different SOW (speed over water).  | Low            |
+| AP-13   | Closed | If SOW is not available, user configurable speed shall be used. | AP.-14  | Closed | User configurable gain for testing purposes.    | High           |
+| AP-15   | Closed | Capability to record required parameters to analyze AP performance for different external conditions for testing purposes.     | High           |
+| AP-16   | Closed | Different deadband configurations for bad weather conditions: predefined, user defined, desactivated.   | High           |
 AP-17 | Closed | Automatic deadband configuration  | Nice to have |  
  AP-21 | Closed | Reception of magnetic/real course from external compass | Nice to have |
 AP-23 | Closed | Reception of SOW information from nautical slide. In Km or nautical miles. | Low |
