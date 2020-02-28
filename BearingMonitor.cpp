@@ -126,6 +126,30 @@ void Bearing_Monitor::displayCalStatus(void)
 	DEBUG_PORT.flush();
 }
 
+void Bearing_Monitor::displayIMULow(void)
+{
+    /* Get the four calibration values (0..3) */
+    /* Any sensor data reporting 0 should be ignored, */
+    /* 3 means 'fully calibrated" */
+    uint8_t system, gyro, accel, mag;
+    system = gyro = accel = mag = 0;
+    _bno.getCalibration(&system, &gyro, &accel, &mag);
+
+    /* The data should be ignored until the system calibration is > 0 */
+    DEBUG_print("\t");
+    if (!system)
+    {
+      DEBUG_print("! ");
+    }
+
+    /* Display the individual values */
+	sprintf(DEBUG_buffer,"Sys:%i G:%i A:%i M:%i\n", system, gyro, accel, mag);
+	DEBUG_print(DEBUG_buffer);
+	DEBUG_PORT.flush();
+}
+
+
+
 // updates heading even if data is not of sufficient quality
 // return = true: accurate data; false= low data quality
 bool Bearing_Monitor::updateHeading(){

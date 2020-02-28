@@ -57,6 +57,8 @@ public:
 
 	void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData);
 	void displayCalStatus(void);
+	void displayIMULow(void);
+
 	bool getCalibrationStatus(uint8_t &system);
 	bool getCalibrationStatus(void);
 

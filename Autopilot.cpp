@@ -167,7 +167,7 @@ void Macua_Autopilot::ComputeLongLoop() {
 	if (i++>LONG_LOOP) {
 		if (!updateHeading()) low_quality_data++;
 			if (low_quality_data>MAX_LOW_QDATA) {
-				DEBUG_print("!IMU Low\n");
+				displayIMULow();
 				low_quality_data=0;
 				setWarning(IMU_LOW);
 			}
