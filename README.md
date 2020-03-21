@@ -1,17 +1,29 @@
 # Fenix Autopilot
-## What is Fenix Autopilot?
-The goals of Fenix project are,
-- to develop and test a prototype of open-source DIY navigation system for mini-cruisers.  
-- to gather individual efforts to a joint solution.
-- get users to adopt the system into their own boats with minimum technical knowledge.
+Fenix Autopilot is an open-source DIY tiller pilot for small boats based on Arduino.
 
-## How to contribute?
-https://emacua.fandom.com/wiki/EMacua_Wiki
+<img alt="README-df951d2a.jpg" src="assets/README-df951d2a.jpg" width="" height="" >
+
+<img alt="README-ddf88130.jpg" src="assets/README-ddf88130.jpg" width="" height="" >
 
 ## Released versions
 - V0.1 Initial version
 
-## How to start?
+## User Guide
+https://spascual90.gitbook.io/fenix-autopilot/
+
+## How to contribute?
+Fenix Autopilot is an Open-source project. Source code can be found in Github,
+https://github.com/spascual90/Fenix
+
+Fenix Autopilot is developed in the frame of Fenix Project.
+The goals of Fenix project are,
+- to develop and test a prototype of open-source DIY navigation system for mini-cruisers.  
+- to gather individual efforts to a joint solution.
+- get users to adopt the system into their own boats with minimum technical knowledge.
+All information in Fenix Project can be found here,
+https://emacua.fandom.com/wiki/EMacua_Wiki
+
+## How to start with Fenix Autopilot?
 First of all integrate your hardware.
 If you are a user, upload the SW to Arduino, the App to mobile and configure your autopilot.
 
