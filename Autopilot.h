@@ -1,23 +1,24 @@
 /*
- * MacuaAutopilot.h
+ * Autopilot.h
  *
  *  Created on: 16 abr. 2017
  *      Author: Sergio
  */
 
-#ifndef MACUAAUTOPILOT_H_
-#define MACUAAUTOPILOT_H_
+#ifndef AUTOPILOT_H_
+#define AUTOPILOT_H_
 
 //DEBUG
 //#define VIRTUAL_ACTUATOR // When actuator is not installed, input from feedback is random. VIRTUAL_ACTUATOR set value to minimum.
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
-#define TXNMEA //Comment this line to stop periodic NMEA Transmission
+//#define TXNMEA //Comment this line to stop periodic NMEA Transmission
 
 // Buzzer PIN
 #define PIN_BUZZER 8
 
 #define MAX_APB_TIME 2000 // Maximum time of APB data validity
 #define LONG_LOOP 300 // Loops to update current course and target bearing
+#define LONG_LOOP_TIME 100
 #define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
 
 #include "ActuatorManager.h"
@@ -247,15 +248,15 @@ enum e_info {
 	} EE_address;
 
 //HARDCODED gain and installation parameters
-	static s_gain const HC_GAIN ={{8,0}, {0,5}, {1,0}};
+	static s_gain const HC_GAIN ={{8,0}, {0,15}, {1,0}};
 	static s_PIDgain_flag const HC_FLAG ={true, true, true} ;
 
 	static s_PIDgain const HC_PIDGAIN ={
 			true, //isValid
 			HC_GAIN,
 			HC_FLAG,true, true, // flag
-			1000, // sampleTime
-			MINDB} ; //DBConfig type
+			100, // sampleTime
+			AUTODB} ; //DBConfig type
 
 	static s_instParam const HC_INSTPARAM ={
 			true, //isValid
@@ -274,16 +275,16 @@ enum e_info {
 
 enum e_start_stop {CURRENT_HEADING, CURRENT_TARGET};
 
-class Macua_Autopilot: public ActuatorManager, public Bearing_Monitor {
+class Autopilot: public ActuatorManager, public Bearing_Monitor {
 
 public:
-	Macua_Autopilot(s_gain gain=HC_GAIN, int ControllerDirection=REVERSE, s_instParam ip= HC_INSTPARAM);
-	virtual ~Macua_Autopilot();
+	Autopilot(s_gain gain=HC_GAIN, int ControllerDirection=REVERSE, s_instParam ip= HC_INSTPARAM);
+	virtual ~Autopilot();
 
 	// FUNCTIONAL MODULE: WORKING MODES
 	e_setup_status setup();
 	e_working_status Compute();
-	void setCurrentMode(e_APmode);
+	bool setCurrentMode(e_APmode);
 	e_APmode getCurrentMode() const {
 		return _currentMode;
 	}
@@ -355,6 +356,7 @@ public:
 		EEsave_ReqCal(false); // Update Calibration Flag to disabled
 	}
 
+	bool reset_calibration(void);
 
 
 	//return delta value (-180, 179)
@@ -462,6 +464,21 @@ private:
 	e_warning _warning = NO_WARNING;
 	e_error _error = NO_ERROR;
 
+
+	void LongLoopReset() {
+		_DelayLongLoopStart = millis();
+	}
+
+	bool IsLongLooptime () {
+		// returns false if timer is ON and still RUNNING
+		// returns true if timer is OFF or is ON but arrived to the limit TIME
+		if ( (millis() -_DelayLongLoopStart) < LONG_LOOP_TIME ) {
+			return false;}
+		return true;
+	}
+
+	unsigned long _DelayLongLoopStart = millis();
+
 };
 
-#endif /* MACUAAUTOPILOT_H_ */
+#endif /* AUTOPILOT_H_ */

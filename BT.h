@@ -13,7 +13,7 @@
 class BT: public BTArq, public HMIArq {
 
 public:
-	BT(Macua_Autopilot*);
+	BT(Autopilot*);
 	virtual ~BT();
 
 
@@ -22,7 +22,7 @@ public:
 	void refresh();
 
 private:
-	Macua_Autopilot* MyPilot;
+	Autopilot* MyPilot;
 	void updateSpecialBT();
 	s_PIDgain_flag _k_change;
 

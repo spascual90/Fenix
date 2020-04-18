@@ -19,10 +19,12 @@ Bearing_Monitor::~Bearing_Monitor() {
 
 e_IMU_status Bearing_Monitor::setup(void){
 	_bno = Adafruit_BNO055(55);
-	if(!_bno.begin()) return NOT_DETECTED;
+	if(!_bno.begin(Adafruit_BNO055::OPERATION_MODE_NDOF)) return NOT_DETECTED;
 	IBIT();
 	return DETECTED;
 }
+
+
 
 
 void Bearing_Monitor::IBIT(){
@@ -34,6 +36,14 @@ void Bearing_Monitor::IBIT(){
 	DEBUG_PORT.flush();
 	//TODO: include routine to whait until bearing data is available (except calib IMU mode) While Sys<3 loop if not in x secs-->ask for calibration.
 }
+
+void Bearing_Monitor::reset_calibration () {
+	setup();
+	setSensorOffsets();
+	displaySensorOffsets();
+	BNO_GetCal(false);
+}
+
 
 // check=true performs complete initial calibration + check (system==3 required)
 // check=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
@@ -55,9 +65,12 @@ e_IMU_status Bearing_Monitor::BNO_GetCal(bool check){
 	            /* Display calibration status */
 	            displayCalStatus();
 
+
 	            /* Wait the specified delay before requesting new data */
 	            delay(100);
 	        }
+
+	    displaySensorOffsets();
 
 	 	// If System status is lower than 3, IMU does not provide data of enough quality for calibration
 		if (!calibrated) {
@@ -66,19 +79,17 @@ e_IMU_status Bearing_Monitor::BNO_GetCal(bool check){
 			return NOT_CALIBRATED; // Calibration time exceeded. Calibration failed
 		}
 
-        /* Display calibration status */
-       displayCalStatus();
-
-	    adafruit_bno055_offsets_t newCalib;
-	    _bno.getSensorOffsets(newCalib);
-
 	    DEBUG_print("\nCalibrated! Ok\n");
 	    // Heading value is not received until a slight movement is detected by IMU
-	    // Practicaly speaking this is not an issue, but some info is provided to user
+	    // PracticaLly speaking this is not an issue, but some info is provided to user
+	    _heading_isValid = false;
+	    DEBUG_print("Move slightly to start receiving IMU data\n");
 	    updateHeading();
-	    if (int(_heading)==0) DEBUG_print("Move slightly to start receiving IMU data\n");
 
 	    if (check) {
+	        adafruit_bno055_offsets_t newCalib;
+	 	    _bno.getSensorOffsets(newCalib);
+	    	setIniCalib(newCalib); // Defines these offsets as the initial ones
 	    	DEBUG_print("Calibration Results:\n");
 		    displaySensorOffsets(newCalib);
 			DEBUG_print("\nCheck Sensor Orientation:\n");
@@ -126,37 +137,27 @@ void Bearing_Monitor::displayCalStatus(void)
 	DEBUG_PORT.flush();
 }
 
-void Bearing_Monitor::displayIMULow(void)
-{
-    /* Get the four calibration values (0..3) */
-    /* Any sensor data reporting 0 should be ignored, */
-    /* 3 means 'fully calibrated" */
-    uint8_t system, gyro, accel, mag;
-    system = gyro = accel = mag = 0;
-    _bno.getCalibration(&system, &gyro, &accel, &mag);
-
-    /* The data should be ignored until the system calibration is > 0 */
-    DEBUG_print("\t");
-    if (!system)
-    {
-      DEBUG_print("! ");
-    }
-
-    /* Display the individual values */
-	sprintf(DEBUG_buffer,"Sys:%i G:%i A:%i M:%i\n", system, gyro, accel, mag);
-	DEBUG_print(DEBUG_buffer);
-	DEBUG_PORT.flush();
-}
 
 
 
 // updates heading even if data is not of sufficient quality
 // return = true: accurate data; false= low data quality
 bool Bearing_Monitor::updateHeading(){
-	bool calStatus = getCalibrationStatus();
+	bool calStatus = true;
+#ifdef SHIP_SIM
+	_heading = _SIMheading;
+	_heading_isValid = true;
+
+#else
+	calStatus = getCalibrationStatus();
 	// - VECTOR_EULER         - degrees
 	imu::Vector<3> euler = _bno.getVector(Adafruit_BNO055::VECTOR_EULER);
 	_heading = euler.x();
+
+    if  (!_heading_isValid) {
+    	if (int(_heading)!=0) _heading_isValid = true;
+    }
+#endif
 	return calStatus;
 }
 
@@ -176,6 +177,13 @@ bool Bearing_Monitor::getCalibrationStatus(uint8_t &system) {
 	return (gyro==3 and mag==3);// (system==3 and gyro==3 and mag==3);
 }
 
+void Bearing_Monitor::displaySensorOffsets()
+{
+	adafruit_bno055_offsets_t newCalib;
+	_bno.getSensorOffsets(newCalib);
+	displaySensorOffsets(newCalib);
+}
+
 void Bearing_Monitor::displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
 {
 
@@ -190,5 +198,23 @@ void Bearing_Monitor::displaySensorOffsets(const adafruit_bno055_offsets_t &cali
 	sprintf(DEBUG_buffer,"Mag Radius: %i\n",calibData.mag_radius);
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_PORT.flush();
+}
+
+//FUNCTIONAL MODULE:SHIP SIMULATOR
+void Bearing_Monitor::SIM_updateShip(int tillerAngle) {
+	static unsigned long DelayCalcStart = millis();
+
+	if ((millis() -DelayCalcStart) < deltaT) return;
+
+	//_SIMheading = 180; return;
+
+	float unstat= random(unstat0)-unstat0/2;
+	float alfa = (tillerAngle-unstat)*alfaMax/(sqrt(sq(float(tillerAngle-unstat))+softFactor));
+	_SIMheading = _SIMheading *intertia + (1-intertia)*(_SIMheading + deltaT * alfa);
+	_SIMheading = reduce360(_SIMheading);
+
+
+	DelayCalcStart = millis();
+
 }
 

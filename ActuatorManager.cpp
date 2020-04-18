@@ -14,8 +14,9 @@ ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int Controller
 
 	// Implement PID gain initial values
 	SetOutputLimits(getMinRudder(), getMaxRudder());
-	SetSampleTime(1000); //in millisecs //TODO: Allow user to change sample time
-	setSetpoint(0); // SPPrima =0 //TODO: If always 0 it is not necessary to update value...
+	//Default Sample Time is 100 millisecs //TODO: Allow user to change sample time
+	setSetpoint(0);
+	// SPPrima =0 //If always 0 it is not necessary to update value...
 
 	_KpIni = Kp;
 	_KiIni = Ki;
@@ -46,7 +47,14 @@ void ActuatorManager::setup(){
 }
 
 
-
+void ActuatorManager::SetMode(int Mode)
+{
+	//http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-initialization/
+	//Modifies initialization method.
+	_Output=0;
+	_Input=0;
+	PID_ext::SetMode(Mode);
+}
 
 void ActuatorManager::startAutoMode(){
 	//turn the PID on
@@ -87,33 +95,12 @@ int ActuatorManager::Compute(float setPoint, float processVariable) {
 }
 
 int ActuatorManager::Compute(float PIDerrorPrima) {
+		static float prevPIDerrorPrima = PIDerrorPrima;
 		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 		//setSetpoint(0); If always 0 it is not necessary to update value...
 		PID_ext::Compute();
 
 		dbt.calculateDBTrim(PIDerrorPrima, getCurrentRudder());
-
-/*#ifdef DEBUG_PORT
-		// deadband and trimming
-		static bool deadband, prev_deadband;
-		int l=8, d=2;
-		char c4[l+3];
-
-		deadband=dbt.getDeadband(PIDerrorPrima);
-		if (prev_deadband!=deadband) {
-			if (deadband) {
-				sprintf(DEBUG_buffer,"In deadband (HDG-CTS<%i). Trim: %s (Rudder:%i )\n", dbt.getDeadband(), dtostrf(dbt.getTrim(),l,d,c4), getCurrentRudder());
-				DEBUG_print();
-			}
-			if (!deadband) {
-				sprintf(DEBUG_buffer,"Out deadband (HDG-CTS>%i). Rudder:%i\n", dbt.getDeadband(), getCurrentRudder());
-				DEBUG_print(DEBUG_buffer);
-
-			}
-			DEBUG_PORT.flush();
-		}
-		prev_deadband=deadband;
-#endif*/
 
 		controlActuator (getOutput(), dbt.getDeadband(PIDerrorPrima), int(dbt.getTrim()));
 
@@ -185,11 +172,3 @@ void ActuatorManager::ResetTunings(){
 	SetTunings (_KpIni, _KiIni, _KdIni);
 }
 
-void ActuatorManager::SetMode(int Mode)
-{
-	//http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-initialization/
-	//Modifies initialization method.
-	_Output=0;
-	_Input=0;
-	PID_ext::SetMode(Mode);
-}

@@ -2,6 +2,8 @@
 #define PID_v1_h
 #define LIBRARY_VERSION	1.1.1
 
+//#include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
+
 class PID
 {
 

@@ -35,7 +35,7 @@
 class LCDKeyPad: public LCDKeyPadArq, public HMIArq {
 
 public:
-	LCDKeyPad(Macua_Autopilot*);
+	LCDKeyPad(Autopilot*);
 	virtual ~LCDKeyPad();
 	void setup();
 	void refresh();

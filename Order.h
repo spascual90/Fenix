@@ -5,7 +5,7 @@
 
 #include "GPSfix.h"
 
-#include "MacuaAutopilot.h"
+#include "Autopilot.h"
 
 /*
 // TYPES OF ORDER

@@ -31,13 +31,13 @@
 class IF_NMEA: public emcNMEA, public HMIArq {
 
 public:
-	IF_NMEA(Macua_Autopilot* Pilot);
+	IF_NMEA(Autopilot* Pilot);
 
 	//HMIArq I/F implementation
 	void setup();
 	void refresh();
-	void startTX();
-	void stopTX();
+	void startAllTX();
+	void stopAllTX();
 
 	//emcNMEA I/F implementation
 	float getDm() {	return MyPilot->getDm();}

@@ -7,7 +7,7 @@
 
 #include "HMIArq.h"
 
-HMIArq::HMIArq(Macua_Autopilot* Pilot){
+HMIArq::HMIArq(Autopilot* Pilot){
 	// TODO Auto-generated constructor stub
 	MyPilot = Pilot;
 

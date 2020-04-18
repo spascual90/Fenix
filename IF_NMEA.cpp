@@ -9,7 +9,7 @@
 
 #ifdef SERIAL_IF_AVAILABLE
 
- IF_NMEA::IF_NMEA(Macua_Autopilot* Pilot)
+ IF_NMEA::IF_NMEA(Autopilot* Pilot)
  :HMIArq(Pilot)
 {
 
@@ -54,15 +54,36 @@ void IF_NMEA::refresh(){
 	refresh_INorder ();
 
 #ifdef TXNMEA
+	bool fl = false;
 
 	if (IsTXtime() ) {
 		switch (MyPilot->getCurrentMode()) {
 		case STAND_BY:
 		case AUTO_MODE:
 		case TRACK_MODE:
-			printHDG(& gpsPort);
-			printHDM(& gpsPort);
+			if (MyPilot->isHeadingValid()) {
+				printHDG(& gpsPort);
+				printHDM(& gpsPort);
+
+			}
 			printRSA(& gpsPort);
+
+			break;
+		case CAL_IMU:
+			break;
+		case CAL_FEEDBACK:
+			break;
+		}
+		fl= true; //
+		TXReset();
+	}
+
+
+	if (IsTX1time() ) {
+		switch (MyPilot->getCurrentMode()) {
+		case STAND_BY:
+		case AUTO_MODE:
+		case TRACK_MODE:
 			printPEMC_03(& gpsPort);
 			printPEMC_05(& gpsPort);
 			printPEMC_07(& gpsPort);
@@ -72,19 +93,22 @@ void IF_NMEA::refresh(){
 		case CAL_FEEDBACK:
 			break;
 		}
-		gpsPort.flush();
-		TXReset();
+		fl= true;
+		TX1Reset();
 	}
+
+	if (fl) gpsPort.flush();
 
 #endif
 }
 
-void IF_NMEA::startTX(){
+void IF_NMEA::startAllTX(){
 	gpsPort.flush();
 	TXReset();
+	TX1Reset();
 }
 
-void IF_NMEA::stopTX(){
+void IF_NMEA::stopAllTX(){
 	gpsPort.flush();
 }
 

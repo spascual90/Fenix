@@ -1,5 +1,10 @@
 //header TODO
 
+// v0.1 - Initial Beta
+// V0.2
+// PWM and DIR PIN changed to ensure compatibility with LCDKeyPad
+
+
 #include <Arduino.h>
 
 // Comment any IF not implemented. Activating an IF without HW device installed will cause unexpected effects
@@ -24,10 +29,10 @@
 
 #endif
 
-#include "MacuaAutopilot.h"
+#include "Autopilot.h"
 
 // INSTANTIATE OBJECTS
-Macua_Autopilot MyPilot;
+Autopilot MyPilot;
 
 #ifdef HMI_LCDKEYPAD
 LCDKeyPad MyLCDKP(&MyPilot);
@@ -49,6 +54,7 @@ static void NMEAisr( uint8_t c )
 
 void setup()
 {
+
 	// Setup NMEA IF if defined
 #ifdef SERIAL_IF_AVAILABLE
 	parserNMEA.setup();
@@ -82,8 +88,8 @@ void setup()
 
 
 #ifdef SERIAL_IF_AVAILABLE
-    //Start transmission of NMEA messages
-    parserNMEA.startTX();
+    //Start transmission of NMEA/PEMC messages
+    parserNMEA.startAllTX();
 #endif
 
 }
@@ -110,7 +116,6 @@ void loop()
 	// New pilot iteration
 	if (MyPilot.Compute() == RUNNING_ERROR) {
 
-		//DEBUG_PORT.println( F("PILOT ERROR") );
 
 		// pilot error. Turn light on and beep
 		#ifdef HMI_LCDKEYPAD

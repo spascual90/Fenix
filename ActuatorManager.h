@@ -49,8 +49,6 @@ public:
 	int controlActuator (int target, bool deadband = false, int trim = 0);
 	void ResetTunings();
 
-	void SetMode(int Mode);
-
 	double getOutput() const {
 		return _Output;
 	}
@@ -106,6 +104,7 @@ private:
 	//Installation side
 	type_instSide _installation_side = STARBOARD;
 
+	void SetMode(int Mode);
 
 
 };

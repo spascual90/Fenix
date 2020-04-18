@@ -18,7 +18,7 @@
 enum e_operation {OP_ADD, OP_DEC, OP_MULT, OP_DIV};
 enum e_requestStatus {NO_USER_REQUEST, WAITING_USER_ANSWER, USER_ACCEPTED, USER_REJECTED, REQUEST_TIME_OUT};
 
-#include "MacuaAutopilot.h"
+#include "Autopilot.h"
 
 static e_requestStatus _requestStatus = NO_USER_REQUEST; // There is a request to user for confirmation to change Waypoint
 //static char _requestDestID[5] ={'-','-','-','-','\0'}; // current request is associated to this WPID TODO: Avoid confirmation of wrong WPID
@@ -27,7 +27,7 @@ static double _requestTime =0; // time when request was launched
 class HMIArq {
 
 public:
-	HMIArq(Macua_Autopilot*);
+	HMIArq(Autopilot*);
 	virtual ~HMIArq();
 
 	//Library I/F
@@ -35,7 +35,7 @@ public:
 	virtual void refresh() = 0;
 
 protected:
-	Macua_Autopilot* MyPilot;
+	Autopilot* MyPilot;
 	void Start_Stop(e_start_stop type=CURRENT_HEADING);
 	void Set_TrackMode(s_APB APB);
 	void Inc_Rudder_1();

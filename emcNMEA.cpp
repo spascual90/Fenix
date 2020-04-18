@@ -1065,7 +1065,18 @@ bool emcNMEA::IsTXtime () {
 	return true;
 }
 
+void emcNMEA::TX1Reset() {
+	_TX1=true;
+	_DelayTX1Start = millis();
+}
 
+bool emcNMEA::IsTX1time () {
+	// returns false if timer is ON and still RUNNING
+	// returns true if timer is OFF or is ON but arrived to the limit TIME
+	if ( !_TX1 or ( (millis() -_DelayTX1Start) < DELAY_TX1_TIME) ) {
+		return false;}
+	return true;
+}
 
 
 

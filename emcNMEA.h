@@ -15,7 +15,7 @@
 #include "GPSport.h"
 
 # define DELAY_TX_TIME 1000 // period of NMEA transmission in millisecs (1000 = 1sec)
-
+# define DELAY_TX1_TIME 5000 // period of PEMC transmission in millisecs (5000 = 3sec)
 
 //------------------------------------------------------------
 // Enable/disable the parsing of specific proprietary NMEA sentences.
@@ -91,8 +91,12 @@ protected:
     bool parseWPID( char * WPID, char chr );//WP ID: Up to 4 characters, rest ignored.
     bool parseFloat ( whole_frac & val, char chr, uint8_t max_decimal );
     bool parseFloat ( whole_frac & val, char chr, uint8_t max_decimal, bool & field_informed );
+    //Timer
     void TXReset(void);
     bool IsTXtime (void);
+    //Timer#1
+    void TX1Reset(void);
+    bool IsTX1time (void);
 
     enum EXT_msg_t {
     	PEMC_00 = NMEA_LAST_MSG+1, // SWITCH_MODE
@@ -173,8 +177,13 @@ protected:
 
 
 private:
+    //TIMER
 	bool _TX=false;
 	unsigned long _DelayTXStart = millis();
+
+    //TIMER#1
+	bool _TX1=false;
+	unsigned long _DelayTX1Start = millis();
 
 } ;
 

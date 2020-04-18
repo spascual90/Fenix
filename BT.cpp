@@ -6,7 +6,7 @@
 
 #include "BT.h"
 
- BT::BT(Macua_Autopilot* Pilot)
+ BT::BT(Autopilot* Pilot)
  :HMIArq(Pilot)
 {
 	// TODO Auto-generated constructor stub
@@ -48,7 +48,8 @@ void BT::refresh() {
 	float M[MAX_AI], temp=0;
 
 	//Float Virtual PIN
-	M[AI_HEADING] = MyPilot->getCurrentHeading();
+	M[AI_HEADING] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeading():888);
+	//M[AI_HEADING] = MyPilot->getCurrentHeading();
 	M[AI_TARGET] = MyPilot->getTargetBearing();
 	M[AI_DELTA] = MyPilot->getInput();
 	M[AI_RUDDER] = MyPilot->getCurrentRudder();

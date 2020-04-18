@@ -92,11 +92,27 @@ void PID::SetTunings(double Kp, double Ki, double Kd)
  
    dispKp = Kp; dispKi = Ki; dispKd = Kd;
    
+//	int l=8, d=2;
+//	char c4[l+3];
+//	char c5[l+3];
+//
+//	sprintf(DEBUG_buffer,"SetTunings.input. Ki: %s\n", dtostrf(Ki,l,d,c4));
+//	DEBUG_print();
+//	sprintf(DEBUG_buffer,"SetTunings. dispKi: %s\n", dtostrf(dispKi,l,d,c5));
+//	DEBUG_print();
+//	DEBUG_PORT.flush();
+
+
    double SampleTimeInSec = ((double)SampleTime)/1000;  
    kp = Kp;
    ki = Ki * SampleTimeInSec;
    kd = Kd / SampleTimeInSec;
- 
+
+//	sprintf(DEBUG_buffer,"SetTunings.output. Ki: %s\n", dtostrf(dispKi,l,d,c5));
+//	DEBUG_print();
+//	DEBUG_PORT.flush();
+
+
   if(controllerDirection ==REVERSE)
    {
       kp = (0 - kp);

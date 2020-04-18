@@ -8,6 +8,8 @@
 #ifndef BEARINGMONITOR_H_
 #define BEARINGMONITOR_H_
 
+#define SHIP_SIM // Simulates boat to tune PID
+
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 #include <EEPROM.h>
@@ -36,10 +38,23 @@ public:
 		return Calib;
 	}
 
+
+	void setSensorOffsets(void) {
+		setSensorOffsets(_iniCalib);
+	}
+
 	void setSensorOffsets(adafruit_bno055_offsets_t Calib) {
+		_bno.setExtCrystalUse(false);// TEST
 		_bno.setSensorOffsets(Calib);
 		_bno.setExtCrystalUse(true);
 	}
+
+	void setIniCalib (adafruit_bno055_offsets_t iniCalib) {
+		_iniCalib = iniCalib;
+		setSensorOffsets();
+
+	}
+
 
 	int8_t const getTemp() {
 		/* returns the current temperature */
@@ -55,9 +70,9 @@ public:
 
 	e_IMU_status BNO_GetCal(bool wCheck = false);
 
+	void displaySensorOffsets(void);
 	void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData);
 	void displayCalStatus(void);
-	void displayIMULow(void);
 
 	bool getCalibrationStatus(uint8_t &system);
 	bool getCalibrationStatus(void);
@@ -99,13 +114,21 @@ public:
     	return fmod (value, 360.0);
     }
 
+	bool isHeadingValid() const {
+		return _heading_isValid;
+	}
 
 protected:
     e_IMU_status setup(void);
     bool updateHeading();
+    void reset_calibration (void);
+	//FUNCTIONAL MODULE:SHIP SIMULATOR
+	void SIM_updateShip(int tillerAngle);
+
 
 private:
 	Adafruit_BNO055 _bno;
+	adafruit_bno055_offsets_t _iniCalib; // Calibration offsets after recalibration process is OK
 	void IBIT();
 	float _roll=0;
 	float _pitch=0;
@@ -114,6 +137,16 @@ private:
 	float _headingDev=0;
 	float _dm = 0; // Magnetic variation
 
+	bool _heading_isValid = false;
+
+
+	//FUNCTIONAL MODULE:SHIP SIMULATOR
+	float _SIMheading =0;
+	int unstat0= 200;//	ddeg
+	float alfaMax = 0.048;//	deg/mseg
+	unsigned long deltaT=100;//	mseg
+	float softFactor =10000;
+	float intertia = 0;
 };
 
 

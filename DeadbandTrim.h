@@ -15,11 +15,11 @@
 
 // Period definition
 #define DELAY_SAMPLING_PERIOD 1000 //mSec long period for evaluation
-#define NUMBER_SAMPLING 30 // number of iterations within long period for evaluation
+#define NUMBER_SAMPLING 10 // number of iterations within long period for evaluation
 
-#define VALUE_MAXDB 25
+#define VALUE_MAXDB 15
 #define VALUE_MINDB 5
-#define VALUE_MAXTRIM 25
+#define VALUE_MAXTRIM 15
 
 typedef enum type_DBConfig {MAXDB, MINDB, AUTODB} type_DBConfig;
 typedef enum type_trimConfig {TRIM_OFF, TRIM_AUTO} type_trimConfig;

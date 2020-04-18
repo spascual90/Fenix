@@ -7,7 +7,7 @@
 
 #include "LCDKeyPad.h"
 
-LCDKeyPad::LCDKeyPad(Macua_Autopilot* Pilot)
+LCDKeyPad::LCDKeyPad(Autopilot* Pilot)
 :HMIArq(Pilot)
 {
 	// TODO Auto-generated constructor stub

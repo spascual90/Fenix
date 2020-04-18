@@ -8,6 +8,7 @@
 #include "DeadbandTrim.h"
 #include <Arduino.h>
 
+#define DB_FACTOR 3
 
 DeadbandTrim::DeadbandTrim(type_DBConfig DBConfigStatus, type_trimConfig trimConfigStatus) {
 	setDBConf(DBConfigStatus);
@@ -31,15 +32,6 @@ bool DeadbandTrim::getDeadband(int angle) {
 }
 
 int DeadbandTrim::getDeadband() {
-	switch (_DBConfig) {
-	case MINDB:
-		return VALUE_MINDB;
-	case MAXDB:
-		return VALUE_MAXDB;
-	case AUTODB:
-		if (_deadBand<VALUE_MINDB) return VALUE_MINDB;
-		if (_deadBand>VALUE_MAXDB) return VALUE_MAXDB;
-	}
 	return _deadBand;
 }
 
@@ -90,19 +82,40 @@ int DeadbandTrim::calculateDBTrim(float PIDerrorPrima, float rudder){
 
 		if (_n==NUMBER_SAMPLING) {
 			// Update DB and trimm
-			//sprintf(buffer,"corr,stdY=%s,%s\n",dtostrf(_lr->correlation(),l,d,c3), dtostrf(_lr->getstdY(),l,d,c4));
-			//DEBUG_print(buffer);
-			//DEBUG_PORT.flush();
+			int l=8, d=2;
+			char c3[l+3];
+			char c4[l+3];
+			sprintf(DEBUG_buffer,"corr,stdY=%s,%s\n",dtostrf(_lr->correlation(),l,d,c3), dtostrf(DB_FACTOR *_lr->getstdY(),l,d,c4));
+			DEBUG_print();
+			DEBUG_PORT.flush();
 
 			//Update deadband value
-			_deadBand = _lr->getstdY();
+			double temp_deadBand = DB_FACTOR *_lr->getstdY();
+
+			switch (_DBConfig) {
+			case MINDB:
+				_deadBand = VALUE_MINDB;
+				break;
+			case MAXDB:
+				_deadBand = VALUE_MAXDB;
+				break;
+			case AUTODB:
+				if (temp_deadBand<VALUE_MINDB) {
+					_deadBand = VALUE_MINDB;
+				} else if (temp_deadBand>VALUE_MAXDB) {
+					_deadBand = VALUE_MAXDB;
+				} else {
+					_deadBand = temp_deadBand;
+				}
+				break;
+			}
 
 			// Restart calculations: new line
 			StartSampling();
 		}
 	}
 
-	return getDeadband();
+	return _deadBand;
 }
 
 void DeadbandTrim::trimLearn (float PIDerrorPrima, float rudder) {
