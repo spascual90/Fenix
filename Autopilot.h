@@ -17,8 +17,7 @@
 #define PIN_BUZZER 8
 
 #define MAX_APB_TIME 2000 // Maximum time of APB data validity
-#define LONG_LOOP 300 // Loops to update current course and target bearing
-#define LONG_LOOP_TIME 100
+#define LONG_LOOP_TIME 100 // Loops to update current course and target bearing
 #define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
 
 #include "ActuatorManager.h"
@@ -73,8 +72,8 @@ enum e_info {
 		int32_t int32_000() const { return whole * 1000L + frac; };
 		float float_00() const { return ((float)whole) + ((float)frac)*0.01; };
 		float float_000() const { return ((float)whole) + ((float)frac)*0.001; };
-		whole_frac*  Towf_00(float number) {this->whole=(int)number; this->frac=(int) ((number-this->whole)*100);return this;};
-		whole_frac*  Towf_000(float number) {this->whole=(int)number; this->frac=(int) ((number-this->whole)*1000);return this;};
+		whole_frac*  Towf_00(float number) {this->whole=(int)number; this->frac=(int) (number*float(100))-(this->whole*100);return this;};
+		whole_frac*  Towf_000(float number) {this->whole=(int)number; this->frac=(int) (number*1000-this->whole*1000);return this;};
 
 	} ;
 

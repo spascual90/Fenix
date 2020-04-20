@@ -10,6 +10,14 @@ PID_ext::PID_ext(double* Input, double* Output, double* Setpoint,
 
 
 // overwrite
+void PID_ext::SetTunings(double Kp, double Ki, double Kd) {
+	Kp = round(Kp*100)/100.0;
+	Ki = round(Ki*100)/100.0;
+	Kd = round(Kd*100)/100.0;
+	PID::SetTunings(Kp, Ki, Kd);
+}
+
+
 bool PID_ext::Compute()
 {
    if(!inAuto) return false;

@@ -15,7 +15,7 @@ class PID_ext : public PID {
                                           //   calculation frequency can be set using SetMode
                                           //   SetSampleTime respectively
 
-	
+    void SetTunings(double Kp, double Ki, double Kd);
     //MODIFIED SPM
     unsigned long GetSampleTime();
     //END SPM MODIF

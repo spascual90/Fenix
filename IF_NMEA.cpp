@@ -18,6 +18,7 @@
 void IF_NMEA::setup(){
 	int l=8, d=2;
 	char c4[l+3];
+
 #ifdef DEBUG_PORT
 	DEBUG_PORT.begin(9600);
 	while (!DEBUG_PORT)
@@ -183,7 +184,7 @@ void IF_NMEA::refresh_INorder() {
 			// FLAGS SOLO SE ACTUALIZAN CON K*, para DBConfig no es necesario porque es el último campo del mensaje y funciona
 			Change_PID(INorder.PIDgain.flag.gain, INorder.PIDgain.gain);
 			setDBConf (INorder.PIDgain.DBConfig);
-			// TODO: Implementar para change PID time.
+			// Change PID time--> Not allowed as may impact in pilot performance
 			printPEMC_05(& gpsPort);
 			break;
 

@@ -59,13 +59,6 @@ bool PID::Compute()
       else if(ITerm < outMin) ITerm= outMin;
       double dInput = (input - lastInput);
 
-      /*Compute PID Output*/
-      // SPM INI
-      //_kpContrib = kp * error;
-      //_kdContrib = -kd * dInput;
-
-      //double output = _kpContrib + ITerm + _kdContrib;
-      // SPM FIN
       double output = kp * error + ITerm -kd * dInput;
 	  if(output > outMax) output = outMax;
       else if(output < outMin) output = outMin;
@@ -91,27 +84,13 @@ void PID::SetTunings(double Kp, double Ki, double Kd)
    if (Kp<0 || Ki<0 || Kd<0) return;
  
    dispKp = Kp; dispKi = Ki; dispKd = Kd;
-   
-//	int l=8, d=2;
-//	char c4[l+3];
-//	char c5[l+3];
-//
-//	sprintf(DEBUG_buffer,"SetTunings.input. Ki: %s\n", dtostrf(Ki,l,d,c4));
-//	DEBUG_print();
-//	sprintf(DEBUG_buffer,"SetTunings. dispKi: %s\n", dtostrf(dispKi,l,d,c5));
-//	DEBUG_print();
-//	DEBUG_PORT.flush();
+
 
 
    double SampleTimeInSec = ((double)SampleTime)/1000;  
    kp = Kp;
    ki = Ki * SampleTimeInSec;
    kd = Kd / SampleTimeInSec;
-
-//	sprintf(DEBUG_buffer,"SetTunings.output. Ki: %s\n", dtostrf(dispKi,l,d,c5));
-//	DEBUG_print();
-//	DEBUG_PORT.flush();
-
 
   if(controllerDirection ==REVERSE)
    {

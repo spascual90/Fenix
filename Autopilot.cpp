@@ -8,7 +8,7 @@
 #include "Autopilot.h"
 
 Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
- : ActuatorManager(gain.Kp.float_000(), gain.Ki.float_000(), gain.Kd.float_000(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback) //maxRudder is the min/max value for PID as well.
+ : ActuatorManager(gain.Kp.float_00(), gain.Ki.float_00(), gain.Kd.float_00(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback) //maxRudder is the min/max value for PID as well.
  , Bearing_Monitor ( ip.headAlign.float_00() )
 {
 	//SET HARDCODED INSTALATION PARAMETERS
@@ -187,15 +187,21 @@ bool Autopilot::setCurrentMode(e_APmode newMode = STAND_BY) {
 
 void Autopilot::ComputeLongLoop() {
 	static int low_quality_data=0;
-	bool rt;
-
+//	static int a=0;
 	// Once each XX loops: Update current course and target bearing (in track mode). Stores value for later use.
-//	if (i++>LONG_LOOP) {
 	if (IsLongLooptime ()) {
 		// 						DARK BLUE 	Target CTS
 		//						LIGHT BLUE 	Current HDG
 		//						GRAY		Current rudder
-		//plot3(DEBUG_PORT, getTargetBearing(),getCurrentHeading(),getCurrentRudder());
+//		a++;
+//		if (a==10) {
+//			int TB = int(getTargetBearing());
+//			int CB = int(getCurrentHeading());
+//		plot2(DEBUG_PORT, TB, CB);
+//		DEBUG_PORT.print("\n");
+//		a=0;
+//		}
+
 
 		if (!updateHeading()) low_quality_data++;
 			if (low_quality_data>MAX_LOW_QDATA) {
@@ -404,9 +410,9 @@ bool Autopilot::Change_instParam (s_instParam instParam) {
 }
 
 void Autopilot::Request_PIDgain(s_PIDgain & PIDgain) {
-	PIDgain.gain.Kp.Towf_00(GetKp());
-	PIDgain.gain.Ki.Towf_00(GetKi());
-	PIDgain.gain.Kd.Towf_00(GetKd());
+	PIDgain.gain.Kp.Towf_00(float(GetKp()));
+	PIDgain.gain.Ki.Towf_00(float(GetKi()));
+	PIDgain.gain.Kd.Towf_00(float(GetKd()));
 	PIDgain.sTime= GetSampleTime();
 	PIDgain.DBConfig = dbt.getDBConf();
 	PIDgain.flag = {{true, true, true}, true, true};
@@ -432,6 +438,7 @@ void Autopilot::buzzer_setup() {
 void Autopilot::buzzer_IBIT() {
 	sprintf(DEBUG_buffer,"Buzzer test on PIN %i ...\n", get_PIN_BUZZER());
 	DEBUG_print();
+
 	// Performs an initial test of the buzzer
 	buzzer_tone(1000); // Send 1KHz sound signal...
 	delay(1000);        // ...for 1 sec
@@ -526,7 +533,7 @@ void Autopilot::EEPROM_setup() {
 		DEBUG_print("WARNING: Could not load parameters: Restoring default.\n");
 		setWarning (EE_INSTPARAM_NOTFOUND);
 		//Restore HARDCODED parameters but don't save!
-		SetTunings(HC_GAIN.Kp.float_000(), HC_GAIN.Ki.float_000(), HC_GAIN.Kd.float_000());
+		SetTunings(HC_GAIN.Kp.float_00(), HC_GAIN.Ki.float_00(), HC_GAIN.Kd.float_00());
 		Change_instParam (HC_INSTPARAM);
 	}
 }
@@ -660,15 +667,6 @@ bool Autopilot::EEsave_PIDgain(bool HC){
 		DEBUG_print("Restored manufacturer values.");
 	} else {
 		Request_PIDgain(PIDgain);
-
-//		sprintf(DEBUG_buffer,"Kp: %i.%i\n",PIDgain.gain.Kp.whole, PIDgain.gain.Kp.frac);
-//		DEBUG_print(DEBUG_buffer);
-//		sprintf(DEBUG_buffer,"Ki: %i.%i\n",PIDgain.gain.Ki.whole, PIDgain.gain.Ki.frac);
-//		DEBUG_print(DEBUG_buffer);
-//		sprintf(DEBUG_buffer,"Kd: %i.%i\n",PIDgain.gain.Kd.whole, PIDgain.gain.Kd.frac);
-//		DEBUG_print(DEBUG_buffer);
-//		DEBUG_PORT.flush();
-
 	}
     EEPROM.put(eeAddress, PIDgain);
     //TODO: implement CRC
@@ -688,17 +686,10 @@ bool Autopilot::EEload_PIDgain (void){
 			PIDgain.flag.DBConfig &&
 			PIDgain.flag.sTime &&
 			PIDgain.flag.gain.Kp && PIDgain.flag.gain.Ki && PIDgain.flag.gain.Kd;
+
 	if (Loaded) {
-
-//		sprintf(DEBUG_buffer,"Kp: %i.%i\n",PIDgain.gain.Kp.whole, PIDgain.gain.Kp.frac);
-//		DEBUG_print(DEBUG_buffer);
-//		sprintf(DEBUG_buffer,"Ki: %i.%i\n",PIDgain.gain.Ki.whole, PIDgain.gain.Ki.frac);
-//		DEBUG_print(DEBUG_buffer);
-//		sprintf(DEBUG_buffer,"Kd: %i.%i\n",PIDgain.gain.Kd.whole, PIDgain.gain.Kd.frac);
-//		DEBUG_print(DEBUG_buffer);
-//		DEBUG_PORT.flush();
-
-		SetTunings(PIDgain.gain.Kp.float_000(), PIDgain.gain.Ki.float_000(), PIDgain.gain.Kd.float_000());
+		SetTunings(PIDgain.gain.Kp.float_00(), PIDgain.gain.Ki.float_00(), PIDgain.gain.Kd.float_00());
+		setDBConf(PIDgain.DBConfig);
 	}
 
 	return Loaded;

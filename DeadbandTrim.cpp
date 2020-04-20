@@ -82,12 +82,12 @@ int DeadbandTrim::calculateDBTrim(float PIDerrorPrima, float rudder){
 
 		if (_n==NUMBER_SAMPLING) {
 			// Update DB and trimm
-			int l=8, d=2;
-			char c3[l+3];
-			char c4[l+3];
-			sprintf(DEBUG_buffer,"corr,stdY=%s,%s\n",dtostrf(_lr->correlation(),l,d,c3), dtostrf(DB_FACTOR *_lr->getstdY(),l,d,c4));
-			DEBUG_print();
-			DEBUG_PORT.flush();
+//			int l=8, d=2;
+//			char c3[l+3];
+//			char c4[l+3];
+//			sprintf(DEBUG_buffer,"corr,stdY=%s,%s\n",dtostrf(_lr->correlation(),l,d,c3), dtostrf(DB_FACTOR *_lr->getstdY(),l,d,c4));
+//			DEBUG_print();
+//			DEBUG_PORT.flush();
 
 			//Update deadband value
 			double temp_deadBand = DB_FACTOR *_lr->getstdY();
