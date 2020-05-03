@@ -113,6 +113,10 @@ e_working_status Autopilot::Compute() {
 
 	// Once each XXX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	ComputeLongLoop();
+
+	// Play buzzer if required
+	buzzer_play();
+
 	// Updates current rudder just once each loop. Stores value for later use.
 	if (updateCurrentRudder()<0) return RUNNING_ERROR;
 
@@ -203,18 +207,24 @@ void Autopilot::ComputeLongLoop() {
 //		}
 
 
-		if (!updateHeading()) low_quality_data++;
+		if (updateHeading()) {
+			if (getWarning()==IMU_LOW) setWarning(NO_WARNING);
+		} else {
+			low_quality_data++;
+
 			if (low_quality_data>MAX_LOW_QDATA) {
 				reset_calibration();
 				low_quality_data=0;
 			}
-			if (_currentMode == TRACK_MODE) {
-				if (checkAPBTimeout()) {
-					setCurrentMode(STAND_BY);
-				} else {
-					setTargetBearing(_APB.CTS.float_00());
-				}
+		}
+
+		if (_currentMode == TRACK_MODE) {
+			if (checkAPBTimeout()) {
+				setCurrentMode(STAND_BY);
+			} else {
+				setTargetBearing(_APB.CTS.float_00());
 			}
+		}
 		LongLoopReset();
 	}
 
@@ -259,6 +269,8 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 		OCA_Compute (0); //Stop off-course alarm if active
 		break;
 	}
+
+
 	return true;
 }
 
@@ -336,12 +348,12 @@ void Autopilot::SetTunings(double Kp, double Ki, double Kd) {
 }
 
 int Autopilot::changeRudder(int delta_rudder) {
-	int ret;
+	int ret =0;
 	e_dir dir;
 	switch (getCurrentMode()) {
 	case CAL_FEEDBACK:
 		dir=(delta_rudder>0?EXTEND:RETRACT);
-		cal_FBK_move(dir);
+		ret = cal_FBK_move(dir);
 		break;
 	case CAL_IMU:
 		break;
@@ -350,6 +362,7 @@ int Autopilot::changeRudder(int delta_rudder) {
 		ret = ActuatorManager::changeRudder(delta_rudder);
 	break;
 	}
+
 	return ret;
 }
 
@@ -433,61 +446,76 @@ void Autopilot::buzzer_setup() {
 #endif
 }
 
-#ifdef BUZZER
 // Initial buzzer test
 void Autopilot::buzzer_IBIT() {
 	sprintf(DEBUG_buffer,"Buzzer test on PIN %i ...\n", get_PIN_BUZZER());
 	DEBUG_print();
 
 	// Performs an initial test of the buzzer
-	buzzer_tone(1000); // Send 1KHz sound signal...
-	delay(1000);        // ...for 1 sec
-	buzzer_noTone();     // Stop sound...
+	tone(PIN_BUZZER, 1000, 1000); // Send 1KHz sound signal...
 }
-#endif
 
 // Error: buzzer sound
 void Autopilot::buzzer_Error() {
-#ifdef BUZZER
-	  buzzer_tone(2000); // Send 1KHz sound signal...
-	  delay(1000);        // ...for 1 sec
-	  buzzer_noTone();     // Stop sound...
-#endif
+	buzzer_tone_start (2000, 40);
 }
 
 void Autopilot::buzzer_Warning() {
-#ifdef BUZZER
-	  buzzer_tone(1000); // Send 1KHz sound signal...
-	  delay(500);        // ...for 1 sec
-	  buzzer_tone(100); // Send 1KHz sound signal...
-	  delay(500);        // ...for 1 sec
-	  buzzer_tone(1000); // Send 1KHz sound signal...
-	  buzzer_noTone();     // Stop sound...
-	  buzzer_tone(100); // Send 1KHz sound signal...
-	  delay(500);        // ...for 1 sec
-
-	  #endif
+	buzzer_tone_start (2000, 20);
 }
 
 void Autopilot::buzzer_Information() {
+	buzzer_tone_start (1000, 20);
+}
+
+void Autopilot::buzzer_Beep() {
+	buzzer_tone_start (1000, 1);
+}
+
+
+
+// frequency -->Frequency of the sound
+// duration--> Number of periods playing sound. Maximum 1023 (250 seg aprox)
+
+void Autopilot::buzzer_tone_start (unsigned long frequency, int duration) {
 #ifdef BUZZER
-	  buzzer_tone(2000); // Send 1KHz sound signal...
-	  delay(1000);        // ...for 1 sec
-	  buzzer_noTone();     // Stop sound...
+	_buzzFrec = frequency;
+	_buzzDur = duration;
+	BuzzReset();
 #endif
 }
 
 void Autopilot::buzzer_noTone() {
 #ifdef BUZZER
 	noTone(PIN_BUZZER);
+	_Buzz=false; // Stop buzzer
 #endif
 }
 
-void Autopilot::buzzer_tone (unsigned long duration) {
-#ifdef BUZZER
-	tone(PIN_BUZZER, duration); // Send 1KHz sound signal...
-#endif
+void Autopilot::buzzer_play() {
+	if (_Buzz) { // If buzzer is on
+		tone(PIN_BUZZER, _buzzFrec); // Send sound signal
+
+		if (IsBuzzTime()) { //End of period?
+			BuzzReset();
+			if ((_buzzDur--)<0) buzzer_noTone(); //End of sound condition?
+		}
+	}
 }
+
+void Autopilot::BuzzReset() {
+	_Buzz=true;
+	_DelayBuzzStart = millis();
+}
+
+bool Autopilot::IsBuzzTime () {
+	// returns false if timer is ON and still RUNNING
+	// returns true if timer is OFF or is ON but arrived to the limit TIME
+	if ( !_Buzz or ( (millis() -_DelayBuzzStart) < DELAY_BUZZBEAT_TIME) ) {
+		return false;}
+	return true;
+}
+
 
 // OUT OF COURSE ALARM FUNCTIONAL MODULE
 //arguments: delta - angle (-180, 179) to be compared against off course alarm angle.
@@ -516,7 +544,7 @@ bool Autopilot::OCA_Compute (float delta) {
 
 	if (_offCourseAlarmActive == false and (millis()-sd_offCourseStartTime)>_offCourseMaxTime) {
 		_offCourseAlarmActive = true;
-		buzzer_tone(1000);// time exceeded: activate alarm!
+		buzzer_tone_start (1000, 1023);
 	}
 
 	return _offCourseAlarmActive;

@@ -53,7 +53,7 @@ protected:
 	void setup();
 
 	//Feedback Calibration
-	void cal_FBK_move(e_dir dir);
+	int cal_FBK_move(e_dir dir);
 
 private:
 	e_dir _currentDirection= EXTEND; // EXTEND or RETRACT

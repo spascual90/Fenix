@@ -11,11 +11,12 @@
 //DEBUG
 //#define VIRTUAL_ACTUATOR // When actuator is not installed, input from feedback is random. VIRTUAL_ACTUATOR set value to minimum.
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
-//#define TXNMEA //Comment this line to stop periodic NMEA Transmission
+#define TXNMEA //Comment this line to stop periodic NMEA Transmission
 
 // Buzzer PIN
 #define PIN_BUZZER 8
 
+#define DELAY_BUZZBEAT_TIME 50 // Buzzer beat time in msec.
 #define MAX_APB_TIME 2000 // Maximum time of APB data validity
 #define LONG_LOOP_TIME 100 // Loops to update current course and target bearing
 #define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
@@ -333,6 +334,8 @@ public:
 	void buzzer_Error();
 	void buzzer_Warning();
 	void buzzer_Information();
+	void buzzer_Beep();
+
 	const s_APB& getAPB() const {
 		return _APB;
 	}
@@ -396,7 +399,7 @@ public:
 		_warning = warning;
 		sprintf(DEBUG_buffer,"!WARNING Code: %i\n", _warning);
 		DEBUG_print();
-		//buzzer_Warning();
+		if (warning!=NO_WARNING) buzzer_Warning();
 	}
 
 	e_info getInformation() const {
@@ -407,7 +410,7 @@ public:
 		_information = information;
 		sprintf(DEBUG_buffer,"!INFORMATION Code: %i\n", _information);
 		DEBUG_print();
-		//buzzer_Information();
+		if (information!=NO_MESSAGE) buzzer_Information();
 
 	}
 
@@ -442,7 +445,16 @@ private:
 	void buzzer_IBIT();
 	int get_PIN_BUZZER() {return PIN_BUZZER;}
 	void buzzer_noTone();
-	void buzzer_tone (unsigned long duration);
+	void buzzer_tone_start (unsigned long frequency=1000, int duration=0);
+	void buzzer_play();
+	unsigned long _buzzFrec = 1000;
+	int _buzzDur = 0;
+	void BuzzReset(void);
+	bool IsBuzzTime (void);
+	bool _Buzz=false;
+	unsigned long _DelayBuzzStart = millis();
+
+
 
 	// FUNCTIONAL MODULE: OFF COURSE ALARM
 	uint8_t _offCourseAlarm; // off course alarm angle

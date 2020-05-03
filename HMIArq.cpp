@@ -19,26 +19,11 @@ HMIArq::~HMIArq() {
 
 void HMIArq::Request_PIDgain(s_PIDgain & PIDgain) {
 	MyPilot->Request_PIDgain(PIDgain);
-/*	PIDgain.gain.Kp.Towf_00(MyPilot->GetKp());
-	PIDgain.gain.Ki.Towf_00(MyPilot->GetKi());
-	PIDgain.gain.Kd.Towf_00(MyPilot->GetKd());
-	PIDgain.sTime= MyPilot->GetSampleTime();
-	PIDgain.DBConfig = MyPilot->dbt.getDBConf();
-	*/
 }
 
 
 void HMIArq::Request_instParam(s_instParam & instParam) {
 	MyPilot->Request_instParam(instParam);
-/*	instParam.centerTiller=MyPilot->getDeltaCenterOfRudder();
-	instParam.maxRudder=MyPilot->getMaxRudder();
-	//instParam.avgSpeed=MyPilot->; TODO: ImplementavdSpeed
-	instParam.instSide=MyPilot->getInstallationSide();
-	instParam.rudDamping=MyPilot->getErrorFeedback();
-	instParam.magVariation.Towf_00(MyPilot->getDm());
-	instParam.headAlign.Towf_00(MyPilot->getHeadingDev());
-	//instParam.offcourseAlarm=MyPilot-;; TODO: Implement off course alarm
-*/
 }
 
 void HMIArq::Request_APinfo(s_APinfo & APinfo) {
@@ -49,15 +34,15 @@ void HMIArq::Request_APinfo(s_APinfo & APinfo) {
 	APinfo.mode=MyPilot->getCurrentMode();
 	APinfo.rudder=MyPilot->getTargetRudder();
 	APinfo.trim.Towf_00(MyPilot->dbt.getTrim());
-}
+ }
 
 void HMIArq::Change_PID(s_PIDgain_flag change, s_gain gain) {
 	// if change.K* is true, take value from argument k*. If false, getK*() retrieves current value
 	float Kp = (change.Kp ? gain.Kp.float_00() : MyPilot->GetKp());
 	float Ki = (change.Ki ? gain.Ki.float_00() : MyPilot->GetKi());
 	float Kd = (change.Kd ? gain.Kd.float_00() : MyPilot->GetKd());
-
 	MyPilot->SetTunings (Kp, Ki, Kd);
+    MyPilot->buzzer_Beep();
 }
 
 void HMIArq::Change_PID_rel (s_PIDgain_flag change, e_operation op, float value ){
@@ -71,6 +56,8 @@ void HMIArq::Change_PID_rel (s_PIDgain_flag change, e_operation op, float value 
 	if (change.Kd) operation (op, Kd, value);
 
 	MyPilot->SetTunings (Kp, Ki, Kd);
+    MyPilot->buzzer_Beep();
+
 }
 
 void HMIArq::operation (e_operation op, float &K, float value) {
@@ -92,61 +79,84 @@ void HMIArq::operation (e_operation op, float &K, float value) {
 
 void HMIArq::setDBConf (type_DBConfig status) {
 	MyPilot->setDBConf (status);
+    MyPilot->buzzer_Beep();
+
 }
 
 bool HMIArq::Change_instParam (s_instParam instParam) {
 	return MyPilot->Change_instParam (instParam);
+    MyPilot->buzzer_Beep();
+
 }
 
 
 void HMIArq::ResetPID(){
 	MyPilot->ResetTunings();
+    MyPilot->buzzer_Beep();
+
 }
 
 void HMIArq::Start_Stop(e_start_stop type){
 	MyPilot->Start_Stop(type);
+	MyPilot->buzzer_Beep();
 }
 
 void HMIArq::Enter_Exit_FBK_Calib() {
 	MyPilot->Enter_Exit_FBK_Calib();
+    MyPilot->buzzer_Beep();
 }
 
 void HMIArq::Inc_Rudder_1(){
     MyPilot->changeRudder(+RATE_1);
+    MyPilot->buzzer_Beep();
 }
 void HMIArq::Inc_Rudder_10(){
     MyPilot->changeRudder(+RATE_10);
+    MyPilot->buzzer_Beep();
 }
 void HMIArq::Dec_Rudder_1(){
     MyPilot->changeRudder(-RATE_1);
+    MyPilot->buzzer_Beep();
 }
 void HMIArq::Dec_Rudder_10(){
     MyPilot->changeRudder(-RATE_10);
+    MyPilot->buzzer_Beep();
 }
 void HMIArq::Stop_Rudder(){
-    //MyPilot->setCurrentMode(STAND_BY);
     MyPilot->setTargetRudder(MyPilot->getCurrentRudder());//TODO: Should be restricted in ActuatorManager and public in MacuaAutopilot
 }
 void HMIArq::Inc_Course_1(){
 	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()+1);
+	  MyPilot->buzzer_Beep();
 }
 void HMIArq::Inc_Course_10(){
 	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()+10);
+	  MyPilot->buzzer_Beep();
 }
 void HMIArq::Dec_Course_1(){
 	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()-1);
+	  MyPilot->buzzer_Beep();
 }
 void HMIArq::Dec_Course_10(){
 	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()-10);
+	  MyPilot->buzzer_Beep();
 }
 
 void HMIArq::Set_NewCourse(float newCourse){
 	  MyPilot->setTargetBearing(newCourse);
+	  MyPilot->buzzer_Beep();
 }
 
 void HMIArq::Set_NewDeltaCourse(float newDCourse){
 	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()+newDCourse);
+	  MyPilot->buzzer_Beep();
 }
+
+void HMIArq::Set_Headalign(){
+	  MyPilot->setHeadingDev(MyPilot->getTargetBearing() - MyPilot->getCurrentHeading() + MyPilot->getHeadingDev());
+	  MyPilot->buzzer_Beep();
+}
+
 
 // Track mode functions
 // return true: All prepared to start TRACK MODE
@@ -166,6 +176,7 @@ bool HMIArq::received_APB( s_APB APB) {
 		if (answer == USER_ACCEPTED) {
 			//DEBUG_print( "Start track mode\n" );
 			MyPilot->setAPB(APB);
+			MyPilot->buzzer_Beep();
 			return true;
 		}
 	}
@@ -176,22 +187,32 @@ bool HMIArq::received_APB( s_APB APB) {
 //Calibration functions
 void HMIArq::Start_Cal(){
 	MyPilot->Start_Cal();
+	  MyPilot->buzzer_Beep();
+
 }
 
 void HMIArq::Save_Cal(){
 	MyPilot->EEsave_Calib();
+	  MyPilot->buzzer_Beep();
+
 }
 
 void HMIArq::Save_instParam(){
 	MyPilot->EEsave_instParam();
+	  MyPilot->buzzer_Beep();
+
 }
 
 void HMIArq::Save_PIDgain(){
 	MyPilot->EEsave_PIDgain();
+	  MyPilot->buzzer_Beep();
+
 }
 
 void HMIArq::Save_HCParam(){
 	MyPilot->EEsave_HCParam();
+	  MyPilot->buzzer_Beep();
+
 }
 
 

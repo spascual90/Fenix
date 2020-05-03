@@ -54,6 +54,7 @@ protected:
 	void Dec_Mix_10();
 	void Set_NewCourse(float newCourse);
 	void Set_NewDeltaCourse(float newDCourse);
+	void Set_Headalign();
 	void Enter_Exit_FBK_Calib();
 
 	void ResetPID();

@@ -35,11 +35,12 @@ void ActuatorController::IBIT(){
 	setSpeed(MIN_SPEED);
 }
 
-void ActuatorController::cal_FBK_move(e_dir dir){
+int ActuatorController::cal_FBK_move(e_dir dir){
 	setDir(dir);
 	setSpeed(MAX_SPEED);
 	delay (1000);
 	setSpeed(MIN_SPEED);
+	return 1;
 }
 
 e_dir ActuatorController::setDir(e_dir dir) {

@@ -171,6 +171,9 @@ void BT::refresh() {
      case BT_USER_REQUEST_REJECTED:
     	 userRequestAnswer (false);
 		 break;
+     case BT_SET_HEADALIGN:
+    	 Set_Headalign();
+    	 break;
 
 // CONFIGURATION PANEL
 

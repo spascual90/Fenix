@@ -28,6 +28,7 @@ enum e_BT_push_button {
 		, BT_DEC_COURSE_10=	11
 		, BT_RESET_PID= 	12
 		, BT_START_STOP_TARGET=	13
+		, BT_SET_HEADALIGN =14
 		, MAX_BT
 		, BT_NO_BTN
 		, BT_BTN_REPEATED

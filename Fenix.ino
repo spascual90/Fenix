@@ -109,7 +109,6 @@ void loop()
 	// Refresh Bluetooth if defined
 	#ifdef HMI_BT
 
-	//delay(500);
 	MyBT.refresh();
 	#endif
 
