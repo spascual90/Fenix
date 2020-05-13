@@ -56,44 +56,22 @@ void IF_NMEA::refresh(){
 
 #ifdef TXNMEA
 	bool fl = false;
-
-	if (IsTXtime() ) {
-		switch (MyPilot->getCurrentMode()) {
-		case STAND_BY:
-		case AUTO_MODE:
-		case TRACK_MODE:
-			if (MyPilot->isHeadingValid()) {
-				printHDG(& gpsPort);
-				printHDM(& gpsPort);
-
-			}
-			printRSA(& gpsPort);
-
-			break;
-		case CAL_IMU:
-			break;
-		case CAL_FEEDBACK:
-			break;
+	if (IsTXtime() and !MyPilot->isCalMode()){
+		if (MyPilot->isHeadingValid()) {
+			printHDG(& gpsPort);
+			printHDM(& gpsPort);
 		}
-		fl= true; //
+		printRSA(& gpsPort);
+
+		fl= true;
 		TXReset();
 	}
 
+	if (IsTX1time() and !MyPilot->isCalMode()) {
+		printPEMC_03(& gpsPort);
+		printPEMC_05(& gpsPort);
+		printPEMC_07(& gpsPort);
 
-	if (IsTX1time() ) {
-		switch (MyPilot->getCurrentMode()) {
-		case STAND_BY:
-		case AUTO_MODE:
-		case TRACK_MODE:
-			printPEMC_03(& gpsPort);
-			printPEMC_05(& gpsPort);
-			printPEMC_07(& gpsPort);
-			break;
-		case CAL_IMU:
-			break;
-		case CAL_FEEDBACK:
-			break;
-		}
 		fl= true;
 		TX1Reset();
 	}
@@ -115,10 +93,10 @@ void IF_NMEA::stopAllTX(){
 
 
 void IF_NMEA::refresh_INorder() {
-
 	HMIArq::updateRequestTimeout(); // Check if request reached timeout and cancel
 	// Launch action accordingly to action received and current mode
 	e_APmode currentMode = MyPilot->getCurrentMode();
+
 	if (this->INorder.isValid){
 		switch (this->INorder.get_order()){
 		case START_STOP:
@@ -156,28 +134,14 @@ void IF_NMEA::refresh_INorder() {
 				Inc_Course_10();
 			break;
 		case REQ_INST: //$PEMC,08,I*5A received
-			switch (currentMode) {
-			case CAL_FEEDBACK:
-			case CAL_IMU:
-				break;
-			default:
-				printPEMC_03(& gpsPort);
-				break;
-			}
+			if (!MyPilot->isCalMode()) printPEMC_03(& gpsPort);
 			break;
 		case SET_INST:
 			if (Change_instParam (INorder.instParam)) printPEMC_03(& gpsPort); //TODO: Cambiar flags en INorder
 			break;
 
 		case REQ_GAIN: //$PEMC,08,G*54 received
-			switch (currentMode) {
-			case CAL_FEEDBACK:
-			case CAL_IMU:
-				break;
-			default:
-				printPEMC_05(& gpsPort);
-				break;
-			}
+			if (!MyPilot->isCalMode()) printPEMC_05(& gpsPort);
 			break;
 
 		case SET_GAIN: //$PEMC,06 received
@@ -189,36 +153,27 @@ void IF_NMEA::refresh_INorder() {
 			break;
 
 		case REQ_INFO: //$PEMC,08,A*52 received
-			switch (currentMode) {
-			case CAL_FEEDBACK:
-			case CAL_IMU:
-				break;
-			default:
-				printPEMC_07(& gpsPort);
-				break;
-			}
-			break;
-
+			if (!MyPilot->isCalMode()) printPEMC_07(& gpsPort);
 
 		case REQ_TRACK: //APB received
-			switch (currentMode) {
-			case CAL_FEEDBACK:
-			case CAL_IMU:
-				break;
-			default:
+			if (!MyPilot->isCalMode()) {
 				// Treats received APB info. Only changes Waypoint or mode after valid user confirmation
 				if (received_APB(INorder.APB)) {
 					MyPilot->setCurrentMode(TRACK_MODE);
 					printAPB(& DEBUG_PORT);
 				}
-				break;
 			}
 			break;
 		case START_CAL:
 			switch (currentMode) {
 			case STAND_BY:
-
+				delay(500);
 				Start_Cal();
+				break;
+			case CAL_IMU_COMPLETE:
+			case CAL_IMU_MINIMUM:
+				delay(500);
+				Cancel_Cal();
 				break;
 			default:
 				break;

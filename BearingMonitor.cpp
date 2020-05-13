@@ -15,16 +15,19 @@ Bearing_Monitor::Bearing_Monitor(float headingDev = 0) {
 
 Bearing_Monitor::~Bearing_Monitor() {
 	// TODO Auto-generated destructor stub
+	_IMU_status = NOT_DETECTED;
 }
 
 e_IMU_status Bearing_Monitor::setup(void){
 	_bno = Adafruit_BNO055(55);
-	if(!_bno.begin(Adafruit_BNO055::OPERATION_MODE_NDOF)) return NOT_DETECTED;
-	IBIT();
-	return DETECTED;
+	if(_bno.begin(Adafruit_BNO055::OPERATION_MODE_NDOF)) {
+		_IMU_status = CAL_NOT_STARTED;
+		IBIT();
+	} else {
+		_IMU_status = NOT_DETECTED;
+	}
+	return _IMU_status;
 }
-
-
 
 
 void Bearing_Monitor::IBIT(){
@@ -34,86 +37,175 @@ void Bearing_Monitor::IBIT(){
 	sprintf(DEBUG_buffer,"SDA,SCL=%i,%i\n",get_PIN_SDA(),get_PIN_SCL());
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_PORT.flush();
-	//TODO: include routine to whait until bearing data is available (except calib IMU mode) While Sys<3 loop if not in x secs-->ask for calibration.
+	//TODO: include routine to wait until bearing data is available (except calib IMU mode) While Sys<3 loop if not in x secs-->ask for calibration.
 }
 
 void Bearing_Monitor::reset_calibration () {
 	setup();
 	setSensorOffsets();
 	displaySensorOffsets();
-	BNO_GetCal(false);
+	_IMU_status = CAL_NOT_STARTED;
+}
+
+// Recurrent loop for calibration
+//CAL_INPROGRESS-->(NOT_CALIBRATED; RECALIBRATED)
+//RECALIBRATED-->completeCal?-->CHECK_ONGOING-->CHECK_FINISHED
+//return true-->process ongoing
+//return false-->process finished
+bool Bearing_Monitor::compute_Cal_IMU(bool completeCal) {
+
+	switch (_IMU_status) {
+	case CAL_NOT_STARTED:
+		return Bearing_Monitor::IMU_startCalibration(completeCal);
+		break;
+	case CAL_INPROGRESS:
+		return Bearing_Monitor::IMU_Cal_Loop(completeCal);
+		break;
+	case NOT_CALIBRATED:
+		return false;
+		break;
+	case RECALIBRATED:
+		// Check calibration status
+		// completeCal=true performs complete initial calibration + check (system==3 required)
+		// completeCal=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
+		if (!completeCal) return false;
+		return compute_check_IMU();
+		break;
+	default:
+		return false;
+		break;
+	}
+
+	return false;
+}
+
+//return true-->process ongoing
+//return false-->process finished
+bool Bearing_Monitor::compute_check_IMU(void) {
+
+	switch (_IMU_check) {
+	case NOT_STARTED:
+		//start check
+		return IMU_startCalCheck(300);
+		break;
+	case CHECK_ONGOING:
+		return Bearing_Monitor::IMU_CalCheck_Loop();
+		break;
+	case CHECK_FINISHED:
+		return false;
+		break;
+	}
+
+	return (_IMU_check ==CHECK_ONGOING);
 }
 
 
-// check=true performs complete initial calibration + check (system==3 required)
-// check=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
-e_IMU_status Bearing_Monitor::BNO_GetCal(bool check){
+bool Bearing_Monitor::IMU_startCalibration(bool completeCal) {
+	_cal_iter = 0;
+	_IMU_status = CAL_INPROGRESS;
 
-		    int i =0;
-		    bool calibrated=false;
-		 	 sensors_event_t event;
-		    _bno.getEvent(&event);
+	//First iteration only
+	(completeCal?DEBUG_print("IMU Calibration: Complete + Check.\n"):DEBUG_print("IMU Calibration: Minimum.\n"));
 
-		    (check?DEBUG_print("Please Calibrate Sensor:\n"):DEBUG_print("Recalibrating Sensor:\n"));
+	return true;
+}
 
-		    // Loops until fully calibrated or calibration time exceeded
-	        while ( !calibrated and (i++ < MAX_ITER))
-	        {
-	        	calibrated = (check==true?_bno.isFullyCalibrated():getCalibrationStatus());
-	            _bno.getEvent(&event);
+//return true-->process ongoing
+//return false-->process finished
+bool Bearing_Monitor::IMU_Cal_Loop(bool completeCal){
 
-	            /* Display calibration status */
-	            displayCalStatus();
+	bool calibrated;
+
+	// Exit if calibration is not in progress
+	if (_IMU_status != CAL_INPROGRESS) return false;
+
+	// Loops until fully calibrated or calibration time exceeded
+	if (_cal_iter++ < MAX_ITER) {
+		sensors_event_t event;
+		_bno.getEvent(&event);
+
+		// check=true performs complete initial calibration + check (system==3 required)
+		// check=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
+		calibrated = (completeCal==true?_bno.isFullyCalibrated():getCalibrationStatus());
+		 _IMU_status= (calibrated? RECALIBRATED: CAL_INPROGRESS);
+
+		_bno.getEvent(&event);
+		displayCalStatus();
+		/* Wait the specified delay before requesting new data */
+		delay(100);
+
+	} else {
+		// Calibration period exceeded
+		// System status is lower than 3, IMU does not provide data of enough quality for calibration
+		_IMU_status= NOT_CALIBRATED;
+		displaySensorOffsets();
+		DEBUG_print("\nCalibration time out!\n");
+		DEBUG_print("WARNING: Calibration failed. Bearing values might be inaccurate.\n");
+		return false;
+	}
+
+	if (_IMU_status==RECALIBRATED) {
+		DEBUG_print("\nCalibrated! Ok\n");
+		// Heading value is not received until a slight movement is detected by IMU
+		// Practically speaking this is not an issue, but some info is provided to user
+		_heading_isValid = false;
+		DEBUG_print("Move slightly to start receiving IMU data\n");
+		updateHeading();
+		return true;
+	}
+
+	return true;
+}
 
 
-	            /* Wait the specified delay before requesting new data */
-	            delay(100);
-	        }
+bool Bearing_Monitor::IMU_startCalCheck(int max_loop) {
+	_cal_iter = max_loop;
+	_IMU_check = CHECK_ONGOING;
+	adafruit_bno055_offsets_t newCalib;
 
-	    displaySensorOffsets();
+    //Only first iteration
+    _bno.getSensorOffsets(newCalib);
+	setIniCalib(newCalib); // Defines these offsets as the initial ones
+	DEBUG_print("Calibration Results:\n");
+    displaySensorOffsets(newCalib);
+	DEBUG_print("\nCheck Sensor Orientation:\n");
+	return true;
+}
 
-	 	// If System status is lower than 3, IMU does not provide data of enough quality for calibration
-		if (!calibrated) {
-			DEBUG_print("\nCalibration time out!\n");
-			DEBUG_print("WARNING: Calibration failed. Bearing values might be inaccurate.\n");
-			return NOT_CALIBRATED; // Calibration time exceeded. Calibration failed
-		}
+//----
+// _completeCal=true performs complete initial calibration + check (system==3 required)
+// _completeCal=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
+bool Bearing_Monitor::IMU_CalCheck_Loop(void){
 
-	    DEBUG_print("\nCalibrated! Ok\n");
-	    // Heading value is not received until a slight movement is detected by IMU
-	    // PracticaLly speaking this is not an issue, but some info is provided to user
-	    _heading_isValid = false;
-	    DEBUG_print("Move slightly to start receiving IMU data\n");
-	    updateHeading();
+	if (_IMU_check != CHECK_ONGOING) return false;
+	//Loop
+	if (_cal_iter-- > 0)
+	{
+		sensors_event_t event;
+		_bno.getEvent(&event);
 
-	    if (check) {
-	        adafruit_bno055_offsets_t newCalib;
-	 	    _bno.getSensorOffsets(newCalib);
-	    	setIniCalib(newCalib); // Defines these offsets as the initial ones
-	    	DEBUG_print("Calibration Results:\n");
-		    displaySensorOffsets(newCalib);
-			DEBUG_print("\nCheck Sensor Orientation:\n");
-			i=0;
+		DEBUG_PORT.print("X: ");
+		DEBUG_PORT.print(event.orientation.x, 0);
+		DEBUG_PORT.print("\tY: ");
+		DEBUG_PORT.print(event.orientation.y, 0);
+		DEBUG_PORT.print("\tZ: ");
+		DEBUG_PORT.print(event.orientation.z, 0);
+		DEBUG_PORT.print("\n");
+		/* Wait the specified delay before requesting new data */
+		delay(500);
+		_IMU_check = CHECK_ONGOING;
+	} else {
+		_IMU_check = CHECK_FINISHED;
+	}
 
-			while (i++ < MAX_ITER/10)
-			{
-				_bno.getEvent(&event);
+	return (_IMU_check==CHECK_ONGOING);
+}
 
-				DEBUG_PORT.print("X: ");
-				DEBUG_PORT.print(event.orientation.x, 0);
-				DEBUG_PORT.print("\tY: ");
-				DEBUG_PORT.print(event.orientation.y, 0);
-				DEBUG_PORT.print("\tZ: ");
-				DEBUG_PORT.print(event.orientation.z, 0);
-				DEBUG_PORT.print("\n");
-				/* Wait the specified delay before requesting new data */
-				delay(500);
-			}
-	    }
 
-	    return RECALIBRATED;
 
-}  // End BNO055_Get_Cal
+
+
+
 
 void Bearing_Monitor::displayCalStatus(void)
 {

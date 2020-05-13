@@ -191,6 +191,10 @@ void HMIArq::Start_Cal(){
 
 }
 
+void HMIArq::Cancel_Cal(){
+	MyPilot->Cancel_Cal();
+}
+
 void HMIArq::Save_Cal(){
 	MyPilot->EEsave_Calib();
 	  MyPilot->buzzer_Beep();

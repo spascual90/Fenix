@@ -46,6 +46,7 @@ void emcNMEA::sentenceOk()
 
 void emcNMEA::sentenceInvalid()
 {
+
   // All the values are suspect.  Start over.
   INorder.reset();
   nmeaMessage = NMEA_UNKNOWN;
@@ -60,7 +61,6 @@ emcNMEA::decode_t emcNMEA::decode( char c )
 {
 
 	decode_t res = NMEAGPS::decode (c);
-
 	switch (res) { //DECODE_CHR_INVALID, DECODE_CHR_OK, DECODE_COMPLETED
 
 		case DECODE_CHR_OK:
@@ -68,6 +68,7 @@ emcNMEA::decode_t emcNMEA::decode( char c )
 		case DECODE_CHR_INVALID:
 			sentenceInvalid(); break;
 		case DECODE_COMPLETED:
+
 			sentenceOk(); break;
 	}
   return res;
@@ -178,7 +179,7 @@ bool emcNMEA::classifyPEMC( char chr )
 							case '6': nmeaMessage = (nmea_msg_t) PEMC_06; break;
 							case '7': nmeaMessage = (nmea_msg_t) PEMC_07; break;
 							case '8': nmeaMessage = (nmea_msg_t) PEMC_08; break;
-							case '9': nmeaMessage = (nmea_msg_t) PEMC_09; INorder.set_order(START_CAL); break;
+							case '9': nmeaMessage = (nmea_msg_t) PEMC_09; INorder.set_order(START_CAL);	break;
 							default : ok = false;
 				}// end switch chr
 			} else {// case true: // Message is PEMC,1#,...
@@ -929,7 +930,8 @@ void emcNMEA::printPEMC_07(Stream * outStream) {
     	case STAND_BY:
     		bufferStream->print("S");
     		break;
-    	case CAL_IMU:
+    	case CAL_IMU_MINIMUM:
+    	case CAL_IMU_COMPLETE:
     		bufferStream->print("C"); //TODO: Update docu
     		break;
 

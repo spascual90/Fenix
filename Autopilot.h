@@ -32,7 +32,7 @@ enum e_setup_status {SETUP_OK, IMU_ERROR, FEEDBACK_ERROR};
 enum e_working_status {RUNNING_OK, RUNNING_ERROR, RUN_OUT_OF_TIME};
 
 // working modes
-enum e_APmode {STAND_BY, CAL_IMU, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE};
+enum e_APmode {STAND_BY, CAL_IMU_MINIMUM, CAL_IMU_COMPLETE, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE};
 
 
 // Error codes *20
@@ -284,7 +284,8 @@ public:
 	// FUNCTIONAL MODULE: WORKING MODES
 	e_setup_status setup();
 	e_working_status Compute();
-	bool setCurrentMode(e_APmode);
+	bool setCurrentMode(e_APmode = STAND_BY);
+
 	e_APmode getCurrentMode() const {
 		return _currentMode;
 	}
@@ -346,13 +347,8 @@ public:
 	}
 
 	// FUNCTIONAL MODULE: IMU
-	void Start_Cal(){
-		EEsave_ReqCal(true);// Update Calibration Flag to enabled
-		resetFunc();  //call reset
-	}
-
-	void(* resetFunc) (void) = 0; //declare reset function @ address 0
-
+	void Start_Cal();
+	void Cancel_Cal();
 	void Save_Cal(){
 		EEsave_Calib();
 		EEsave_ReqCal(false); // Update Calibration Flag to disabled
@@ -431,11 +427,16 @@ private:
 	void ComputeLongLoop(void);
 	e_working_status compute_Track_Mode(void);
 	e_working_status compute_Stand_By(void);
+	e_working_status compute_Cal_IMU(bool completeCal);
 	e_working_status compute_Cal_Feedback(void);
 
-	void setPrevCourse(float prevCourse) {
-		_prevCourse = prevCourse;
+	void setPrevCourse(float prevCourse) {_prevCourse = prevCourse;}
+
+	void reset(){
+		resetFunc();  //call reset
 	}
+
+	void(* resetFunc) (void) = 0; //declare reset function @ address 0
 
 	// FUNCTIONAL MODULE: EEPROM
 	byte CRC8(const byte *data, size_t dataLength);

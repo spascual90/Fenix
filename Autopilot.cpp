@@ -72,16 +72,16 @@ e_setup_status Autopilot::setup() {
 	}
 
 	//Enter into calibration mode
-	setInformation(IMU_RECAL_INPROGRESS);
-
 	if (EEload_ReqCal()) {// TODO: more robust check of boolean value in EEPROM is required.
 		EEsave_ReqCal(false); // Set flag to disabled to avoid entering into Calibration mode each time
 		DEBUG_print("Calibration mode!\n");
 		// Launch calibration
-		if (BNO_GetCal(true)==RECALIBRATED) { // Calibrates and checks results
-			DEBUG_print("Calibration succeed!\n");
-			return SETUP_OK;
-		}
+		setCurrentMode (CAL_IMU_COMPLETE);
+		return SETUP_OK;
+		//if (BNO_GetCal(true)==RECALIBRATED) { // Calibrates and checks results
+		//	DEBUG_print("Calibration succeed!\n");
+		//	return SETUP_OK;
+		//}
 	  }
 
 	 //  Get and restore BNO Calibration offsets
@@ -93,12 +93,12 @@ e_setup_status Autopilot::setup() {
 		return IMU_ERROR;
 	 }
 	// Ensures calibration is valid by recalibrating (without check feature)
-	if (BNO_GetCal(false)==NOT_CALIBRATED) {
-		DEBUG_print("Restart autopilot and move slightly the IMU.\nIf this Warning appears again, please enter into Calibration Mode to calibrate IMU\n");
-		setWarning(IMU_RECAL_FAILED);
-	}
+	setCurrentMode (CAL_IMU_MINIMUM);
 
-
+	//if (BNO_GetCal(false)==NOT_CALIBRATED) {
+	//	DEBUG_print("Restart autopilot and move slightly the IMU.\nIf this Warning appears again, please enter into Calibration Mode to calibrate IMU\n");
+	//	setWarning(IMU_RECAL_FAILED);
+	//}
 
 	setInformation(NO_MESSAGE);
 	return SETUP_OK;
@@ -125,7 +125,11 @@ e_working_status Autopilot::Compute() {
 	case TRACK_MODE:
 		ws = compute_Track_Mode();
 		break;
-	case CAL_IMU: //<--TODO: DELETE
+	case CAL_IMU_COMPLETE:
+		ws = compute_Cal_IMU(true);
+		break;
+	case CAL_IMU_MINIMUM:
+		ws = compute_Cal_IMU(false);
 		break;
 	case CAL_FEEDBACK:
 		ws = compute_Cal_Feedback();
@@ -138,6 +142,10 @@ e_working_status Autopilot::Compute() {
 	return ws;
 }
 
+e_working_status Autopilot::compute_Cal_IMU(bool completeCal){
+	if (!Bearing_Monitor::compute_Cal_IMU(completeCal)) setCurrentMode (STAND_BY);
+	return RUNNING_OK;
+}
 
 e_working_status Autopilot::compute_Cal_Feedback(){
 	RudderFeedback::compute_Cal_Feedback();
@@ -159,7 +167,7 @@ e_working_status Autopilot::compute_Track_Mode(void){
 
 // RETURN true = Mode changed successfully
 // false = Change mode aborted
-bool Autopilot::setCurrentMode(e_APmode newMode = STAND_BY) {
+bool Autopilot::setCurrentMode(e_APmode newMode) {
 
 	bool rt = false;
 	e_APmode prevMode = _currentMode;
@@ -178,6 +186,25 @@ bool Autopilot::setCurrentMode(e_APmode newMode = STAND_BY) {
 	e_APmode preMode = _currentMode;
 	_currentMode = newMode;
 
+	switch (_currentMode) {
+	case STAND_BY:
+		//DEBUG_print("setCurrentMode: STAND_BY\n");
+		break;
+	case CAL_IMU_COMPLETE:
+	case CAL_IMU_MINIMUM:
+		//Start IMU calibration
+		//setInformation(IMU_CAL_INPROGRESS);
+		break;
+
+	case CAL_FEEDBACK:
+		set_calFeedback();
+		start_calFeedback();
+		break;
+	default:
+		break;
+	}
+
+
 	//POST-CHANGE MODE
 	rt = after_changeMode(_currentMode, preMode);
 
@@ -191,12 +218,13 @@ bool Autopilot::setCurrentMode(e_APmode newMode = STAND_BY) {
 
 void Autopilot::ComputeLongLoop() {
 	static int low_quality_data=0;
-//	static int a=0;
+
 	// Once each XX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	if (IsLongLooptime ()) {
-		// 						DARK BLUE 	Target CTS
-		//						LIGHT BLUE 	Current HDG
-		//						GRAY		Current rudder
+//		static int a=0;
+// 						DARK BLUE 	Target CTS
+//						LIGHT BLUE 	Current HDG
+//						GRAY		Current rudder
 //		a++;
 //		if (a==10) {
 //			int TB = int(getTargetBearing());
@@ -206,6 +234,7 @@ void Autopilot::ComputeLongLoop() {
 //		a=0;
 //		}
 
+		if (isCalMode()) return;
 
 		if (updateHeading()) {
 			if (getWarning()==IMU_LOW) setWarning(NO_WARNING);
@@ -231,17 +260,16 @@ void Autopilot::ComputeLongLoop() {
 }
 
 bool Autopilot::reset_calibration(){
-	displayCalStatus();
-	setCurrentMode(STAND_BY);
 	setWarning(IMU_LOW);
+	displayCalStatus();
 	Bearing_Monitor::reset_calibration();
+	setCurrentMode(CAL_IMU_MINIMUM);
 	return true;
 }
 
 bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode){
 	switch (currentMode) {
-	case CAL_FEEDBACK:
-		set_calFeedback();
+	default:
 		break;
 	}
 	return true;
@@ -258,15 +286,12 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 			return false;
 		}
 		break;
-	case CAL_FEEDBACK:
-		start_calFeedback();
-		break;
-	case CAL_IMU:
-		break;
 	case STAND_BY:
 		stopAutoMode();
 		_APB = {}; //TODO: Check if this is a good way to reset structure
 		OCA_Compute (0); //Stop off-course alarm if active
+		break;
+	default:
 		break;
 	}
 
@@ -275,13 +300,27 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 }
 
 bool Autopilot::isCalMode(void){
-	e_APmode mode = getCurrentMode();
-	if (mode==CAL_IMU or mode==CAL_FEEDBACK) {
+	switch (getCurrentMode()) {
+	case CAL_IMU_COMPLETE:
+	case CAL_IMU_MINIMUM:
+	case CAL_FEEDBACK:
 		return true;
-	} else {
+	default:
 		return false;
 	}
+
+	return false;
 }
+
+void Autopilot::Start_Cal(){
+	EEsave_ReqCal(true);// Update Calibration Flag to enabled
+	reset();  //call reset
+}
+
+void Autopilot::Cancel_Cal(){
+	reset();  //call reset
+}
+
 
 void Autopilot::Start_Stop(e_start_stop type){
 	float target =-1;
@@ -337,14 +376,7 @@ void Autopilot::Enter_Exit_FBK_Calib(void) {
 
 // OVERLOADED FUNCTIONS
 void Autopilot::SetTunings(double Kp, double Ki, double Kd) {
-	switch (getCurrentMode()) {
-	case CAL_FEEDBACK:
-	case CAL_IMU:
-		break;
-	default:
-		ActuatorManager::PID_ext::SetTunings(Kp, Ki, Kd);
-		break;
-	}
+	if (!isCalMode()) ActuatorManager::PID_ext::SetTunings(Kp, Ki, Kd);
 }
 
 int Autopilot::changeRudder(int delta_rudder) {
@@ -355,7 +387,8 @@ int Autopilot::changeRudder(int delta_rudder) {
 		dir=(delta_rudder>0?EXTEND:RETRACT);
 		ret = cal_FBK_move(dir);
 		break;
-	case CAL_IMU:
+	case CAL_IMU_COMPLETE:
+	case CAL_IMU_MINIMUM:
 		break;
 	default:
 		setCurrentMode(STAND_BY);
@@ -367,14 +400,7 @@ int Autopilot::changeRudder(int delta_rudder) {
 }
 
 void Autopilot::setDBConf (type_DBConfig status) {
-	switch (getCurrentMode()) {
-	case CAL_FEEDBACK:
-	case CAL_IMU:
-		break;
-	default:
-		dbt.setDBConf (status);
-	break;
-	}
+	if (!isCalMode()) dbt.setDBConf (status);
 }
 bool Autopilot::checkAPBTimeout() {
 	if ((getCurrentMode()==TRACK_MODE) && ((millis()-_APBtime)>MAX_APB_TIME)) {

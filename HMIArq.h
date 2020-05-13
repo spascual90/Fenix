@@ -68,6 +68,7 @@ protected:
 	bool received_APB( s_APB APB);
 
 	void Start_Cal();
+	void Cancel_Cal();
 	void Save_Cal();
 	void Save_instParam();
 	void Save_PIDgain();

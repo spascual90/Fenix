@@ -8,7 +8,7 @@
 #ifndef BEARINGMONITOR_H_
 #define BEARINGMONITOR_H_
 
-#define SHIP_SIM // Simulates boat to tune PID
+//#define SHIP_SIM // Simulates boat to tune PID
 
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
@@ -25,8 +25,8 @@
 #define PIN_SCL 21
 
 
-enum e_IMU_status {DETECTED, NOT_DETECTED, RECALIBRATED, NOT_CALIBRATED};
-
+enum e_IMU_status {NOT_DETECTED, CAL_NOT_STARTED, CAL_INPROGRESS, RECALIBRATED, NOT_CALIBRATED};
+enum e_IMU_check {NOT_STARTED, CHECK_ONGOING, CHECK_FINISHED};
 class Bearing_Monitor {
 public:
 	Bearing_Monitor(float headingDev);
@@ -67,8 +67,10 @@ public:
 		  return sensor.sensor_id;
 	}
 
-
-	e_IMU_status BNO_GetCal(bool wCheck = false);
+	bool IMU_startCalibration(bool completeCal);
+	bool compute_Cal_IMU(bool completeCal);
+	bool IMU_startCalCheck(int maxLoop);
+	bool compute_check_IMU(void);
 
 	void displaySensorOffsets(void);
 	void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData);
@@ -86,6 +88,7 @@ public:
 	}
 
 	void setHeadingDev(float headingDev = 0) {
+		reduce360(headingDev);
 		_headingDev = headingDev;
 	}
 
@@ -118,6 +121,10 @@ public:
 		return _heading_isValid;
 	}
 
+	e_IMU_status getImuStatus() const {
+		return _IMU_status;
+	}
+
 protected:
     e_IMU_status setup(void);
     bool updateHeading();
@@ -139,6 +146,12 @@ private:
 
 	bool _heading_isValid = false;
 
+	//Calibration settings
+	e_IMU_status _IMU_status= NOT_DETECTED;
+	e_IMU_check _IMU_check= NOT_STARTED;
+	int _cal_iter = 0;
+	bool IMU_Cal_Loop(bool completeCal);
+	bool IMU_CalCheck_Loop(void);
 
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
 	float _SIMheading =0;
