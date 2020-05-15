@@ -932,9 +932,9 @@ void emcNMEA::printPEMC_07(Stream * outStream) {
     		break;
     	case CAL_IMU_MINIMUM:
     	case CAL_IMU_COMPLETE:
-    		bufferStream->print("C"); //TODO: Update docu
+    	case CAL_FEEDBACK:
+    		bufferStream->print("C");
     		break;
-
         }
 		bufferStream->print(',');
 		bufferStream->print(OUTorder.APinfo.rudder);
@@ -969,6 +969,42 @@ void emcNMEA::printPEMC_08(char RfI, Stream * outStream){
 	output.remove(0);
 
 };
+
+
+void emcNMEA::printPEMC_12(Stream * outStream) {
+	if (OUTorder.IMUcal.isValid) {
+		bufferStream->print ("$PEMC,12,");
+		bufferStream->print(OUTorder.IMUcal.IMUcalstatus);
+		bufferStream->print(',');
+
+		if (OUTorder.IMUcal.IMUcalstatus == 'O') {
+			bufferStream->print( (OUTorder.IMUcal.SYSstatus? '1': '0') );
+			bufferStream->print(',');
+			bufferStream->print( (OUTorder.IMUcal.GYROstatus? '1': '0') );
+			bufferStream->print(',');
+			bufferStream->print( (OUTorder.IMUcal.ACCELstatus? '1': '0') );
+			bufferStream->print(',');
+			bufferStream->print( (OUTorder.IMUcal.MAGNstatus? '1': '0') );
+			bufferStream->print(',');
+		} else {
+			bufferStream->print(",,,,");
+		}
+
+		if (OUTorder.IMUcal.IMUcalstatus == 'C') {
+			bufferStream->print(OUTorder.IMUcal.X);
+			bufferStream->print(',');
+			bufferStream->print(OUTorder.IMUcal.Y);
+			bufferStream->print(',');
+			bufferStream->print(OUTorder.IMUcal.Z);
+		} else {
+			bufferStream->print(",,");
+		}
+
+		send( outStream, string2char(output) );
+		output.remove(0);
+    }
+}
+
 
 void emcNMEA::printAPB(Stream * outStream) {
 

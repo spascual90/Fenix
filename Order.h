@@ -76,6 +76,8 @@ public:
 	s_PIDgain PIDgain;
 	s_instParam instParam;
 	s_APB APB;
+	s_IMUcal IMUcal;
+	//s_FBKcal FBKcal;
 
 	// Is Valid indicates if data received is valid or not
 	bool isValid=NO;

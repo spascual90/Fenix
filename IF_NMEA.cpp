@@ -56,12 +56,22 @@ void IF_NMEA::refresh(){
 
 #ifdef TXNMEA
 	bool fl = false;
-	if (IsTXtime() and !MyPilot->isCalMode()){
-		if (MyPilot->isHeadingValid()) {
-			printHDG(& gpsPort);
-			printHDM(& gpsPort);
+	if (IsTXtime()) {
+		switch (MyPilot->getCurrentMode()) {
+		case CAL_FEEDBACK:
+			//printPEMC_13(& gpsPort);
+			break;
+		case CAL_IMU_MINIMUM:
+		case CAL_IMU_COMPLETE:
+			printPEMC_12(& gpsPort);
+			break;
+		default:
+			if (MyPilot->isHeadingValid()) {
+				printHDG(& gpsPort);
+				printHDM(& gpsPort);
+			}
+			printRSA(& gpsPort);
 		}
-		printRSA(& gpsPort);
 
 		fl= true;
 		TXReset();
@@ -100,13 +110,7 @@ void IF_NMEA::refresh_INorder() {
 	if (this->INorder.isValid){
 		switch (this->INorder.get_order()){
 		case START_STOP:
-			switch (currentMode) {
-			case STAND_BY:
-			case AUTO_MODE:
-			case TRACK_MODE:
-			Start_Stop();
-			break;
-			}
+			if (!MyPilot->isCalMode()) Start_Stop();
 		break;
 
 		case INC_RUDDER_1:
@@ -167,14 +171,15 @@ void IF_NMEA::refresh_INorder() {
 		case START_CAL:
 			switch (currentMode) {
 			case STAND_BY:
-				delay(500);
+				delay(500);//TODO: delay necessary?
 				Start_Cal();
 				break;
-			case CAL_IMU_COMPLETE:
-			case CAL_IMU_MINIMUM:
-				delay(500);
-				Cancel_Cal();
-				break;
+			//case CAL_IMU_COMPLETE:
+			//case CAL_IMU_MINIMUM:
+				//TODO: Implement cancel method
+				//delay(500);
+				//Cancel_Cal();
+			//	break;
 			default:
 				break;
 			}
@@ -192,42 +197,19 @@ void IF_NMEA::refresh_INorder() {
 			break;
 
 		case SAVE_GAIN:
-			switch (currentMode) {
-			case STAND_BY:
-				Save_PIDgain();
-				break;
-			default:
-				break;
-			}
+			if (currentMode==STAND_BY) Save_PIDgain();
+
 			break;
 		case SAVE_INST:
-			switch (currentMode) {
-			case STAND_BY:
-				Save_instParam();
-				break;
-			default:
-				break;
-			}
+			if (currentMode==STAND_BY) Save_instParam();
 			break;
 
 		case SAVE_CAL:
-			switch (currentMode) {
-			case STAND_BY:
-				Save_Cal();
-				break;
-			default:
-				break;
-			}
+			if (currentMode==STAND_BY) Save_Cal();
 			break;
 
 		case SAVE_HC: 	// Save HARDCODED PIDgain and instParam to EEPROM
-			switch (currentMode) {
-			case STAND_BY:
-				Save_HCParam();
-				break;
-			default:
-				break;
-			}
+			if (currentMode==STAND_BY) Save_HCParam();
 			break;
 
 		default:
@@ -256,6 +238,13 @@ void IF_NMEA::printPEMC_07(Stream * outStream) {
 	Request_APinfo(OUTorder.APinfo);
 	OUTorder.APinfo.isValid= true;
 	emcNMEA::printPEMC_07(outStream);
+}
+
+void IF_NMEA::printPEMC_12(Stream * outStream) {
+	//load IMUcal into OUTorder
+	Request_IMUcal(OUTorder.IMUcal);
+	OUTorder.IMUcal.isValid= true;
+	emcNMEA::printPEMC_12(outStream);
 }
 
 void IF_NMEA::printAPB(Stream * outStream) {

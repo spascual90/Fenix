@@ -86,7 +86,7 @@ bool Bearing_Monitor::compute_check_IMU(void) {
 	switch (_IMU_check) {
 	case NOT_STARTED:
 		//start check
-		return IMU_startCalCheck(300);
+		return IMU_startCalCheck(10000);
 		break;
 	case CHECK_ONGOING:
 		return Bearing_Monitor::IMU_CalCheck_Loop();
@@ -121,18 +121,14 @@ bool Bearing_Monitor::IMU_Cal_Loop(bool completeCal){
 
 	// Loops until fully calibrated or calibration time exceeded
 	if (_cal_iter++ < MAX_ITER) {
-		sensors_event_t event;
-		_bno.getEvent(&event);
-
 		// check=true performs complete initial calibration + check (system==3 required)
 		// check=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
 		calibrated = (completeCal==true?_bno.isFullyCalibrated():getCalibrationStatus());
 		 _IMU_status= (calibrated? RECALIBRATED: CAL_INPROGRESS);
 
-		_bno.getEvent(&event);
-		displayCalStatus();
+		refreshCalStatus();
 		/* Wait the specified delay before requesting new data */
-		delay(100);
+		//delay(10);
 
 	} else {
 		// Calibration period exceeded
@@ -172,7 +168,6 @@ bool Bearing_Monitor::IMU_startCalCheck(int max_loop) {
 	return true;
 }
 
-//----
 // _completeCal=true performs complete initial calibration + check (system==3 required)
 // _completeCal=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
 bool Bearing_Monitor::IMU_CalCheck_Loop(void){
@@ -184,15 +179,19 @@ bool Bearing_Monitor::IMU_CalCheck_Loop(void){
 		sensors_event_t event;
 		_bno.getEvent(&event);
 
-		DEBUG_PORT.print("X: ");
-		DEBUG_PORT.print(event.orientation.x, 0);
-		DEBUG_PORT.print("\tY: ");
-		DEBUG_PORT.print(event.orientation.y, 0);
-		DEBUG_PORT.print("\tZ: ");
-		DEBUG_PORT.print(event.orientation.z, 0);
-		DEBUG_PORT.print("\n");
+		_x = int(event.orientation.x);
+		_y = int(event.orientation.y);
+		_z = int(event.orientation.z);
+
+//		DEBUG_PORT.print("X: ");
+//		DEBUG_PORT.print(_x);
+//		DEBUG_PORT.print("\tY: ");
+//		DEBUG_PORT.print(_y);
+//		DEBUG_PORT.print("\tZ: ");
+//		DEBUG_PORT.print(_z);
+//		DEBUG_PORT.print("\n");
 		/* Wait the specified delay before requesting new data */
-		delay(500);
+		//delay(500);
 		_IMU_check = CHECK_ONGOING;
 	} else {
 		_IMU_check = CHECK_FINISHED;
@@ -201,9 +200,26 @@ bool Bearing_Monitor::IMU_CalCheck_Loop(void){
 	return (_IMU_check==CHECK_ONGOING);
 }
 
+bool Bearing_Monitor::getCheckXYZ (uint16_t &x, int8_t &y, uint8_t &z) {
 
+	if (_IMU_check != CHECK_ONGOING) return false; //fn only return valid values when check is ongoing.
+	x=_x;
+	y=_y;
+	z=_z;
 
+	return true;
+}
 
+bool Bearing_Monitor::getCheckSGAM(bool &S, bool &G, bool &A, bool &M){
+
+	//if (_IMU_status != CAL_INPROGRESS) return false; //fn only return valid values when check is ongoing.
+	S=_calSys;
+	G=_calGyro;
+	A=_calAccel;
+	M=_calMagn;
+
+	return true;
+}
 
 
 
@@ -229,6 +245,21 @@ void Bearing_Monitor::displayCalStatus(void)
 	DEBUG_PORT.flush();
 }
 
+void Bearing_Monitor::refreshCalStatus(void)
+{
+    /* Get the four calibration values (0..3) */
+    /* Any sensor data reporting 0 should be ignored, */
+    /* 3 means 'fully calibrated" */
+    uint8_t system, gyro, accel, mag;
+    system = gyro = accel = mag = 0;
+    _bno.getCalibration(&system, &gyro, &accel, &mag);
+
+    _calSys = (system == 3);
+    _calGyro = (gyro == 3);
+    _calAccel = (accel == 3);
+    _calMagn = (mag == 3);
+
+}
 
 
 

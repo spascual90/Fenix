@@ -126,7 +126,7 @@ e_working_status Autopilot::Compute() {
 		ws = compute_Track_Mode();
 		break;
 	case CAL_IMU_COMPLETE:
-		ws = compute_Cal_IMU(true);
+		//ws = compute_Cal_IMU(true);
 		break;
 	case CAL_IMU_MINIMUM:
 		ws = compute_Cal_IMU(false);
@@ -234,6 +234,7 @@ void Autopilot::ComputeLongLoop() {
 //		a=0;
 //		}
 
+		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU(true);
 		if (isCalMode()) return;
 
 		if (updateHeading()) {
@@ -261,7 +262,7 @@ void Autopilot::ComputeLongLoop() {
 
 bool Autopilot::reset_calibration(){
 	setWarning(IMU_LOW);
-	displayCalStatus();
+	refreshCalStatus();
 	Bearing_Monitor::reset_calibration();
 	setCurrentMode(CAL_IMU_MINIMUM);
 	return true;

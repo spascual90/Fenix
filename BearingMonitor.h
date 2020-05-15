@@ -14,7 +14,7 @@
 #include <utility/imumaths.h>
 #include <EEPROM.h>
 
-# define MAX_ITER 1000 // Max number of iterations to consider calibration procedure has failed
+# define MAX_ITER 100000 // Max number of iterations to consider calibration procedure has failed
 
 //SDA - I2C data pin, connect to your microcontrollers I2C data line. This pin can be
 //used with 3V or 5V logic, and there's a 10K pullup on this pin.
@@ -75,9 +75,12 @@ public:
 	void displaySensorOffsets(void);
 	void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData);
 	void displayCalStatus(void);
+	void refreshCalStatus(void);
 
 	bool getCalibrationStatus(uint8_t &system);
 	bool getCalibrationStatus(void);
+	bool getCheckXYZ(uint16_t &x, int8_t &y, uint8_t &z);
+	bool getCheckSGAM(bool &S, bool &G, bool &A, bool &M);
 
 	float getCurrentHeading() {
 		return reduce360(_heading + _headingDev);
@@ -121,8 +124,12 @@ public:
 		return _heading_isValid;
 	}
 
-	e_IMU_status getImuStatus() const {
+	e_IMU_status getIMUstatus() const {
 		return _IMU_status;
+	}
+
+	e_IMU_check getIMUcheck() const {
+		return _IMU_check;
 	}
 
 protected:
@@ -152,6 +159,11 @@ private:
 	int _cal_iter = 0;
 	bool IMU_Cal_Loop(bool completeCal);
 	bool IMU_CalCheck_Loop(void);
+	uint16_t _x;
+	int8_t _y;
+	uint8_t _z;
+
+	bool _calSys, _calGyro, _calAccel, _calMagn;
 
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
 	float _SIMheading =0;

@@ -36,6 +36,31 @@ void HMIArq::Request_APinfo(s_APinfo & APinfo) {
 	APinfo.trim.Towf_00(MyPilot->dbt.getTrim());
  }
 
+void HMIArq::Request_IMUcal(s_IMUcal & IMUcal) {
+
+	if (MyPilot->getIMUcheck()==CHECK_ONGOING) {
+		IMUcal.IMUcalstatus = 'C';
+	} else {
+		switch (MyPilot->getIMUstatus()) {
+		case NOT_DETECTED:
+		case CAL_NOT_STARTED:
+			IMUcal.IMUcalstatus = '-'; break;
+		case CAL_INPROGRESS:
+			IMUcal.IMUcalstatus = 'O'; break;
+		case RECALIBRATED:
+			IMUcal.IMUcalstatus = 'R'; break;
+		case NOT_CALIBRATED:
+			IMUcal.IMUcalstatus = 'N'; break;
+		}
+	}
+
+	MyPilot->getCheckSGAM(IMUcal.SYSstatus, IMUcal.GYROstatus, IMUcal.ACCELstatus, IMUcal.MAGNstatus);
+	MyPilot->getCheckXYZ(IMUcal.X,IMUcal.Y,IMUcal.Z);
+
+	return;
+ }
+
+
 void HMIArq::Change_PID(s_PIDgain_flag change, s_gain gain) {
 	// if change.K* is true, take value from argument k*. If false, getK*() retrieves current value
 	float Kp = (change.Kp ? gain.Kp.float_00() : MyPilot->GetKp());

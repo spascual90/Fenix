@@ -176,6 +176,22 @@ enum e_info {
 
 	} ;
 
+	struct s_IMUcal {
+		// Is Valid indicates if data is valid or not
+		bool isValid=false;
+		struct {bool IMUcalStatus; bool SYSstatus; bool GYROstatus; bool ACCELstatus; bool MAGNstatus; bool Xstatus; bool Ystatus; bool Zstatus;} flag;
+
+		char IMUcalstatus;
+		bool SYSstatus;
+		bool GYROstatus;
+		bool ACCELstatus;
+		bool MAGNstatus;
+		uint16_t X;
+		int8_t Y;
+		uint8_t Z;
+
+	} ;
+
 	struct s_APB {
 		// Is Valid indicates if data is valid or not
 		bool isValid=false;

@@ -29,15 +29,24 @@ enum e_BT_push_button {
 		, BT_RESET_PID= 	12
 		, BT_START_STOP_TARGET=	13
 		, BT_SET_HEADALIGN =14
+		, BT_START_IMU_CAL=15
+		, BT_START_STOP_FBK_CAL=16
+		, BT_SAVE_IMU_CAL=17
+		, BT_SAVE_FBK_CAL=18
+
 		, MAX_BT
 		, BT_NO_BTN
 		, BT_BTN_REPEATED
 	};
 
 // Special DV PINS
-//#define IS_BLOCK_PID	25
-#define LED_START 		26
-#define LED_DBACTIVE	27
+#define LED_START 			26
+#define LED_DBACTIVE		27
+
+#define LED_IMU_CAL_GYRO	28
+#define LED_IMU_CAL_ACEL	29
+#define LED_IMU_CAL_MAGN	30
+#define LED_IMU_CAL_SYS		31
 
 
 //Analog Virtual PIN (Float values)
@@ -59,6 +68,12 @@ enum e_BT_AI_PIN {
 , AI_KP = 12
 , AI_KI = 13
 , AI_KD = 14
+, AI_FBK_MIN = 15
+, AI_FBK_MAX = 16
+
+//, AI_IMU_X = 17
+//, AI_IMU_Y = 18
+//, AI_IMU_Z = 19
 , MAX_AI
 };
 

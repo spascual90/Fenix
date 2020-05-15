@@ -48,6 +48,7 @@ public:
 	void printPEMC_03(Stream * outStream);
 	void printPEMC_05(Stream * outStream);
 	void printPEMC_07(Stream * outStream);
+	void printPEMC_12(Stream * outStream);
 	void printAPB(Stream * outStream);
 
 

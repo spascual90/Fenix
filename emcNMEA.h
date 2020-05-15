@@ -111,6 +111,7 @@ protected:
 		PEMC_09, //CALIB_MODE
 		PEMC_10, //EE_FBK_CALIB
 		PEMC_11, //SAVE
+		PEMC_12, //IMUCal
 
         EXT_END
     };
@@ -126,6 +127,7 @@ protected:
     void printPEMC_06(Stream * outStream);
     void printPEMC_07(Stream * outStream);
     void printPEMC_08(char RfI, Stream * outStream);
+    void printPEMC_12(Stream * outStream);
     void printAPB(Stream * outStream);
     void printHDG(Stream * outStream);
     void printHDM(Stream * outStream);
