@@ -62,14 +62,17 @@ void BT::refresh() {
 	M[AI_DEADBAND_VALUE] = MyPilot->dbt.getDeadband();
 	M[AI_TRIM_VALUE] = MyPilot->dbt.getTrim();
 
-//	int X, Y, Z;
-//	MyPilot->check_XYZ(X,Y,Z);
-//	M[AI_IMU_X] = X;
-//	M[AI_IMU_Y] = Y;
-//	M[AI_IMU_Z] = Z;
-	M[AI_FBK_MIN] = MyPilot->getLimitMinFeedback();
-	M[AI_FBK_MAX] = MyPilot->getLimitMaxFeedback();
-
+	uint16_t X = 0;
+	int8_t Y = 0;
+	uint8_t Z = 0;
+	MyPilot->getCheckXYZ(X,Y,Z);
+	M[AI_IMU_X] = int(X);
+	M[AI_IMU_Y] = int(Y);
+	M[AI_IMU_Z] = int(Z);
+	uint16_t fbk_min, fbk_max;
+	MyPilot->getFBKcalStatus(fbk_min, fbk_max);
+	M[AI_FBK_MIN] = fbk_min;
+	M[AI_FBK_MAX] = fbk_max;
 	// UPDATE VALUES TO APP AND GET BUTTON PRESSED
 	updateBT (M);
 
@@ -236,18 +239,24 @@ void BT::refresh() {
 void BT::updateSpecialBT() {
 
 	// SPECIAL OBJECTS IN APP
-	// update LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
-	vDigitalMemoryWrite(LED_START, MyPilot->getCurrentMode()== STAND_BY ? 0: 1);
-	vDigitalMemoryWrite(LED_DBACTIVE, MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0);
+	// update VIRTUAL DIGITAL LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
+	vDigitalMemoryWrite(DV_LED_START, MyPilot->getCurrentMode()== STAND_BY ? 0: 1);
+	vDigitalMemoryWrite(DV_LED_DBACTIVE, MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0);
 
 	bool S, G, A, M;
 
 	if (MyPilot->getCheckSGAM(S, G, A, M)) {
-		vDigitalMemoryWrite(LED_IMU_CAL_SYS, S);
-		vDigitalMemoryWrite(LED_IMU_CAL_GYRO, G);
-		vDigitalMemoryWrite(LED_IMU_CAL_ACEL, A);
-		vDigitalMemoryWrite(LED_IMU_CAL_MAGN, M);
+		vDigitalMemoryWrite(DV_LED_IMU_CAL_SYS, S);
+		vDigitalMemoryWrite(DV_LED_IMU_CAL_GYRO, G);
+		vDigitalMemoryWrite(DV_LED_IMU_CAL_ACEL, A);
+		vDigitalMemoryWrite(DV_LED_IMU_CAL_MAGN, M);
 	}
+
+	// update VIRTUAL ANALOG LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
+	vMemoryWrite(AV_LED_STATUS, MyPilot->getCurrentMode());
+
+
+
 
 	if (HMIArq::getRequestStatus()== WAITING_USER_ANSWER) { //TODO: This should be available in multiple HMI, not only in BT
 		MyPilot->setInformation(NEW_WP_RECEIVED);

@@ -86,7 +86,7 @@ bool Bearing_Monitor::compute_check_IMU(void) {
 	switch (_IMU_check) {
 	case NOT_STARTED:
 		//start check
-		return IMU_startCalCheck(10000);
+		return IMU_startCalCheck(CAL_CHECK_LOOP);
 		break;
 	case CHECK_ONGOING:
 		return Bearing_Monitor::IMU_CalCheck_Loop();
@@ -203,9 +203,9 @@ bool Bearing_Monitor::IMU_CalCheck_Loop(void){
 bool Bearing_Monitor::getCheckXYZ (uint16_t &x, int8_t &y, uint8_t &z) {
 
 	if (_IMU_check != CHECK_ONGOING) return false; //fn only return valid values when check is ongoing.
-	x=_x;
-	y=_y;
-	z=_z;
+	x= _x;
+	y= _y;
+	z= _z;
 
 	return true;
 }

@@ -89,15 +89,9 @@ public:
 	void start_calFeedback();
 	void set_calFeedback();
 
-	void setLimitMinFeedback(
-			int limitMinFeedback = D_MIN_FEEDBACK) {
-		_limit_min_feedback = limitMinFeedback + 2* getErrorFeedback ();
-	}
-
-	void setLimitMaxFeedback(
-			int limitMaxFeedback = D_MAX_FEEDBACK) {
-		_limit_max_feedback = limitMaxFeedback - 2* getErrorFeedback ();
-	}
+	void setLimitMinFeedback(int limitMinFeedback = D_MIN_FEEDBACK);
+	void setLimitMaxFeedback(int limitMaxFeedback = D_MAX_FEEDBACK);
+	void getFBKcalStatus(uint16_t & cal_min, uint16_t & cal_max);
 
 protected:
 	//fn to change independent variables in Standby mode

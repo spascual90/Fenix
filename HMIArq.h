@@ -62,6 +62,8 @@ protected:
 	void Request_instParam(s_instParam & instParam);
 	void Request_APinfo(s_APinfo & APinfo);
 	void Request_IMUcal(s_IMUcal & IMUcal);
+	void Request_FBKcal(s_FBKcal & FBKcal);
+
 	void Change_PID(s_PIDgain_flag, s_gain);
 	void Change_PID_rel (s_PIDgain_flag change, e_operation op, float value );
 	bool Change_instParam (s_instParam instParam);

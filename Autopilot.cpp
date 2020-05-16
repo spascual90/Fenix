@@ -197,7 +197,7 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 		break;
 
 	case CAL_FEEDBACK:
-		set_calFeedback();
+		//set_calFeedback();
 		start_calFeedback();
 		break;
 	default:
@@ -270,6 +270,9 @@ bool Autopilot::reset_calibration(){
 
 bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode){
 	switch (currentMode) {
+	case CAL_FEEDBACK:
+		set_calFeedback();
+		break;
 	default:
 		break;
 	}

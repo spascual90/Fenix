@@ -58,12 +58,12 @@ void IF_NMEA::refresh(){
 	bool fl = false;
 	if (IsTXtime()) {
 		switch (MyPilot->getCurrentMode()) {
-		case CAL_FEEDBACK:
-			//printPEMC_13(& gpsPort);
-			break;
 		case CAL_IMU_MINIMUM:
 		case CAL_IMU_COMPLETE:
 			printPEMC_12(& gpsPort);
+			break;
+		case CAL_FEEDBACK:
+			printPEMC_13(& gpsPort);
 			break;
 		default:
 			if (MyPilot->isHeadingValid()) {
@@ -245,6 +245,13 @@ void IF_NMEA::printPEMC_12(Stream * outStream) {
 	Request_IMUcal(OUTorder.IMUcal);
 	OUTorder.IMUcal.isValid= true;
 	emcNMEA::printPEMC_12(outStream);
+}
+
+void IF_NMEA::printPEMC_13(Stream * outStream) {
+	//load FBKcal into OUTorder
+	Request_FBKcal(OUTorder.FBKcal);
+	OUTorder.FBKcal.isValid= true;
+	emcNMEA::printPEMC_13(outStream);
 }
 
 void IF_NMEA::printAPB(Stream * outStream) {

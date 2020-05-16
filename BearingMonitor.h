@@ -15,6 +15,8 @@
 #include <EEPROM.h>
 
 # define MAX_ITER 100000 // Max number of iterations to consider calibration procedure has failed
+# define CAL_CHECK_LOOP 20000 // Number of iterations to check IMU Calibration results
+
 
 //SDA - I2C data pin, connect to your microcontrollers I2C data line. This pin can be
 //used with 3V or 5V logic, and there's a 10K pullup on this pin.

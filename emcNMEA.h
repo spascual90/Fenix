@@ -128,6 +128,8 @@ protected:
     void printPEMC_07(Stream * outStream);
     void printPEMC_08(char RfI, Stream * outStream);
     void printPEMC_12(Stream * outStream);
+    void printPEMC_13(Stream * outStream);
+
     void printAPB(Stream * outStream);
     void printHDG(Stream * outStream);
     void printHDM(Stream * outStream);

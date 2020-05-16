@@ -147,15 +147,28 @@ void RudderFeedback::start_calFeedback() {
 	DEBUG_print("Extend then retract linear actuator...\n");
 }
 
+void RudderFeedback::setLimitMinFeedback(int limitMinFeedback) {
+	_limit_min_feedback = limitMinFeedback + 2* getErrorFeedback ();
+}
+
+void RudderFeedback::setLimitMaxFeedback(int limitMaxFeedback) {
+	_limit_max_feedback = limitMaxFeedback - 2* getErrorFeedback ();
+}
+
+void RudderFeedback::getFBKcalStatus(uint16_t & cal_min, uint16_t & cal_max) {
+	cal_min = _cal_minFeedback;
+	cal_max = _cal_maxFeedback;
+}
+
 void RudderFeedback::compute_Cal_Feedback() {
 	bool changed = false;
 	int feedback = getFeedback();
 	if(feedback<_cal_minFeedback) {_cal_minFeedback=feedback; changed = true;}
 	if(feedback>_cal_maxFeedback) {_cal_maxFeedback=feedback; changed = true;}
-	if (changed) {
-		sprintf(DEBUG_buffer,"Feedback status: %i (min:%i, Max:%i)\n",feedback, _cal_minFeedback, _cal_maxFeedback );
-		DEBUG_print();
-	}
+	//if (changed) {
+	//	sprintf(DEBUG_buffer,"Feedback status: %i (min:%i, Max:%i)\n",feedback, _cal_minFeedback, _cal_maxFeedback );
+	//	DEBUG_print();
+	//}
 
 }
 

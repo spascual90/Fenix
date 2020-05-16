@@ -189,8 +189,15 @@ enum e_info {
 		uint16_t X;
 		int8_t Y;
 		uint8_t Z;
-
 	} ;
+
+	struct s_FBKcal {
+		bool isValid=false;
+		struct {bool cal_minFeedback; bool cal_maxFeedback;} flag;
+		uint16_t cal_minFeedback ;
+		uint16_t cal_maxFeedback;
+	} ;
+
 
 	struct s_APB {
 		// Is Valid indicates if data is valid or not

@@ -61,6 +61,12 @@ void HMIArq::Request_IMUcal(s_IMUcal & IMUcal) {
  }
 
 
+void HMIArq::Request_FBKcal(s_FBKcal & FBKcal) {
+	MyPilot->getFBKcalStatus(FBKcal.cal_minFeedback, FBKcal.cal_maxFeedback);
+	return;
+ }
+
+
 void HMIArq::Change_PID(s_PIDgain_flag change, s_gain gain) {
 	// if change.K* is true, take value from argument k*. If false, getK*() retrieves current value
 	float Kp = (change.Kp ? gain.Kp.float_00() : MyPilot->GetKp());

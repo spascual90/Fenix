@@ -1005,6 +1005,18 @@ void emcNMEA::printPEMC_12(Stream * outStream) {
     }
 }
 
+void emcNMEA::printPEMC_13(Stream * outStream) {
+	if (OUTorder.FBKcal.isValid) {
+		bufferStream->print ("$PEMC,13,");
+		bufferStream->print(OUTorder.FBKcal.cal_minFeedback);
+		bufferStream->print(',');
+		bufferStream->print(OUTorder.FBKcal.cal_maxFeedback);
+
+		send( outStream, string2char(output) );
+		output.remove(0);
+    }
+}
+
 
 void emcNMEA::printAPB(Stream * outStream) {
 
