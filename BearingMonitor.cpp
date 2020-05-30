@@ -212,7 +212,7 @@ bool Bearing_Monitor::getCheckXYZ (uint16_t &x, int8_t &y, uint8_t &z) {
 
 bool Bearing_Monitor::getCheckSGAM(bool &S, bool &G, bool &A, bool &M){
 
-	//if (_IMU_status != CAL_INPROGRESS) return false; //fn only return valid values when check is ongoing.
+	if (_IMU_status != CAL_INPROGRESS) return false; //fn only return valid values when check is ongoing.
 	S=_calSys;
 	G=_calGyro;
 	A=_calAccel;

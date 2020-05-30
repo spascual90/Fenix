@@ -88,7 +88,7 @@ e_feedback_status RudderFeedback::IBIT(){
 	int feed_error = rudder_IBIT();
 	sprintf(DEBUG_buffer,"Feedback error: %i (Max:%i)\n",feed_error, getErrorFeedback ());
 	DEBUG_print();
-	if (feed_error>=getErrorFeedback ()) return ERROR_TOO_BIG;
+	if (feed_error>getErrorFeedback ()) return ERROR_TOO_BIG;
 #endif
 	DEBUG_PORT.flush();
 	return FEEDBACK_OK;
@@ -121,23 +121,27 @@ e_rudderStatus RudderFeedback::getRudderStatus() const {
 }
 
 int RudderFeedback::rudder_IBIT () {
-	int val, val_min=1024, val_max =0;
+	int val, val_min=1024, val_max =0, error;
 	int i = 0;
-	while ( i++ < 300) {
+	DEBUG_print("Checking feedback error. It may take a few seconds...");
+
+	while ( i++ < 500) {
 		val = getFeedback();
 		delay (10);
 		if (val<val_min) val_min=val;
 		if (val>val_max) val_max=val;
 	}
 
-	return (val_max-val_min);
+	DEBUG_print("Ok.\n");
+
+	error = val_max-val_min;
+
+	return error;
 }
 
 // FEEDBACK CALIBRATION FUNCTIONS
 void RudderFeedback::start_calFeedback() {
 	DEBUG_print("Feedback Calibration Mode:\n");
-	_cal_restore_error=2*rudder_IBIT ();
-	//_cal_restore_error=getErrorFeedback ();
 	setErrorFeedback(0, false); // REMOVE ERROR PROTECTION
 	setMinFeedback(D_MIN_FEEDBACK, false);
 	setMaxFeedback(D_MAX_FEEDBACK, false);
@@ -169,14 +173,16 @@ void RudderFeedback::compute_Cal_Feedback() {
 	//	sprintf(DEBUG_buffer,"Feedback status: %i (min:%i, Max:%i)\n",feedback, _cal_minFeedback, _cal_maxFeedback );
 	//	DEBUG_print();
 	//}
-
 }
 
 void RudderFeedback::set_calFeedback() { //TODO: Calibration of error based on IBIT test results
-	sprintf(DEBUG_buffer,"Feedback error: %i\n", _cal_restore_error );
+	int error=2*rudder_IBIT ();
+	if (error<MIN_ERROR_FEEDBACK) error = MIN_ERROR_FEEDBACK;
+	sprintf(DEBUG_buffer,"Feedback error: %i\n", error );
 	DEBUG_print();
+
 	// setup new independent variables
-	setErrorFeedback(_cal_restore_error, false); // Restore error protection
+	setErrorFeedback(error, false); // Restore error protection
 	setMinFeedback(_cal_minFeedback, false);
 	setMaxFeedback(_cal_maxFeedback, false);
 	setDeltaCenterOfRudder(0, false);

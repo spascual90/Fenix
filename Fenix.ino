@@ -78,6 +78,7 @@ void setup()
 		case SETUP_OK:
 			DEBUG_print("Start\n");
 			break;
+
 		case IMU_ERROR:
 		case FEEDBACK_ERROR:
 			MyPilot.buzzer_Error();

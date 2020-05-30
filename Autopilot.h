@@ -12,9 +12,12 @@
 //#define VIRTUAL_ACTUATOR // When actuator is not installed, input from feedback is random. VIRTUAL_ACTUATOR set value to minimum.
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
 #define TXNMEA //Comment this line to stop periodic NMEA Transmission
+//#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 
 // Buzzer PIN
-#define PIN_BUZZER 8
+// #define PIN_BUZZER 8
+// V0.2 PWM and DIR PIN changed to ensure compatibility with LCDKeyPad
+#define PIN_BUZZER A12
 
 #define DELAY_BUZZBEAT_TIME 50 // Buzzer beat time in msec.
 #define MAX_APB_TIME 2000 // Maximum time of APB data validity
@@ -45,7 +48,7 @@ enum e_error {
 enum e_warning {
 	NO_WARNING,
 	FBK_ERROR_HIGH,
-	IMU_RECAL_FAILED,
+	OUT_OF_COURSE,
 	EE_INSTPARAM_NOTFOUND,
 	EE_IMU_NOTFOUND,
 	IMU_LOW
@@ -56,7 +59,8 @@ enum e_info {
 	NO_MESSAGE,
 	NEW_WP_RECEIVED,
 	SETUP_INPROGRESS,
-	IMU_RECAL_INPROGRESS
+	IMU_RECAL_INPROGRESS,
+	EE_PID_DEFAULT
 };
 
 //  Int8 -- 255 (-128 to +127)
@@ -263,7 +267,9 @@ enum e_info {
 	};
 
 	struct  {
-		int ver =1; // TODO: Version of EEPROM structure is not saved
+		// ver 1: Fenix v0.1
+		// ver 2: save CHECK value before IMU, InstParam and PID structures
+		int ver =2; // TODO: Version of EEPROM structure is not saved
 		long Flag= 0;
 		long IMU=25;
 		long InstParam=73;
@@ -271,7 +277,7 @@ enum e_info {
 	} EE_address;
 
 //HARDCODED gain and installation parameters
-	static s_gain const HC_GAIN ={{8,0}, {0,15}, {1,0}};
+	static s_gain const HC_GAIN ={{8,0}, {0,1}, {1,0}};
 	static s_PIDgain_flag const HC_FLAG ={true, true, true} ;
 
 	static s_PIDgain const HC_PIDGAIN ={
@@ -342,17 +348,21 @@ public:
 
 	//FUNCTIONAL MODULE: EEPROM
 	void EEPROM_setup();
+	void EEPROM_format();
 	void EEsave_ReqCal (bool reqCalib);
 	bool EEload_ReqCal (void);
 	bool EEsave_Calib();
 	e_IMU_status EEload_Calib();
 	bool EEsave_HCParam(); //Save HARDCODED InstParam and PIDgain
-	bool EEload_Param(); //Load both InstParam and PIDgain from EEPROM
 	bool EEsave_instParam(bool HC=false);
 	bool EEload_instParam();
 	bool EEsave_PIDgain(bool HC=false);
 	bool EEload_PIDgain ();
 	bool isCalMode(void);
+
+	bool EEload_CHECK (long address);
+	void EEsave_CHECK (long address);
+
 
 	// FUNCTIONAL MODULE: BUZZER
 	void buzzer_Error();
@@ -463,6 +473,8 @@ private:
 
 	// FUNCTIONAL MODULE: EEPROM
 	byte CRC8(const byte *data, size_t dataLength);
+	const uint8_t CHECKvalue = 170; // 170 = 10101010 in binary
+
 
 	// FUNCTIONAL MODULE: BUZZER
 	void buzzer_setup();

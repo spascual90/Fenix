@@ -40,16 +40,15 @@ enum e_BT_push_button {
 	};
 
 // Special DV PINS
-#define DV_LED_START 			26
 #define DV_LED_DBACTIVE			27
-#define DV_LED_IMU_CAL_GYRO		28
-#define DV_LED_IMU_CAL_ACEL		29
-#define DV_LED_IMU_CAL_MAGN		30
-#define DV_LED_IMU_CAL_SYS		31
+
 
 // Special Analog Virtual PINS
 #define AV_LED_STATUS 			26
-
+#define AV_LED_IMU_CAL_GYRO		27
+#define AV_LED_IMU_CAL_ACEL		28
+#define AV_LED_IMU_CAL_MAGN		29
+#define AV_LED_IMU_CAL_SYS		30
 
 //Analog Virtual PIN (Float values)
 // note, all values between START_AI and MAX_AI shall be defined!

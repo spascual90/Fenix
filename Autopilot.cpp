@@ -30,6 +30,11 @@ Autopilot::~Autopilot() {
 
 e_setup_status Autopilot::setup() {
 
+#ifdef RESTORE_EEPROM
+	//Format EEPROM
+	EEPROM_format();
+#endif
+
 	// Setup buzzer
 	buzzer_setup();
 
@@ -51,7 +56,7 @@ e_setup_status Autopilot::setup() {
 
 	switch (f_status) {
 	case ERROR_TOO_BIG:
-		DEBUG_print("WARNING: Check your linear actuator wiring or increase Rudder Damping parameter!\n");
+		DEBUG_print("WARNING: Check your linear actuator is powered-on and connected!\n");
 		setWarning(FBK_ERROR_HIGH);
 		//return FEEDBACK_ERROR; Not considered an error
 		break;
@@ -72,7 +77,7 @@ e_setup_status Autopilot::setup() {
 	}
 
 	//Enter into calibration mode
-	if (EEload_ReqCal()) {// TODO: more robust check of boolean value in EEPROM is required.
+	if (EEload_ReqCal()) {
 		EEsave_ReqCal(false); // Set flag to disabled to avoid entering into Calibration mode each time
 		DEBUG_print("Calibration mode!\n");
 		// Launch calibration
@@ -87,18 +92,13 @@ e_setup_status Autopilot::setup() {
 	 //  Get and restore BNO Calibration offsets
 	 if (EEload_Calib()==NOT_CALIBRATED) {
 		// There was a problem reading IMU calibration values
-		EEsave_ReqCal(true); // Set flag to enabled to enter into Calibration mode next time system is reset
-		DEBUG_print("Please restart autopilot to enter into Calibration Mode\n"); // System is not reset automatically to avoid recurrent writing EEPROM
+		//EEsave_ReqCal(true); // Set flag to enabled to enter into Calibration mode next time system is reset
+		DEBUG_print("Please enter into Calibration Mode\n"); // System is not reset automatically to avoid recurrent writing EEPROM
 		setWarning(EE_IMU_NOTFOUND);
-		return IMU_ERROR;
+		return SETUP_OK;
 	 }
 	// Ensures calibration is valid by recalibrating (without check feature)
 	setCurrentMode (CAL_IMU_MINIMUM);
-
-	//if (BNO_GetCal(false)==NOT_CALIBRATED) {
-	//	DEBUG_print("Restart autopilot and move slightly the IMU.\nIf this Warning appears again, please enter into Calibration Mode to calibrate IMU\n");
-	//	setWarning(IMU_RECAL_FAILED);
-	//}
 
 	setInformation(NO_MESSAGE);
 	return SETUP_OK;
@@ -516,10 +516,8 @@ void Autopilot::buzzer_tone_start (unsigned long frequency, int duration) {
 }
 
 void Autopilot::buzzer_noTone() {
-#ifdef BUZZER
 	noTone(PIN_BUZZER);
 	_Buzz=false; // Stop buzzer
-#endif
 }
 
 void Autopilot::buzzer_play() {
@@ -563,6 +561,7 @@ bool Autopilot::OCA_Compute (float delta) {
 			sb_offCourse=false; // in course, stop counting
 			_offCourseAlarmActive = false;
 			buzzer_noTone(); // shut down alarm
+			setWarning();
 		}
 		return _offCourseAlarmActive;
 	} else l_offCourse = true;// else-->we are out of course
@@ -574,7 +573,10 @@ bool Autopilot::OCA_Compute (float delta) {
 
 	if (_offCourseAlarmActive == false and (millis()-sd_offCourseStartTime)>_offCourseMaxTime) {
 		_offCourseAlarmActive = true;
+		setWarning(OUT_OF_COURSE);
 		buzzer_tone_start (1000, 1023);
+
+
 	}
 
 	return _offCourseAlarmActive;
@@ -585,49 +587,86 @@ bool Autopilot::OCA_Compute (float delta) {
 void Autopilot::EEPROM_setup() {
 	sprintf(DEBUG_buffer,"EEPROM V%i\n", EE_address.ver);
 	DEBUG_print();
-	if (EEload_Param()) {
-		DEBUG_print("Parameters loaded. Ok\n");
-	} else {
-		DEBUG_print("WARNING: Could not load parameters: Restoring default.\n");
+	if (!EEload_instParam()) {
+		DEBUG_print("WARNING: Could not load Installation parameters: Restoring default.\n");
 		setWarning (EE_INSTPARAM_NOTFOUND);
 		//Restore HARDCODED parameters but don't save!
-		SetTunings(HC_GAIN.Kp.float_00(), HC_GAIN.Ki.float_00(), HC_GAIN.Kd.float_00());
 		Change_instParam (HC_INSTPARAM);
+	}
+
+	if (!EEload_PIDgain()) {
+		DEBUG_print("WARNING: Could not load PID parameters: Restoring default.\n");
+		setInformation (EE_PID_DEFAULT);
+		//Restore HARDCODED parameters but don't save!
+		SetTunings(HC_GAIN.Kp.float_00(), HC_GAIN.Ki.float_00(), HC_GAIN.Kd.float_00());
 	}
 }
 
+void Autopilot::EEPROM_format() {
+	DEBUG_print("EEPROM Format...");
+
+	for (uint16_t i = 0 ; i < EEPROM.length() ; i++) {
+	    EEPROM.update(i, 0xFF);
+	  }
+
+	DEBUG_print("Ok\nStop.");
+    while (1) {;}
+
+}
+
+
 void Autopilot::EEsave_ReqCal (bool reqCalib)
 {
-	EEPROM.put(EE_address.Flag, reqCalib); // true enables Calibration Flag to force calibration
+	const uint8_t TRUEvalue = CHECKvalue; // 170 = 10101010 in binary
+	const uint8_t FALSEvalue = 0; // 0 = 00000000 in binary
+
+	uint8_t value =0;
+	value = reqCalib?TRUEvalue:FALSEvalue;
+	EEPROM.put(EE_address.Flag, value); // true enables Calibration Flag to force calibration
 }
+
+void Autopilot::EEsave_CHECK (long address)
+{
+	EEPROM.put(address, CHECKvalue); // true enables Calibration Flag to force calibration
+}
+
+bool Autopilot::EEload_CHECK (long address)
+{
+	uint8_t value = 0;
+	EEPROM.get(address, value); // true Require Calibration Flag to force calibration
+	return (value == CHECKvalue?true:false);
+}
+
 
 bool Autopilot::EEload_ReqCal (void)
 {
-	bool reqCalib;
-	EEPROM.get(EE_address.Flag, reqCalib); // true Require Calibration Flag to force calibration
-	return reqCalib;
-}
+	uint8_t value = 0;
 
+	EEPROM.get(EE_address.Flag, value); // true Require Calibration Flag to force calibration
+	sprintf(DEBUG_buffer,"ReqCal: %i\n",value);
+	DEBUG_print(DEBUG_buffer);
+	if (value == CHECKvalue) return true;
+	return false;
+}
 
 bool Autopilot::EEsave_Calib(){
 	bool DataStored = false;
-    int eeAddress = EE_address.IMU;
-
-	//DATA TO SAVE
+	long eeAddress = EE_address.IMU;
+ 	//DATA TO SAVE
 	long bnoID;
 	adafruit_bno055_offsets_t Calib;
 
 	DEBUG_print("Saving Calibration...");
-    bnoID = getSensorId();
-	Calib = getSensorOffsets();
 
+	//bnoID
+    bnoID = getSensorId();
     EEPROM.put(eeAddress, bnoID);
-    eeAddress += sizeof(long);
+    eeAddress += sizeof(bnoID);
+
+    //Calib
+	Calib = getSensorOffsets();
     EEPROM.put(eeAddress, Calib);
-    //TODO: implement CRC
-    byte crc ;//= CRC8(instParam, size);
-    eeAddress += sizeof(Calib);
-    EEPROM.put(eeAddress, crc);
+
     DataStored = true;
 
 	DEBUG_print("Ok\n");
@@ -668,32 +707,26 @@ bool Autopilot::EEsave_HCParam(){
 	return (inst_OK && PID_OK);
 }
 
-bool Autopilot::EEload_Param(){
-	bool inst_OK, PID_OK;
-	inst_OK = EEload_instParam();
-	PID_OK = EEload_PIDgain();
-	return (inst_OK && PID_OK);
-}
-
 bool Autopilot::EEsave_instParam(bool HC){
 	bool DataStored=false;
 	//DATA TO SAVE
 	s_instParam instParam;
 	int eeAddress = EE_address.InstParam;
 	DEBUG_print("Saving InstParam...");
+
+    //instParam_CHECK
+    EEPROM.put(eeAddress, CHECKvalue);
+    eeAddress += sizeof(CHECKvalue);
+
+    // InstParam
 	if (HC==true) {
 		DEBUG_print("Restored manufacturer values.");
 		instParam=HC_INSTPARAM;}
 	else {
 		Request_instParam(instParam);
 	}
+
     EEPROM.put(eeAddress, instParam);
-    //TODO: IMPLEMENT CRC
-    //size_t size = sizeof(instParam);
-    //byte * direccion = &instParam;
-    byte crc ;//= CRC8(instParam, size);
-    eeAddress+=sizeof(instParam);
-    EEPROM.put(eeAddress, crc);
 
     DataStored = true;
 	DEBUG_print("Ok\n");
@@ -702,24 +735,39 @@ bool Autopilot::EEsave_instParam(bool HC){
 
 bool Autopilot::EEload_instParam (void){
 	bool Loaded = false;
+	long eeAddress = EE_address.InstParam;
+	uint8_t check;
 	s_instParam instParam;
-	EEPROM.get(EE_address.InstParam, instParam);
-	Loaded = instParam.isValid &&
-			instParam.flag.avgSpeed && instParam.flag.centerTiller &&
-			instParam.flag.headAlign && instParam.flag.instSide && instParam.flag.magVariation &&
-			instParam.flag.maxRudder && instParam.flag.offcourseAlarm && instParam.flag.rudDamping &&
-			instParam.minFeedback && instParam.maxFeedback;
-	if (Loaded) Change_instParam (instParam);
 
+    //PID_CHECK
+	EEPROM.get(eeAddress, check);
+    eeAddress += sizeof(check);
+
+    if (check == CHECKvalue) {
+		EEPROM.get(eeAddress, instParam);
+		Loaded = instParam.isValid &&
+				instParam.flag.avgSpeed && instParam.flag.centerTiller &&
+				instParam.flag.headAlign && instParam.flag.instSide && instParam.flag.magVariation &&
+				instParam.flag.maxRudder && instParam.flag.offcourseAlarm && instParam.flag.rudDamping &&
+				instParam.minFeedback && instParam.maxFeedback;
+		if (Loaded) Change_instParam (instParam);
+		DEBUG_print();
+
+    }
 	return Loaded;
 }
 
 
 bool Autopilot::EEsave_PIDgain(bool HC){
 	bool DataStored=false;
-	int eeAddress = EE_address.PIDgain;
+	long eeAddress = EE_address.PIDgain;
 	s_PIDgain PIDgain;
 	DEBUG_print("Saving PIDgain...");
+
+    //PID_CHECK
+    EEPROM.put(eeAddress, CHECKvalue);
+    eeAddress += sizeof(CHECKvalue);
+
 	if (HC==true) {
 		PIDgain = HC_PIDGAIN;
 		DEBUG_print("Restored manufacturer values.");
@@ -727,10 +775,17 @@ bool Autopilot::EEsave_PIDgain(bool HC){
 		Request_PIDgain(PIDgain);
 	}
     EEPROM.put(eeAddress, PIDgain);
-    //TODO: implement CRC
-    eeAddress+=sizeof(PIDgain);
-    byte crc ;//= CRC8(instParam, size);
-    EEPROM.put(eeAddress, crc);
+
+    //BORRAME
+    sprintf(DEBUG_buffer,"pid Saved at %i\n", eeAddress );
+	DEBUG_print();
+	bool Loaded = PIDgain.isValid &&
+			PIDgain.flag.DBConfig &&
+			PIDgain.flag.sTime &&
+			PIDgain.flag.gain.Kp && PIDgain.flag.gain.Ki && PIDgain.flag.gain.Kd;
+    if (!Loaded) DEBUG_print("Flags not true\n" );
+    //BORRAME
+
     DataStored = true;
 	DEBUG_print("Ok\n");
     return DataStored;
@@ -738,12 +793,22 @@ bool Autopilot::EEsave_PIDgain(bool HC){
 
 bool Autopilot::EEload_PIDgain (void){
 	bool Loaded = false;
+	long eeAddress = EE_address.PIDgain;
+	uint8_t check;
 	s_PIDgain PIDgain;
-	EEPROM.get(EE_address.PIDgain, PIDgain);
-	Loaded = PIDgain.isValid &&
-			PIDgain.flag.DBConfig &&
-			PIDgain.flag.sTime &&
-			PIDgain.flag.gain.Kp && PIDgain.flag.gain.Ki && PIDgain.flag.gain.Kd;
+
+    //PID_CHECK
+	EEPROM.get(eeAddress, check);
+    eeAddress += sizeof(check);
+
+    if (check == CHECKvalue) {
+		//PIDgain
+		EEPROM.get(eeAddress, PIDgain);
+		Loaded = PIDgain.isValid &&
+				PIDgain.flag.DBConfig &&
+				PIDgain.flag.sTime &&
+				PIDgain.flag.gain.Kp && PIDgain.flag.gain.Ki && PIDgain.flag.gain.Kd;
+    }
 
 	if (Loaded) {
 		SetTunings(PIDgain.gain.Kp.float_00(), PIDgain.gain.Ki.float_00(), PIDgain.gain.Kd.float_00());
@@ -753,25 +818,25 @@ bool Autopilot::EEload_PIDgain (void){
 	return Loaded;
 }
 
-//CRC-8 - based on the CRC8 formulas by Dallas/Maxim
-//code released under the therms of the GNU GPL 3.0 license
-byte Autopilot::CRC8(const byte *data, size_t dataLength)
-{
-  byte crc = 0x00;
-  while (dataLength--)
-  {
-    byte extract = *data++;
-    for (byte tempI = 8; tempI; tempI--)
-   {
-      byte sum = (crc ^ extract) & 0x01;
-      crc >>= 1;
-      if (sum)
-     {
-        crc ^= 0x8C;
-      }
-      extract >>= 1;
-    }
-  }
-  return crc;
-}
+////CRC-8 - based on the CRC8 formulas by Dallas/Maxim
+////code released under the therms of the GNU GPL 3.0 license
+//byte Autopilot::CRC8(const byte *data, size_t dataLength)
+//{
+//  byte crc = 0x00;
+//  while (dataLength--)
+//  {
+//    byte extract = *data++;
+//    for (byte tempI = 8; tempI; tempI--)
+//   {
+//      byte sum = (crc ^ extract) & 0x01;
+//      crc >>= 1;
+//      if (sum)
+//     {
+//        crc ^= 0x8C;
+//      }
+//      extract >>= 1;
+//    }
+//  }
+//  return crc;
+//}
 

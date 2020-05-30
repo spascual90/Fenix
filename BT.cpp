@@ -203,18 +203,13 @@ void BT::refresh() {
 
  // FEEDBACK CALIBRATION PANEL
     case BT_START_STOP_FBK_CAL:
-		switch (currentMode) {
-		case STAND_BY:
-		case CAL_FEEDBACK:
-			Enter_Exit_FBK_Calib();
-			break;
-		default:
-			break;
-		}
+		Enter_Exit_FBK_Calib();//Enter FBK cal mode
     	break;
 
     case BT_SAVE_FBK_CAL:
-		if (currentMode==STAND_BY) Save_instParam();
+		if (currentMode == CAL_FEEDBACK ) Enter_Exit_FBK_Calib();// Exit FBK cal mode
+		Save_instParam();
+
 		break;
 
 
@@ -240,17 +235,22 @@ void BT::updateSpecialBT() {
 
 	// SPECIAL OBJECTS IN APP
 	// update VIRTUAL DIGITAL LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
-	vDigitalMemoryWrite(DV_LED_START, MyPilot->getCurrentMode()== STAND_BY ? 0: 1);
 	vDigitalMemoryWrite(DV_LED_DBACTIVE, MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0);
 
-	bool S, G, A, M;
+	bool S, G, A, M; //Status disabled
+	int iS =2, iG=2, iA=2, iM=2;
 
 	if (MyPilot->getCheckSGAM(S, G, A, M)) {
-		vDigitalMemoryWrite(DV_LED_IMU_CAL_SYS, S);
-		vDigitalMemoryWrite(DV_LED_IMU_CAL_GYRO, G);
-		vDigitalMemoryWrite(DV_LED_IMU_CAL_ACEL, A);
-		vDigitalMemoryWrite(DV_LED_IMU_CAL_MAGN, M);
+		iS = S;
+		iG = G;
+		iA = A;
+		iM = M;
 	}
+
+	vMemoryWrite(AV_LED_IMU_CAL_SYS, iS);
+	vMemoryWrite(AV_LED_IMU_CAL_GYRO, iG);
+	vMemoryWrite(AV_LED_IMU_CAL_ACEL, iA);
+	vMemoryWrite(AV_LED_IMU_CAL_MAGN, iM);
 
 	// update VIRTUAL ANALOG LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
 	vMemoryWrite(AV_LED_STATUS, MyPilot->getCurrentMode());

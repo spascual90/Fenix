@@ -26,9 +26,7 @@
 #define D_MIN_FEEDBACK 0 //AS READ FROM PIN_RUDDER IN THE RETRACTED POSITION OF THE ACTUATOR
 #define D_MAX_FEEDBACK 1023 //AS READ FROM PIN_RUDDER IN THE EXTENDED POSITION OF THE ACTUATOR
 
-// VALUES FOR THE SLOW LINEAR ACTUATOR
-//#define MIN_FEEDBACK 268 //AS READ FROM PIN_RUDDER IN THE RETRACTED POSITION OF THE ACTUATOR
-//#define MAX_FEEDBACK 754 //AS READ FROM PIN_RUDDER IN THE EXTENDED POSITION OF THE ACTUATOR
+#define MIN_ERROR_FEEDBACK 3
 #define DEFAULT_ERROR_FEEDBACK 10 //A number between 0 and 1023 to protect linear actuator from overuse
 //#define STROKE 300 //actuator stroke in mm
 
@@ -138,7 +136,6 @@ private:
 	//Values to calibrate linear actuator
 	int _cal_minFeedback=D_MAX_FEEDBACK;
 	int _cal_maxFeedback=D_MIN_FEEDBACK;
-	int _cal_restore_error = DEFAULT_ERROR_FEEDBACK;
 
 	// IBIT functions
 	char* get_PIN_RUDDER() {return (PIN_RUDDER_NAME);}
