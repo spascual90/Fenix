@@ -103,7 +103,7 @@ void IF_NMEA::stopAllTX(){
 
 
 void IF_NMEA::refresh_INorder() {
-	HMIArq::updateRequestTimeout(); // Check if request reached timeout and cancel
+	if (HMIArq::updateRequestTimeout()) MyPilot->setInformation (NO_MESSAGE); // Check if request reached timeout and cancel
 	// Launch action accordingly to action received and current mode
 	e_APmode currentMode = MyPilot->getCurrentMode();
 
@@ -158,6 +158,7 @@ void IF_NMEA::refresh_INorder() {
 
 		case REQ_INFO: //$PEMC,08,A*52 received
 			if (!MyPilot->isCalMode()) printPEMC_07(& gpsPort);
+			break;
 
 		case REQ_TRACK: //APB received
 			if (!MyPilot->isCalMode()) {

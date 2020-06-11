@@ -189,27 +189,40 @@ void HMIArq::Set_Headalign(){
 }
 
 
+//	if (HMIArq::getRequestStatus()== WAITING_USER_ANSWER) { //TODO: This should be available in multiple HMI, not only in BT
+//		MyPilot->setInformation(NEW_WP_RECEIVED);
+//	} else if (MyPilot->getInformation() ==NEW_WP_RECEIVED) {
+//		MyPilot->setInformation(NO_MESSAGE);
+//	}
+
 // Track mode functions
 // return true: All prepared to start TRACK MODE
 bool HMIArq::received_APB( s_APB APB) {
 	e_requestStatus answer = NO_USER_REQUEST;
-	//DEBUG_print( "APB Received..." );
+	DEBUG_print( "APB Received..." );
 	//reset user confirmation request time each time APB is received.
 	_requestTime = millis();
 	// if Waypoint changes --> request user confirmation before updating
 	s_APB AP_apb = MyPilot->getAPB();
 	if (strcmp(APB.destID, AP_apb.destID)==0) {
-		//DEBUG_print( "update WP info\n" );
+		// Same destID-->update APB info w/o asking user
+		DEBUG_print( "update WP info\n" );
 		MyPilot->setAPB(APB);
 	} else {
-		//DEBUG_print( "new WP.User?\n" );
+
 		answer = HMIArq::userRequest();
 		if (answer == USER_ACCEPTED) {
-			//DEBUG_print( "Start track mode\n" );
+			DEBUG_print( "Start track mode\n" );
+			MyPilot->setInformation(NO_MESSAGE);
 			MyPilot->setAPB(APB);
-			MyPilot->buzzer_Beep();
 			return true;
 		}
+
+		// New destID-->Request user before updating APB
+		sprintf(DEBUG_buffer,"WP:%s new WP:%s User?\n",AP_apb.destID, APB.destID);
+		DEBUG_print();
+
+		MyPilot->setInformation(NEW_WP_RECEIVED);
 	}
 	return false;
 }
@@ -256,6 +269,7 @@ void HMIArq::Save_HCParam(){
 bool HMIArq::updateRequestTimeout() {
 	if ((_requestStatus==WAITING_USER_ANSWER) && ((millis()-_requestTime)>MAX_USER_ANSWER_TIME)) {
 			_requestStatus = NO_USER_REQUEST;
+
 			return true;
 		}
 	return false;
@@ -300,13 +314,15 @@ e_requestStatus HMIArq::userRequestAnswer (bool answer) {
 	}
 	switch (_requestStatus) {
 	case USER_ACCEPTED:
-		//DEBUG_print( "User accepted\n" );
+		DEBUG_print( "User accepted\n" );
+
 		break;
 	case USER_REJECTED:
-		//DEBUG_print( "User rejected\n" );
+		DEBUG_print( "User rejected\n" );
+
 		break;
 	default:
-		//DEBUG_print( "Other\n" );
+		DEBUG_print( "Other\n" );
 		break;
 	}
 

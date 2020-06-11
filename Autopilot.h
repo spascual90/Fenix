@@ -20,7 +20,7 @@
 #define PIN_BUZZER A12
 
 #define DELAY_BUZZBEAT_TIME 50 // Buzzer beat time in msec.
-#define MAX_APB_TIME 2000 // Maximum time of APB data validity
+#define MAX_APB_TIME 10000 // Maximum time of APB data validity
 #define LONG_LOOP_TIME 100 // Loops to update current course and target bearing
 #define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
 
@@ -51,7 +51,8 @@ enum e_warning {
 	OUT_OF_COURSE,
 	EE_INSTPARAM_NOTFOUND,
 	EE_IMU_NOTFOUND,
-	IMU_LOW
+	IMU_LOW,
+	APB_TIMEOUT
 };
 
 // Information codes

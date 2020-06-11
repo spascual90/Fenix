@@ -85,7 +85,12 @@ void BT::refresh() {
 	//MAIN PANEL
 	case BT_START_STOP:
 		if (!MyPilot->isCalMode()) {
-			if (userRequestAnswer (true)!=USER_ACCEPTED) Start_Stop(CURRENT_HEADING); // Accepts request only if necessary
+			if (userRequestAnswer (true)==USER_ACCEPTED){
+				//There was a user request, and user accepted
+			    MyPilot->buzzer_Beep();
+			} else {
+				Start_Stop(CURRENT_HEADING); // Accepts request only if necessary
+			}
 		}
 		break;
 
@@ -255,29 +260,27 @@ void BT::updateSpecialBT() {
 	// update VIRTUAL ANALOG LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
 	vMemoryWrite(AV_LED_STATUS, MyPilot->getCurrentMode());
 
+//	if (HMIArq::getRequestStatus()== WAITING_USER_ANSWER) { //TODO: This should be available in multiple HMI, not only in BT
+//		MyPilot->setInformation(NEW_WP_RECEIVED);
+//	} else if (MyPilot->getInformation() ==NEW_WP_RECEIVED) {
+//		MyPilot->setInformation(NO_MESSAGE);
+//	}
 
-
-
-	if (HMIArq::getRequestStatus()== WAITING_USER_ANSWER) { //TODO: This should be available in multiple HMI, not only in BT
-		MyPilot->setInformation(NEW_WP_RECEIVED);
-	} else if (MyPilot->getInformation() ==NEW_WP_RECEIVED) {
-		MyPilot->setInformation(NO_MESSAGE);
-	}
-
-	// USER MESSAGES BY PRIORITY: 1.ERROR, 2.WARNING, 3.INFO
+	// USER MESSAGES BY PRIORITY: low.ERROR, med.WARNING, hich.INFO
 	int message = 0;
 
-	//3. INFO
-	int information = MyPilot->getInformation();
-	if (information!=NO_MESSAGE) message = information + INFORMATION_SLOT;
+	//low. ERROR
+	int error = MyPilot->getError();
+	if (error!=NO_ERROR) message = error + ERROR_SLOT;
 
-	//2. WARNING
+	//med. WARNING
 	int warning = MyPilot->getWarning();
 	if (warning!=NO_WARNING) message = warning + WARNING_SLOT;
 
-	//1. ERROR
-	int error = MyPilot->getError();
-	if (error!=NO_ERROR) message = error + ERROR_SLOT;
+	//high. INFO/USER REQUEST
+	int information = MyPilot->getInformation();
+	if (information!=NO_MESSAGE) message = information + INFORMATION_SLOT;
+
 
 	//Only one message displayed, highest priority
 	vMemoryWrite(AI_USER_MESSAGE, message);
@@ -285,6 +288,7 @@ void BT::updateSpecialBT() {
 	vMemoryWrite(AI_KP, MyPilot->GetKp());
 	vMemoryWrite(AI_KI, MyPilot->GetKi());
 	vMemoryWrite(AI_KD, MyPilot->GetKd());
+
 //	//INDICATIVE SWITCH buttons
 //	switch (vDigitalMemoryRead(IS_BLOCK_PID)) {
 //			case HIGH:
@@ -309,14 +313,12 @@ void BT::updateSpecialBT() {
 //	_k_change.Ki=(vMemoryRead(AI_KSELECT)==1?true:false);
 //	_k_change.Kd=(vMemoryRead(AI_KSELECT)==2?true:false);
 
-
 	// REGULATOR
 	float target = vMemoryRead(AI_DELTA_TARGET);
 	if (target!=0) {
 		Set_NewCourse(target);
 		vMemoryWrite(AI_DELTA_TARGET, 0);
 	}
-
 
 }
 

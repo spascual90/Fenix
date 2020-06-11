@@ -250,6 +250,7 @@ void Autopilot::ComputeLongLoop() {
 
 		if (_currentMode == TRACK_MODE) {
 			if (checkAPBTimeout()) {
+				setWarning (APB_TIMEOUT);
 				setCurrentMode(STAND_BY);
 			} else {
 				setTargetBearing(_APB.CTS.float_00());
@@ -432,6 +433,14 @@ void Autopilot::Request_instParam(s_instParam & instParam) {
 	instParam.isValid = true;
 }
 
+void Autopilot::buzzer_tone_start (unsigned long frequency, int duration) {
+#ifdef BUZZER
+	_buzzFrec = frequency;
+	_buzzDur = duration;
+	BuzzReset();
+#endif
+}
+
 bool Autopilot::Change_instParam (s_instParam instParam) {
 	bool rt = false;
 	if (getCurrentMode() == STAND_BY) { //ONLY ALLOWED IN STAND_BY MODE
@@ -506,14 +515,6 @@ void Autopilot::buzzer_Beep() {
 
 // frequency -->Frequency of the sound
 // duration--> Number of periods playing sound. Maximum 1023 (250 seg aprox)
-
-void Autopilot::buzzer_tone_start (unsigned long frequency, int duration) {
-#ifdef BUZZER
-	_buzzFrec = frequency;
-	_buzzDur = duration;
-	BuzzReset();
-#endif
-}
 
 void Autopilot::buzzer_noTone() {
 	noTone(PIN_BUZZER);
