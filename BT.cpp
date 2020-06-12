@@ -57,7 +57,7 @@ void BT::refresh() {
 	M[AI_ITERM] = float (MyPilot->getITerm());
 	M[AI_KDCONTRIB] = float(MyPilot->getKdContrib());
 	M[AI_PIDOUT] = float(MyPilot->getOutput());
-	M[AI_PREVCTS] = MyPilot->getPrevCourse();
+	M[AI_NEXTCTS] = MyPilot->getNextCourse();
 	M[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
 	M[AI_DEADBAND_VALUE] = MyPilot->dbt.getDeadband();
 	M[AI_TRIM_VALUE] = MyPilot->dbt.getTrim();
@@ -85,12 +85,15 @@ void BT::refresh() {
 	//MAIN PANEL
 	case BT_START_STOP:
 		if (!MyPilot->isCalMode()) {
-			if (userRequestAnswer (true)==USER_ACCEPTED){
-				//There was a user request, and user accepted
-			    MyPilot->buzzer_Beep();
-			} else {
-				Start_Stop(CURRENT_HEADING); // Accepts request only if necessary
-			}
+//			if (userRequestAnswer (true)==USER_ACCEPTED){
+//				//There was a user request, and user accepted
+//			    MyPilot->buzzer_Beep();
+//			} else {
+//				Start_Stop(CURRENT_HEADING); // Accepts request only if necessary
+//			}
+			userRequestAnswer (false);
+			Start_Stop(CURRENT_HEADING); // Accepts request only if necessary
+
 		}
 		break;
 
@@ -158,9 +161,15 @@ void BT::refresh() {
     	}
 		break;
 
-    case BT_RETURN_COURSE:
-    	userRequestAnswer (false);
-    	 Set_NewCourse(MyPilot->getPrevCourse());
+    case BT_NEXT_COURSE:
+    	//if APB received: enter into Track mode/ accept new WP
+		if (userRequestAnswer (true)==USER_ACCEPTED){
+			//There was a user request, and user accepted
+		    MyPilot->buzzer_Beep();
+		} else {
+	    	 Set_NewCourse(MyPilot->getNextCourse());
+		}
+
 		 break;
 
 // BEARING PANNEL

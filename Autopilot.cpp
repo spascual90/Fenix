@@ -112,7 +112,7 @@ e_working_status Autopilot::Compute() {
 #endif
 
 	// Once each XXX loops: Update current course and target bearing (in track mode). Stores value for later use.
-	ComputeLongLoop();
+	computeLongLoop();
 
 	// Play buzzer if required
 	buzzer_play();
@@ -123,7 +123,7 @@ e_working_status Autopilot::Compute() {
 	switch (_currentMode) {
 	case AUTO_MODE:
 	case TRACK_MODE:
-		ws = compute_Track_Mode();
+		ws = compute_TrackMode();
 		break;
 	case CAL_IMU_COMPLETE:
 		//ws = compute_Cal_IMU(true);
@@ -157,12 +157,25 @@ e_working_status Autopilot::compute_Stand_By(){
 	return RUNNING_OK;
 }
 
-e_working_status Autopilot::compute_Track_Mode(void){
+e_working_status Autopilot::compute_TrackMode(void){
 	float PIDerrorPrima = delta180(getTargetBearing(), Bearing_Monitor::getCurrentHeading());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	if (ActuatorManager::Compute(PIDerrorPrima)!=1) return RUNNING_ERROR;
 	OCA_Compute (PIDerrorPrima);
 	return RUNNING_OK;
+}
+
+
+void Autopilot::computeLongLoop_TrackMode(void) {
+	// timeout while new WP pending confirmation
+	if (checkAPBTimeout()) {
+		// Cancel Track mode
+		setWarning (APB_TIMEOUT);
+		setCurrentMode(STAND_BY);
+	} else {
+		// Update target with last APB received
+		setTargetBearing(_APB.CTS.float_00());
+	}
 }
 
 // RETURN true = Mode changed successfully
@@ -216,7 +229,7 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 	return true;
 }
 
-void Autopilot::ComputeLongLoop() {
+void Autopilot::computeLongLoop() {
 	static int low_quality_data=0;
 
 	// Once each XX loops: Update current course and target bearing (in track mode). Stores value for later use.
@@ -235,7 +248,7 @@ void Autopilot::ComputeLongLoop() {
 //		}
 
 		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU(true);
-		if (isCalMode()) return;
+		if (isCalMode()) return; //TODO entonces sólo pasa por aqui 1 vez en cal_imu_complete mode (ya que no pasa por longloopreset)
 
 		if (updateHeading()) {
 			if (getWarning()==IMU_LOW) setWarning(NO_WARNING);
@@ -248,14 +261,8 @@ void Autopilot::ComputeLongLoop() {
 			}
 		}
 
-		if (_currentMode == TRACK_MODE) {
-			if (checkAPBTimeout()) {
-				setWarning (APB_TIMEOUT);
-				setCurrentMode(STAND_BY);
-			} else {
-				setTargetBearing(_APB.CTS.float_00());
-			}
-		}
+		if (_currentMode == TRACK_MODE) computeLongLoop_TrackMode();
+
 		LongLoopReset();
 	}
 
@@ -283,7 +290,7 @@ bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode){
 bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 	switch (currentMode) {
 	case AUTO_MODE:
-		// Same behaviour as Track mode
+		// Same behavior as Track mode
 	case TRACK_MODE:
 		if (isHeadingValid()) {
 			startAutoMode();
@@ -345,7 +352,7 @@ void Autopilot::Start_Stop(e_start_stop type){
 			break;
 		}
 
-		setPrevCourse(target);
+		setNextCourse(target);
 
 		switch (mode) {
 		// If in STAND_BY --> set AUTO MODE
@@ -377,6 +384,12 @@ void Autopilot::Enter_Exit_FBK_Calib(void) {
 	default:
 		break;
 	}
+}
+
+void Autopilot::setAPB(const s_APB& apb) {
+	_APB = apb;
+	_APBtime = millis();
+	setNextCourse(_APB.CTS.float_00());
 }
 
 // OVERLOADED FUNCTIONS

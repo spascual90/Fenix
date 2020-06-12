@@ -13,7 +13,7 @@
 #define RATE_10 30
 
 // Maximum time (in millisecs) to answer to user request
-#define MAX_USER_ANSWER_TIME 3000
+#define MAX_USER_ANSWER_TIME 5000
 
 enum e_operation {OP_ADD, OP_DEC, OP_MULT, OP_DIV};
 enum e_requestStatus {NO_USER_REQUEST, WAITING_USER_ANSWER, USER_ACCEPTED, USER_REJECTED, REQUEST_TIME_OUT};
@@ -77,7 +77,7 @@ protected:
 	void Save_PIDgain();
 	void Save_HCParam(); // Saves GAIN and Inst.Param HARDCODED values
 
-	static e_requestStatus userRequest ();
+	static e_requestStatus userRequest (void);
 	static e_requestStatus userRequestAnswer (bool answer);
 	static e_requestStatus getRequestStatus ();
 	static bool updateRequestTimeout ();

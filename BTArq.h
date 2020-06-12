@@ -21,7 +21,7 @@ enum e_BT_push_button {
 		, BT_INC_MIX_10= 	4
 		, BT_DEC_MIX_1= 	5
 		, BT_DEC_MIX_10=	6
-		, BT_RETURN_COURSE= 7
+		, BT_NEXT_COURSE= 7
 		, BT_INC_COURSE_1=	8
 		, BT_INC_COURSE_10=	9
 		, BT_DEC_COURSE_1=	10
@@ -54,7 +54,7 @@ enum e_BT_push_button {
 // note, all values between START_AI and MAX_AI shall be defined!
 enum e_BT_AI_PIN {
   START_AI = 	-1
-, AI_PREVCTS= 	0
+, AI_NEXTCTS= 	0
 , AI_HEADING= 	1
 , AI_TARGET= 	2
 , AI_DELTA=		3

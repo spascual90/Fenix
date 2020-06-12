@@ -336,9 +336,13 @@ public:
 	void Start_Stop(e_start_stop type);
 	void Enter_Exit_FBK_Calib(void);
 
-	float getPrevCourse() const {
-		return _prevCourse;
+	float getNextCourse() const {
+		return _nextCourse;
 	}
+	void setNextCourse(float nextCourse) {
+		_nextCourse = nextCourse;
+	}
+
 
 	//OVERLOADED FUNCTIONS
 	int changeRudder(int delta_rudder);
@@ -375,10 +379,7 @@ public:
 		return _APB;
 	}
 
-	void setAPB(const s_APB& apb) {
-		_APB = apb;
-		_APBtime = millis();
-	}
+	void setAPB(const s_APB& apb);
 
 	// FUNCTIONAL MODULE: IMU
 	void Start_Cal();
@@ -450,7 +451,7 @@ private:
 	String _status[5] = { "STAND BY", "FOLLOW BEARING", "CALIBRATING" };
 	s_APB _APB; //information from plotter in Track mode
 	double _APBtime;
-	float _prevCourse = 0;
+	float _nextCourse = 0;
 
 	//NMEA RX/TX
 	bool checkAPBTimeout();
@@ -458,13 +459,12 @@ private:
 	// FUNCTIONAL MODULE: WORKING MODES
 	bool before_changeMode(e_APmode newMode, e_APmode currentMode);
 	bool after_changeMode(e_APmode currentMode, e_APmode preMode);
-	void ComputeLongLoop(void);
-	e_working_status compute_Track_Mode(void);
+	e_working_status compute_TrackMode(void);
 	e_working_status compute_Stand_By(void);
 	e_working_status compute_Cal_IMU(bool completeCal);
 	e_working_status compute_Cal_Feedback(void);
-
-	void setPrevCourse(float prevCourse) {_prevCourse = prevCourse;}
+	void computeLongLoop(void);
+	void computeLongLoop_TrackMode(void);
 
 	void reset(){
 		resetFunc();  //call reset

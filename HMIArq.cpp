@@ -188,19 +188,13 @@ void HMIArq::Set_Headalign(){
 	  MyPilot->buzzer_Beep();
 }
 
-
-//	if (HMIArq::getRequestStatus()== WAITING_USER_ANSWER) { //TODO: This should be available in multiple HMI, not only in BT
-//		MyPilot->setInformation(NEW_WP_RECEIVED);
-//	} else if (MyPilot->getInformation() ==NEW_WP_RECEIVED) {
-//		MyPilot->setInformation(NO_MESSAGE);
-//	}
-
 // Track mode functions
 // return true: All prepared to start TRACK MODE
 bool HMIArq::received_APB( s_APB APB) {
 	e_requestStatus answer = NO_USER_REQUEST;
 	DEBUG_print( "APB Received..." );
-	//reset user confirmation request time each time APB is received.
+	//each time APB is received.
+	//-reset user confirmation request time
 	_requestTime = millis();
 	// if Waypoint changes --> request user confirmation before updating
 	s_APB AP_apb = MyPilot->getAPB();
@@ -216,6 +210,9 @@ bool HMIArq::received_APB( s_APB APB) {
 			MyPilot->setInformation(NO_MESSAGE);
 			MyPilot->setAPB(APB);
 			return true;
+		} else if (answer == WAITING_USER_ANSWER) {
+			//-update next course indicator
+			MyPilot->setNextCourse(APB.CTS.float_00());
 		}
 
 		// New destID-->Request user before updating APB
@@ -277,11 +274,11 @@ bool HMIArq::updateRequestTimeout() {
 }
 
 // Polls for user request status.
-// If not launched, it LAUNCHES NEW REQUEST!
+//If not launched, it LAUNCHES NEW REQUEST!
 // If launched and answered, returns answer and RESET REQUEST!
 // If launched and not answered, returns status
 
-e_requestStatus HMIArq::userRequest () {
+e_requestStatus HMIArq::userRequest (void) {
 	switch (_requestStatus) {
 	case NO_USER_REQUEST:
 		_requestStatus = WAITING_USER_ANSWER;
