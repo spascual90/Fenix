@@ -52,16 +52,19 @@ enum e_warning {
 	EE_INSTPARAM_NOTFOUND,
 	EE_IMU_NOTFOUND,
 	IMU_LOW,
-	APB_TIMEOUT
+	WP_INVALID
 };
 
 // Information codes
 enum e_info {
 	NO_MESSAGE,
-	NEW_WP_RECEIVED,
+	NOT_USED,
 	SETUP_INPROGRESS,
 	IMU_RECAL_INPROGRESS,
-	EE_PID_DEFAULT
+	EE_PID_DEFAULT,
+	TRACKMODE_AVAILABLE,
+	TRACKING,
+	CONFIRM_NEW_WP
 };
 
 //  Int8 -- 255 (-128 to +127)
@@ -227,6 +230,11 @@ enum e_info {
 		whole_frac CTS;
 	} ;
 
+	struct s_WP {
+		s_APB APB;
+		long t0;
+	} ;
+
 	enum e_actions {
 		NO_INSTRUCTION
 		, START_STOP
@@ -330,19 +338,19 @@ public:
 		_targetBearing = fmod (targetBearing, double(360));
 	}
 
+	float getNextCourse(void);
+	void setNextCourse(float nextCourse);
+
 	void Request_PIDgain(s_PIDgain & PIDgain);
 	void Request_instParam(s_instParam & instParam);
 	bool Change_instParam (s_instParam instParam);
 	void Start_Stop(e_start_stop type);
 	void Enter_Exit_FBK_Calib(void);
 
-	float getNextCourse() const {
-		return _nextCourse;
-	}
-	void setNextCourse(float nextCourse) {
-		_nextCourse = nextCourse;
-	}
-
+	//TRACK MODE
+	bool activateWPnext(void); // User push Next button
+	void APBreceived(s_APB APB);
+	bool checkNextAPB_Timeout();
 
 	//OVERLOADED FUNCTIONS
 	int changeRudder(int delta_rudder);
@@ -375,11 +383,16 @@ public:
 	void buzzer_Information();
 	void buzzer_Beep();
 
-	const s_APB& getAPB() const {
-		return _APB;
-	}
-
-	void setAPB(const s_APB& apb);
+//	const s_APB& getAPB() const {
+//		return _APB;
+//	}
+//
+//	void setAPB(const s_APB& apb);
+//	void setAPB(bool isValid);
+//	void setNextAPB(const s_APB& apb);
+//	s_APB getAPB(void) {
+//		return _APB;
+//	}
 
 	// FUNCTIONAL MODULE: IMU
 	void Start_Cal();
@@ -427,6 +440,7 @@ public:
 	}
 
 	void setWarning(e_warning warning = NO_WARNING) {
+
 		_warning = warning;
 		sprintf(DEBUG_buffer,"!WARNING Code: %i\n", _warning);
 		DEBUG_print();
@@ -438,23 +452,18 @@ public:
 	}
 
 	void setInformation(e_info information = NO_MESSAGE) {
+		if (information!=_information) buzzer_Information();
 		_information = information;
 		sprintf(DEBUG_buffer,"!INFORMATION Code: %i\n", _information);
 		DEBUG_print();
-		if (information!=NO_MESSAGE) buzzer_Information();
 
 	}
 
 private:
 	e_APmode _currentMode= STAND_BY; // current working mode
 	float _targetBearing= 0; // target vessel bearing
+	float _nextCourse= 0; // Next course in STDBY/ AUTO Mode
 	String _status[5] = { "STAND BY", "FOLLOW BEARING", "CALIBRATING" };
-	s_APB _APB; //information from plotter in Track mode
-	double _APBtime;
-	float _nextCourse = 0;
-
-	//NMEA RX/TX
-	bool checkAPBTimeout();
 
 	// FUNCTIONAL MODULE: WORKING MODES
 	bool before_changeMode(e_APmode newMode, e_APmode currentMode);
@@ -464,6 +473,12 @@ private:
 	e_working_status compute_Cal_IMU(bool completeCal);
 	e_working_status compute_Cal_Feedback(void);
 	void computeLongLoop(void);
+
+	//TRACK MODE
+	s_WP _WPactive, _WPnext;
+	void setWPactive(s_APB APB);
+	void setWPnext(s_APB APB);
+	void computeLongLoop_WP(void);
 	void computeLongLoop_TrackMode(void);
 
 	void reset(){
@@ -511,7 +526,6 @@ private:
 	e_info _information = NO_MESSAGE;
 	e_warning _warning = NO_WARNING;
 	e_error _error = NO_ERROR;
-
 
 	void LongLoopReset() {
 		_DelayLongLoopStart = millis();

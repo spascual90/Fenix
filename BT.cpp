@@ -49,7 +49,6 @@ void BT::refresh() {
 
 	//Float Virtual PIN
 	M[AI_HEADING] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeading():888);
-	//M[AI_HEADING] = MyPilot->getCurrentHeading();
 	M[AI_TARGET] = MyPilot->getTargetBearing();
 	M[AI_DELTA] = MyPilot->getInput();
 	M[AI_RUDDER] = MyPilot->getCurrentRudder();
@@ -57,7 +56,7 @@ void BT::refresh() {
 	M[AI_ITERM] = float (MyPilot->getITerm());
 	M[AI_KDCONTRIB] = float(MyPilot->getKdContrib());
 	M[AI_PIDOUT] = float(MyPilot->getOutput());
-	M[AI_NEXTCTS] = MyPilot->getNextCourse();
+	M[AI_NEXTCTS] = float(MyPilot->getNextCourse());
 	M[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
 	M[AI_DEADBAND_VALUE] = MyPilot->dbt.getDeadband();
 	M[AI_TRIM_VALUE] = MyPilot->dbt.getTrim();
@@ -162,14 +161,7 @@ void BT::refresh() {
 		break;
 
     case BT_NEXT_COURSE:
-    	//if APB received: enter into Track mode/ accept new WP
-		if (userRequestAnswer (true)==USER_ACCEPTED){
-			//There was a user request, and user accepted
-		    MyPilot->buzzer_Beep();
-		} else {
-	    	 Set_NewCourse(MyPilot->getNextCourse());
-		}
-
+    	Accept_Next();
 		 break;
 
 // BEARING PANNEL
@@ -269,30 +261,25 @@ void BT::updateSpecialBT() {
 	// update VIRTUAL ANALOG LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
 	vMemoryWrite(AV_LED_STATUS, MyPilot->getCurrentMode());
 
-//	if (HMIArq::getRequestStatus()== WAITING_USER_ANSWER) { //TODO: This should be available in multiple HMI, not only in BT
-//		MyPilot->setInformation(NEW_WP_RECEIVED);
-//	} else if (MyPilot->getInformation() ==NEW_WP_RECEIVED) {
-//		MyPilot->setInformation(NO_MESSAGE);
-//	}
-
 	// USER MESSAGES BY PRIORITY: low.ERROR, med.WARNING, hich.INFO
 	int message = 0;
 
-	//low. ERROR
-	int error = MyPilot->getError();
-	if (error!=NO_ERROR) message = error + ERROR_SLOT;
+	//INFO
+	int information = MyPilot->getInformation();
+	if (information!=NO_MESSAGE) message = information + INFORMATION_SLOT;
 
-	//med. WARNING
+	//WARNING
 	int warning = MyPilot->getWarning();
 	if (warning!=NO_WARNING) message = warning + WARNING_SLOT;
 
-	//high. INFO/USER REQUEST
-	int information = MyPilot->getInformation();
-	if (information!=NO_MESSAGE) message = information + INFORMATION_SLOT;
+	//ERROR
+	int error = MyPilot->getError();
+	if (error!=NO_ERROR) message = error + ERROR_SLOT;
 
 
 	//Only one message displayed, highest priority
 	vMemoryWrite(AI_USER_MESSAGE, message);
+
 
 	vMemoryWrite(AI_KP, MyPilot->GetKp());
 	vMemoryWrite(AI_KI, MyPilot->GetKi());
@@ -325,7 +312,9 @@ void BT::updateSpecialBT() {
 	// REGULATOR
 	float target = vMemoryRead(AI_DELTA_TARGET);
 	if (target!=0) {
-		Set_NewCourse(target);
+
+		//Set_NewCourse(target);
+		Set_NextCourse(target);
 		vMemoryWrite(AI_DELTA_TARGET, 0);
 	}
 

@@ -53,6 +53,8 @@ protected:
 	void Dec_Mix_1();
 	void Dec_Mix_10();
 	void Set_NewCourse(float newCourse);
+	void Set_NextCourse(float nextCourse);
+	void Accept_Next(void);
 	void Set_NewDeltaCourse(float newDCourse);
 	void Set_Headalign();
 	void Enter_Exit_FBK_Calib();
@@ -68,7 +70,7 @@ protected:
 	void Change_PID_rel (s_PIDgain_flag change, e_operation op, float value );
 	bool Change_instParam (s_instParam instParam);
 	void setDBConf (type_DBConfig status);
-	bool received_APB( s_APB APB);
+	void received_APB( s_APB APB);
 
 	void Start_Cal();
 	void Cancel_Cal();
@@ -77,13 +79,14 @@ protected:
 	void Save_PIDgain();
 	void Save_HCParam(); // Saves GAIN and Inst.Param HARDCODED values
 
+	bool check_userRequest(void);
 	static e_requestStatus userRequest (void);
 	static e_requestStatus userRequestAnswer (bool answer);
 	static e_requestStatus getRequestStatus ();
-	static bool updateRequestTimeout ();
 
 private:
 	void operation (e_operation op, float &K, float value);
+	static bool updateRequestTimeout ();
 
 };
 

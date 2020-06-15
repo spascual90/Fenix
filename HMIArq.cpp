@@ -178,6 +178,11 @@ void HMIArq::Set_NewCourse(float newCourse){
 	  MyPilot->buzzer_Beep();
 }
 
+void HMIArq::Set_NextCourse(float nextCourse){
+	  MyPilot->setNextCourse (nextCourse);
+	  MyPilot->buzzer_Beep();
+}
+
 void HMIArq::Set_NewDeltaCourse(float newDCourse){
 	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()+newDCourse);
 	  MyPilot->buzzer_Beep();
@@ -189,41 +194,19 @@ void HMIArq::Set_Headalign(){
 }
 
 // Track mode functions
-// return true: All prepared to start TRACK MODE
-bool HMIArq::received_APB( s_APB APB) {
-	e_requestStatus answer = NO_USER_REQUEST;
-	DEBUG_print( "APB Received..." );
-	//each time APB is received.
-	//-reset user confirmation request time
-	_requestTime = millis();
-	// if Waypoint changes --> request user confirmation before updating
-	s_APB AP_apb = MyPilot->getAPB();
-	if (strcmp(APB.destID, AP_apb.destID)==0) {
-		// Same destID-->update APB info w/o asking user
-		DEBUG_print( "update WP info\n" );
-		MyPilot->setAPB(APB);
-	} else {
-
-		answer = HMIArq::userRequest();
-		if (answer == USER_ACCEPTED) {
-			DEBUG_print( "Start track mode\n" );
-			MyPilot->setInformation(NO_MESSAGE);
-			MyPilot->setAPB(APB);
-			return true;
-		} else if (answer == WAITING_USER_ANSWER) {
-			//-update next course indicator
-			MyPilot->setNextCourse(APB.CTS.float_00());
-		}
-
-		// New destID-->Request user before updating APB
-		sprintf(DEBUG_buffer,"WP:%s new WP:%s User?\n",AP_apb.destID, APB.destID);
-		DEBUG_print();
-
-		MyPilot->setInformation(NEW_WP_RECEIVED);
-	}
-	return false;
+void HMIArq::received_APB( s_APB APB) {
+	MyPilot->APBreceived(APB);
 }
 
+void HMIArq::Accept_Next(void) {
+	// Accept WPnext
+	if (MyPilot->activateWPnext()) {
+		MyPilot->setCurrentMode(TRACK_MODE);
+	} else {
+		MyPilot->setTargetBearing(MyPilot->getNextCourse());
+	}
+	MyPilot->buzzer_Beep();
+}
 
 //Calibration functions
 void HMIArq::Start_Cal(){

@@ -50,7 +50,7 @@ public:
 	void printPEMC_07(Stream * outStream);
 	void printPEMC_12(Stream * outStream);
 	void printPEMC_13(Stream * outStream);
-	void printAPB(Stream * outStream);
+	void printAPB(Stream * outStream, s_APB APB);
 
 
 private:

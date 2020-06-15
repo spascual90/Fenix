@@ -56,12 +56,12 @@ e_setup_status Autopilot::setup() {
 
 	switch (f_status) {
 	case ERROR_TOO_BIG:
-		DEBUG_print("WARNING: Check your linear actuator is powered-on and connected!\n");
+		DEBUG_print("!WARNING: Check your linear actuator is powered-on and connected!\n");
 		setWarning(FBK_ERROR_HIGH);
 		//return FEEDBACK_ERROR; Not considered an error
 		break;
 	case OK_VIRTUAL:
-		DEBUG_print("Debugging: Virtual actuator enabled\n");
+		DEBUG_print("!Debugging: Virtual actuator enabled\n");
 		break;
 	case FEEDBACK_OK:
 		break;
@@ -71,7 +71,7 @@ e_setup_status Autopilot::setup() {
 
 	if (Bearing_Monitor::setup() == NOT_DETECTED) {
 		// There was a problem detecting the IMU ... check your connections */
-		DEBUG_print("ERROR: IMU Not detected. Check your wiring or I2C ADDR\n");
+		DEBUG_print("!ERROR: IMU Not detected. Check your wiring or I2C ADDR\n");
 		setError(IMU_NOTFOUND);
 		return IMU_ERROR;
 	}
@@ -79,12 +79,12 @@ e_setup_status Autopilot::setup() {
 	//Enter into calibration mode
 	if (EEload_ReqCal()) {
 		EEsave_ReqCal(false); // Set flag to disabled to avoid entering into Calibration mode each time
-		DEBUG_print("Calibration mode!\n");
+		DEBUG_print("!Calibration mode!\n");
 		// Launch calibration
 		setCurrentMode (CAL_IMU_COMPLETE);
 		return SETUP_OK;
 		//if (BNO_GetCal(true)==RECALIBRATED) { // Calibrates and checks results
-		//	DEBUG_print("Calibration succeed!\n");
+		//	DEBUG_print("!Calibration succeed!\n");
 		//	return SETUP_OK;
 		//}
 	  }
@@ -93,7 +93,7 @@ e_setup_status Autopilot::setup() {
 	 if (EEload_Calib()==NOT_CALIBRATED) {
 		// There was a problem reading IMU calibration values
 		//EEsave_ReqCal(true); // Set flag to enabled to enter into Calibration mode next time system is reset
-		DEBUG_print("Please enter into Calibration Mode\n"); // System is not reset automatically to avoid recurrent writing EEPROM
+		DEBUG_print("!Please enter into Calibration Mode\n"); // System is not reset automatically to avoid recurrent writing EEPROM
 		setWarning(EE_IMU_NOTFOUND);
 		return SETUP_OK;
 	 }
@@ -113,6 +113,7 @@ e_working_status Autopilot::Compute() {
 
 	// Once each XXX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	computeLongLoop();
+
 
 	// Play buzzer if required
 	buzzer_play();
@@ -143,7 +144,10 @@ e_working_status Autopilot::Compute() {
 }
 
 e_working_status Autopilot::compute_Cal_IMU(bool completeCal){
-	if (!Bearing_Monitor::compute_Cal_IMU(completeCal)) setCurrentMode (STAND_BY);
+	if (!Bearing_Monitor::compute_Cal_IMU(completeCal)) {
+		setCurrentMode (STAND_BY);
+	}
+
 	return RUNNING_OK;
 }
 
@@ -167,14 +171,16 @@ e_working_status Autopilot::compute_TrackMode(void){
 
 
 void Autopilot::computeLongLoop_TrackMode(void) {
-	// timeout while new WP pending confirmation
-	if (checkAPBTimeout()) {
-		// Cancel Track mode
-		setWarning (APB_TIMEOUT);
-		setCurrentMode(STAND_BY);
-	} else {
-		// Update target with last APB received
-		setTargetBearing(_APB.CTS.float_00());
+	if (_currentMode == TRACK_MODE) {
+		if (_WPactive.APB.isValid) {
+			// Update course to steer
+			setTargetBearing(_WPactive.APB.CTS.float_00());
+		} else {
+			// Cancel Track mode
+			setInformation (NO_MESSAGE);
+			setWarning (WP_INVALID);
+			setCurrentMode(AUTO_MODE);
+		}
 	}
 }
 
@@ -201,7 +207,7 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 
 	switch (_currentMode) {
 	case STAND_BY:
-		//DEBUG_print("setCurrentMode: STAND_BY\n");
+		//DEBUG_print("!setCurrentMode: STAND_BY\n");
 		break;
 	case CAL_IMU_COMPLETE:
 	case CAL_IMU_MINIMUM:
@@ -229,27 +235,15 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 	return true;
 }
 
+
 void Autopilot::computeLongLoop() {
 	static int low_quality_data=0;
 
 	// Once each XX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	if (IsLongLooptime ()) {
-//		static int a=0;
-// 						DARK BLUE 	Target CTS
-//						LIGHT BLUE 	Current HDG
-//						GRAY		Current rudder
-//		a++;
-//		if (a==10) {
-//			int TB = int(getTargetBearing());
-//			int CB = int(getCurrentHeading());
-//		plot2(DEBUG_PORT, TB, CB);
-//		DEBUG_PORT.print("\n");
-//		a=0;
-//		}
 
 		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU(true);
 		if (isCalMode()) return; //TODO entonces sólo pasa por aqui 1 vez en cal_imu_complete mode (ya que no pasa por longloopreset)
-
 		if (updateHeading()) {
 			if (getWarning()==IMU_LOW) setWarning(NO_WARNING);
 		} else {
@@ -260,13 +254,17 @@ void Autopilot::computeLongLoop() {
 				low_quality_data=0;
 			}
 		}
-
-		if (_currentMode == TRACK_MODE) computeLongLoop_TrackMode();
-
+		computeLongLoop_WP();
+		computeLongLoop_TrackMode();
 		LongLoopReset();
 	}
 
 }
+
+//bool Autopilot::updateHeading() {
+//	Bearing_Monitor::updateHeading();
+//	getCurrentHeading();
+//}
 
 bool Autopilot::reset_calibration(){
 	setWarning(IMU_LOW);
@@ -281,6 +279,11 @@ bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode){
 	case CAL_FEEDBACK:
 		set_calFeedback();
 		break;
+	case TRACK_MODE:
+		if (newMode == AUTO_MODE) {
+			setTargetBearing (_WPactive.APB.CTS.float_00());
+		}
+		break;
 	default:
 		break;
 	}
@@ -288,6 +291,13 @@ bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode){
 }
 
 bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
+
+	if (preMode == TRACK_MODE) {
+		s_APB APB = {};
+		setWPactive(APB);
+		if (getWarning()==WP_INVALID) setWarning (NO_WARNING);
+	}
+
 	switch (currentMode) {
 	case AUTO_MODE:
 		// Same behavior as Track mode
@@ -300,7 +310,6 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 		break;
 	case STAND_BY:
 		stopAutoMode();
-		_APB = {}; //TODO: Check if this is a good way to reset structure
 		OCA_Compute (0); //Stop off-course alarm if active
 		break;
 	default:
@@ -311,6 +320,27 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 	return true;
 }
 
+float Autopilot::getNextCourse() {
+	switch (getCurrentMode ()) {
+		case AUTO_MODE:
+			return _nextCourse;
+			break;
+		case STAND_BY:
+		case TRACK_MODE:
+			return _WPnext.APB.CTS.float_00();
+			break;
+		default:
+			return 0;
+			break;
+		}
+	}
+
+void Autopilot::setNextCourse(float nextCourse) {
+	_nextCourse = nextCourse;
+}
+
+
+// CALIBRATION MODE
 bool Autopilot::isCalMode(void){
 	switch (getCurrentMode()) {
 	case CAL_IMU_COMPLETE:
@@ -342,17 +372,14 @@ void Autopilot::Start_Stop(e_start_stop type){
 		switch (type) {
 		case CURRENT_HEADING:
 			target = getCurrentHeading();
-			setTargetBearing(target);
 			break;
 		case CURRENT_TARGET:
-			target = getTargetBearing();
-			break;
-		//case RECEIVED_TARGET:
-			//target = MyPilot->getReceivedTarget(); //TODO: WP received mode (to be analyzed)
+			target = getNextCourse();
 			break;
 		}
 
 		setNextCourse(target);
+		setTargetBearing(target);
 
 		switch (mode) {
 		// If in STAND_BY --> set AUTO MODE
@@ -386,11 +413,84 @@ void Autopilot::Enter_Exit_FBK_Calib(void) {
 	}
 }
 
-void Autopilot::setAPB(const s_APB& apb) {
-	_APB = apb;
-	_APBtime = millis();
-	setNextCourse(_APB.CTS.float_00());
+// TRACK MODE
+void Autopilot::setWPactive(s_APB APB) {
+	_WPactive.APB = APB;
+	_WPactive.t0 = millis();
+	//DEBUG_print ("!WPactive valid\n");
 }
+
+void Autopilot::setWPnext(s_APB APB){
+	_WPnext.APB = APB;
+	_WPnext.t0 = millis();
+	//DEBUG_print ("!WPnext valid\n");
+
+}
+
+bool Autopilot::activateWPnext(void) {
+	// User push Next button
+	if (_WPnext.APB.isValid) {
+		setWPactive(_WPnext.APB);
+		_WPnext.APB.isValid = false;
+		//DEBUG_print ("!WPnext activated\n");
+
+		return true;
+	}
+	return false;
+}
+
+void Autopilot::APBreceived(s_APB APB) {
+
+	//DEBUG_print( "!APB Received..." );
+	if (_WPactive.APB.isValid) {
+		if (strcmp(_WPactive.APB.destID, APB.destID)==0) {
+			setWPactive(APB);
+			setInformation (TRACKING);
+			//DEBUG_print( "!update Active WP info\n" );
+		} else {
+			setWPnext(APB);
+			//DEBUG_print( "!update Next WP: Confirm turn\n" );
+			setInformation (CONFIRM_NEW_WP);
+		}
+	} else {
+		setWPnext(APB);
+		//DEBUG_print( "!update Next WP info\n" );
+		setInformation (TRACKMODE_AVAILABLE);
+		//sprintf(DEBUG_buffer,"WP:%s new WP:%s User?\n",_WPactive.APB.destID, APB.destID);
+		//DEBUG_print();
+
+	}
+}
+//$ECAPB,A,A,0.00,L,N,V,V,312.23,M,001,312.34,M,312.34,M*2A
+void Autopilot::computeLongLoop_WP(void) {
+	//evaluate validity WPactive
+	if ((_WPactive.APB.isValid) && ((millis()-_WPactive.t0)>MAX_APB_TIME)) {
+			_WPactive.APB.isValid = false;
+			_WPactive.APB.destID[0]= '-';
+			_WPactive.APB.destID[1]= '-';
+			_WPactive.APB.destID[2]= '-';
+			_WPactive.APB.destID[3]= '-';
+			_WPactive.APB.destID[4]= '-';
+			_WPactive.APB.destID[5]= '\n';
+
+
+			//DEBUG_print("!WPactive invalidated\n");
+	}
+
+	if ((_WPnext.APB.isValid) && ((millis()-_WPnext.t0)>MAX_APB_TIME)) {
+			_WPnext.APB.isValid = false;
+			_WPnext.APB.destID[0]= '-';
+			_WPnext.APB.destID[1]= '-';
+			_WPnext.APB.destID[2]= '-';
+			_WPnext.APB.destID[3]= '-';
+			_WPnext.APB.destID[4]= '-';
+			_WPnext.APB.destID[5]= '\n';
+			if (getInformation()==TRACKMODE_AVAILABLE) setInformation(NO_MESSAGE);
+			//DEBUG_print("!WPnext invalidated\n");
+	}
+
+}
+
 
 // OVERLOADED FUNCTIONS
 void Autopilot::SetTunings(double Kp, double Ki, double Kd) {
@@ -419,13 +519,6 @@ int Autopilot::changeRudder(int delta_rudder) {
 
 void Autopilot::setDBConf (type_DBConfig status) {
 	if (!isCalMode()) dbt.setDBConf (status);
-}
-bool Autopilot::checkAPBTimeout() {
-	if ((getCurrentMode()==TRACK_MODE) && ((millis()-_APBtime)>MAX_APB_TIME)) {
-
-		return true;
-		}
-	return false;
 }
 
 
@@ -494,7 +587,7 @@ void Autopilot::buzzer_setup() {
 	pinMode(PIN_BUZZER, OUTPUT); // Set buzzer - pin PIN_BUZZER as an output
 	buzzer_IBIT();
 #else
-	DEBUG_print("Debugging: SAFETY NOTICE: Buzzer disconnected!\n");
+	DEBUG_print("!Debugging: SAFETY NOTICE: Buzzer disconnected!\n");
 #endif
 }
 
@@ -602,14 +695,14 @@ void Autopilot::EEPROM_setup() {
 	sprintf(DEBUG_buffer,"EEPROM V%i\n", EE_address.ver);
 	DEBUG_print();
 	if (!EEload_instParam()) {
-		DEBUG_print("WARNING: Could not load Installation parameters: Restoring default.\n");
+		DEBUG_print("!WARNING: Could not load Installation parameters: Restoring default.\n");
 		setWarning (EE_INSTPARAM_NOTFOUND);
 		//Restore HARDCODED parameters but don't save!
 		Change_instParam (HC_INSTPARAM);
 	}
 
 	if (!EEload_PIDgain()) {
-		DEBUG_print("WARNING: Could not load PID parameters: Restoring default.\n");
+		DEBUG_print("!WARNING: Could not load PID parameters: Restoring default.\n");
 		setInformation (EE_PID_DEFAULT);
 		//Restore HARDCODED parameters but don't save!
 		SetTunings(HC_GAIN.Kp.float_00(), HC_GAIN.Ki.float_00(), HC_GAIN.Kd.float_00());
@@ -617,7 +710,7 @@ void Autopilot::EEPROM_setup() {
 }
 
 void Autopilot::EEPROM_format() {
-	DEBUG_print("EEPROM Format...");
+	DEBUG_print("!EEPROM Format...");
 
 	for (uint16_t i = 0 ; i < EEPROM.length() ; i++) {
 	    EEPROM.update(i, 0xFF);
@@ -670,7 +763,7 @@ bool Autopilot::EEsave_Calib(){
 	long bnoID;
 	adafruit_bno055_offsets_t Calib;
 
-	DEBUG_print("Saving Calibration...");
+	DEBUG_print("!Saving Calibration...");
 
 	//bnoID
     bnoID = getSensorId();
@@ -701,10 +794,10 @@ e_IMU_status Autopilot::EEload_Calib(){
 	DEBUG_print(DEBUG_buffer);
 
 	if (EE_bnoID != bnoID) {
-		DEBUG_print("WARNING: No Calibration Data for this sensor found!\n");
+		DEBUG_print("!WARNING: No Calibration Data for this sensor found!\n");
 		return NOT_CALIBRATED;
 	}
-	DEBUG_print("Found Calibration data...\n");
+	DEBUG_print("!Found Calibration data...\n");
 	eeAddress += sizeof(long);
 	EEPROM.get(eeAddress, calibrationData);
 	setIniCalib(calibrationData);
@@ -726,7 +819,7 @@ bool Autopilot::EEsave_instParam(bool HC){
 	//DATA TO SAVE
 	s_instParam instParam;
 	int eeAddress = EE_address.InstParam;
-	DEBUG_print("Saving InstParam...");
+	DEBUG_print("!Saving InstParam...");
 
     //instParam_CHECK
     EEPROM.put(eeAddress, CHECKvalue);
@@ -734,7 +827,7 @@ bool Autopilot::EEsave_instParam(bool HC){
 
     // InstParam
 	if (HC==true) {
-		DEBUG_print("Restored manufacturer values.");
+		DEBUG_print("!Restored manufacturer values.");
 		instParam=HC_INSTPARAM;}
 	else {
 		Request_instParam(instParam);
@@ -776,7 +869,7 @@ bool Autopilot::EEsave_PIDgain(bool HC){
 	bool DataStored=false;
 	long eeAddress = EE_address.PIDgain;
 	s_PIDgain PIDgain;
-	DEBUG_print("Saving PIDgain...");
+	DEBUG_print("!Saving PIDgain...");
 
     //PID_CHECK
     EEPROM.put(eeAddress, CHECKvalue);
@@ -797,11 +890,11 @@ bool Autopilot::EEsave_PIDgain(bool HC){
 			PIDgain.flag.DBConfig &&
 			PIDgain.flag.sTime &&
 			PIDgain.flag.gain.Kp && PIDgain.flag.gain.Ki && PIDgain.flag.gain.Kd;
-    if (!Loaded) DEBUG_print("Flags not true\n" );
+    if (!Loaded) DEBUG_print("!Flags not true\n" );
     //BORRAME
 
     DataStored = true;
-	DEBUG_print("Ok\n");
+	DEBUG_print("!Ok\n");
     return DataStored;
 }
 

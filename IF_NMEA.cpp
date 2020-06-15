@@ -103,7 +103,7 @@ void IF_NMEA::stopAllTX(){
 
 
 void IF_NMEA::refresh_INorder() {
-	if (HMIArq::updateRequestTimeout()) MyPilot->setInformation (NO_MESSAGE); // Check if request reached timeout and cancel
+
 	// Launch action accordingly to action received and current mode
 	e_APmode currentMode = MyPilot->getCurrentMode();
 
@@ -162,13 +162,11 @@ void IF_NMEA::refresh_INorder() {
 
 		case REQ_TRACK: //APB received
 			if (!MyPilot->isCalMode()) {
-				// Treats received APB info. Only changes Waypoint or mode after valid user confirmation
-				if (received_APB(INorder.APB)) {
-					MyPilot->setCurrentMode(TRACK_MODE);
-					printAPB(& DEBUG_PORT);
-				}
+				received_APB(INorder.APB);
+				printAPB(& DEBUG_PORT, INorder.APB);
 			}
 			break;
+
 		case START_CAL:
 			switch (currentMode) {
 			case STAND_BY:
@@ -221,6 +219,10 @@ void IF_NMEA::refresh_INorder() {
 	}
 }
 
+
+
+
+
 void IF_NMEA::printPEMC_03(Stream * outStream) {
 	Request_instParam (OUTorder.instParam);
 	OUTorder.instParam.isValid= true;
@@ -255,9 +257,9 @@ void IF_NMEA::printPEMC_13(Stream * outStream) {
 	emcNMEA::printPEMC_13(outStream);
 }
 
-void IF_NMEA::printAPB(Stream * outStream) {
+void IF_NMEA::printAPB(Stream * outStream, s_APB APB) {
 	//load APB into OUTorder
-	OUTorder.APB = MyPilot->getAPB();
+	OUTorder.APB = APB;
 	OUTorder.APB.isValid= true;
 	emcNMEA::printAPB(outStream);
 }
