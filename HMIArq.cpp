@@ -183,14 +183,19 @@ void HMIArq::Set_NextCourse(float nextCourse){
 	  MyPilot->buzzer_Beep();
 }
 
+void HMIArq::Set_NextCourse_delta(int delta){
+	Set_NextCourse (MyPilot->getNextCourse() + delta);
+}
+
 void HMIArq::Set_NewDeltaCourse(float newDCourse){
 	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()+newDCourse);
 	  MyPilot->buzzer_Beep();
 }
 
 void HMIArq::Set_Headalign(){
-	  MyPilot->setHeadingDev(MyPilot->getTargetBearing() - MyPilot->getCurrentHeading() + MyPilot->getHeadingDev());
-	  MyPilot->buzzer_Beep();
+	//MyPilot->setHeadingDev(MyPilot->getTargetBearing() - MyPilot->getCurrentHeading() + MyPilot->getHeadingDev());
+	MyPilot->setHeadingDev(MyPilot->getNextCourse() - MyPilot->getCurrentHeading() + MyPilot->getHeadingDev());
+	MyPilot->buzzer_Beep();
 }
 
 // Track mode functions

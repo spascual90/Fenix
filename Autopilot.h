@@ -357,6 +357,7 @@ public:
     void SetTunings(double, double,       // * While most users will set the tunings once in the
                     double);         	  //   constructor, this function gives the user the option
                                           //   of changing tunings during runtime for Adaptive control
+    void setHeadingDev(float headingDev = 0);
 	void setDBConf (type_DBConfig status);
 
 	//FUNCTIONAL MODULE: EEPROM
@@ -512,7 +513,7 @@ private:
 	uint8_t _offCourseAlarm; // off course alarm angle
 	double const _offCourseMaxTime = 15000; // max off course time before alarm starts
 	bool _offCourseAlarmActive=false;
-	bool OCA_Compute (float delta);
+	bool compute_OCA (float delta);
 
 	uint8_t getOffCourseAlarm() const {
 		return _offCourseAlarm;

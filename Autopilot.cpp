@@ -165,7 +165,7 @@ e_working_status Autopilot::compute_TrackMode(void){
 	float PIDerrorPrima = delta180(getTargetBearing(), Bearing_Monitor::getCurrentHeading());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	if (ActuatorManager::Compute(PIDerrorPrima)!=1) return RUNNING_ERROR;
-	OCA_Compute (PIDerrorPrima);
+	compute_OCA (PIDerrorPrima);
 	return RUNNING_OK;
 }
 
@@ -310,7 +310,7 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 		break;
 	case STAND_BY:
 		stopAutoMode();
-		OCA_Compute (0); //Stop off-course alarm if active
+		compute_OCA (0); //Stop off-course alarm if active
 		break;
 	default:
 		break;
@@ -321,24 +321,22 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 }
 
 float Autopilot::getNextCourse() {
-	switch (getCurrentMode ()) {
-		case AUTO_MODE:
-			return _nextCourse;
-			break;
-		case STAND_BY:
-		case TRACK_MODE:
-			return _WPnext.APB.CTS.float_00();
-			break;
-		default:
-			return 0;
-			break;
-		}
+	if (_WPnext.APB.isValid) {
+		return _WPnext.APB.CTS.float_00();
+	} else {
+		return _nextCourse;
 	}
+}
 
 void Autopilot::setNextCourse(float nextCourse) {
+	if (nextCourse<0) {nextCourse+= 360;}
+	nextCourse = fmod (nextCourse, double(360));
 	_nextCourse = nextCourse;
 }
 
+void Autopilot::setHeadingDev(float headingDev) {
+	if (getCurrentMode() == STAND_BY) Bearing_Monitor::setHeadingDev(headingDev);
+}
 
 // CALIBRATION MODE
 bool Autopilot::isCalMode(void){
@@ -432,6 +430,7 @@ bool Autopilot::activateWPnext(void) {
 	if (_WPnext.APB.isValid) {
 		setWPactive(_WPnext.APB);
 		_WPnext.APB.isValid = false;
+		setNextCourse(_WPnext.APB.CTS.float_00());
 		//DEBUG_print ("!WPnext activated\n");
 
 		return true;
@@ -656,7 +655,7 @@ bool Autopilot::IsBuzzTime () {
 //arguments: delta - angle (-180, 179) to be compared against off course alarm angle.
 // return true if out course more than x secs
 // return false if in course
-bool Autopilot::OCA_Compute (float delta) {
+bool Autopilot::compute_OCA (float delta) {
 	static double sd_offCourseStartTime;
 	static bool sb_offCourse =false;
 	bool l_offCourse;

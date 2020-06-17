@@ -54,6 +54,9 @@ protected:
 	void Dec_Mix_10();
 	void Set_NewCourse(float newCourse);
 	void Set_NextCourse(float nextCourse);
+
+	void Set_NextCourse_delta(int delta);
+
 	void Accept_Next(void);
 	void Set_NewDeltaCourse(float newDCourse);
 	void Set_Headalign();

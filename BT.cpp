@@ -170,17 +170,18 @@ void BT::refresh() {
     case BT_START_STOP_TARGET:
    		Start_Stop(CURRENT_TARGET);
     	break;
-    case BT_INC_COURSE_10:
-    	Inc_Course_10();
+    case BT_INC_TARGET_100:
+    	Set_NextCourse_delta(100);
+    	//Inc_Course_10();
     	break;
-     case BT_DEC_COURSE_10:
-     	Dec_Course_10();
+     case BT_DEC_TARGET_100:
+    	 Set_NextCourse_delta(-100);
     	break;
-     case BT_INC_COURSE_1:
-		Inc_Course_1();
+     case BT_INC_TARGET_10:
+    	 Set_NextCourse_delta(10);
     	break;
-     case BT_DEC_COURSE_1:
-       	Dec_Course_1();
+     case BT_DEC_TARGET_10:
+    	 Set_NextCourse_delta(-10);
     	break;
      case BT_USER_REQUEST_ACCEPTED:
     	 userRequestAnswer (true);
@@ -312,7 +313,7 @@ void BT::updateSpecialBT() {
 	// REGULATOR
 	float target = vMemoryRead(AI_DELTA_TARGET);
 	if (target!=0) {
-
+		if (target<0) target+=360; // transform (-180,180) to (0, 360);
 		//Set_NewCourse(target);
 		Set_NextCourse(target);
 		vMemoryWrite(AI_DELTA_TARGET, 0);
