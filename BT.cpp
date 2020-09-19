@@ -244,7 +244,7 @@ void BT::updateSpecialBT() {
 	// update VIRTUAL DIGITAL LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
 	vDigitalMemoryWrite(DV_LED_DBACTIVE, MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0);
 
-	bool S, G, A, M; //Status disabled
+	uint8_t S, G, A, M; //Status disabled
 	int iS =2, iG=2, iA=2, iM=2;
 
 	if (MyPilot->getCheckSGAM(S, G, A, M)) {

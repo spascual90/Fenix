@@ -148,6 +148,8 @@ e_working_status Autopilot::compute_Cal_IMU(bool completeCal){
 		setCurrentMode (STAND_BY);
 	}
 
+	//for (int i = 0; i < 5000; i++) {;}
+
 	return RUNNING_OK;
 }
 
@@ -242,8 +244,11 @@ void Autopilot::computeLongLoop() {
 	// Once each XX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	if (IsLongLooptime ()) {
 
+		refreshCalStatus();
+
 		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU(true);
 		if (isCalMode()) return; //TODO entonces sólo pasa por aqui 1 vez en cal_imu_complete mode (ya que no pasa por longloopreset)
+
 		if (updateHeading()) {
 			if (getWarning()==IMU_LOW) setWarning(NO_WARNING);
 		} else {
@@ -260,11 +265,6 @@ void Autopilot::computeLongLoop() {
 	}
 
 }
-
-//bool Autopilot::updateHeading() {
-//	Bearing_Monitor::updateHeading();
-//	getCurrentHeading();
-//}
 
 bool Autopilot::reset_calibration(){
 	setWarning(IMU_LOW);

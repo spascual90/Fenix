@@ -977,18 +977,14 @@ void emcNMEA::printPEMC_12(Stream * outStream) {
 		bufferStream->print(OUTorder.IMUcal.IMUcalstatus);
 		bufferStream->print(',');
 
-		if (OUTorder.IMUcal.IMUcalstatus == 'O') {
-			bufferStream->print( (OUTorder.IMUcal.SYSstatus? '1': '0') );
+			bufferStream->print( OUTorder.IMUcal.SYSstatus );
 			bufferStream->print(',');
-			bufferStream->print( (OUTorder.IMUcal.GYROstatus? '1': '0') );
+			bufferStream->print( OUTorder.IMUcal.GYROstatus );
 			bufferStream->print(',');
-			bufferStream->print( (OUTorder.IMUcal.ACCELstatus? '1': '0') );
+			bufferStream->print( OUTorder.IMUcal.ACCELstatus );
 			bufferStream->print(',');
-			bufferStream->print( (OUTorder.IMUcal.MAGNstatus? '1': '0') );
+			bufferStream->print( OUTorder.IMUcal.MAGNstatus );
 			bufferStream->print(',');
-		} else {
-			bufferStream->print(",,,,");
-		}
 
 		if (OUTorder.IMUcal.IMUcalstatus == 'C') {
 			bufferStream->print(OUTorder.IMUcal.X);

@@ -190,10 +190,10 @@ enum e_info {
 		struct {bool IMUcalStatus; bool SYSstatus; bool GYROstatus; bool ACCELstatus; bool MAGNstatus; bool Xstatus; bool Ystatus; bool Zstatus;} flag;
 
 		char IMUcalstatus;
-		bool SYSstatus;
-		bool GYROstatus;
-		bool ACCELstatus;
-		bool MAGNstatus;
+		uint8_t SYSstatus;
+		uint8_t GYROstatus;
+		uint8_t ACCELstatus;
+		uint8_t MAGNstatus;
 		uint16_t X;
 		int8_t Y;
 		uint8_t Z;

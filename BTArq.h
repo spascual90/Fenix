@@ -42,14 +42,6 @@ enum e_BT_push_button {
 // Special DV PINS
 #define DV_LED_DBACTIVE			27
 
-
-// Special Analog Virtual PINS
-#define AV_LED_STATUS 			26
-#define AV_LED_IMU_CAL_GYRO		27
-#define AV_LED_IMU_CAL_ACEL		28
-#define AV_LED_IMU_CAL_MAGN		29
-#define AV_LED_IMU_CAL_SYS		30
-
 //Analog Virtual PIN (Float values)
 // note, all values between START_AI and MAX_AI shall be defined!
 enum e_BT_AI_PIN {
@@ -71,16 +63,24 @@ enum e_BT_AI_PIN {
 , AI_KD = 14
 , AI_FBK_MIN = 15
 , AI_FBK_MAX = 16
-
 , AI_IMU_X = 17
 , AI_IMU_Y = 18
 , AI_IMU_Z = 19
-, MAX_AI
+, AI_DELTA_TARGET = 20		// Special AI PINS
+, AI_USER_MESSAGE = 21		// Special AI PINS
+, FREE22 = 22
+, FREE23 = 23
+, FREE24 = 24
+, FREE25 = 25
+, AV_LED_STATUS = 26		// Special AV PINS
+, AV_LED_IMU_CAL_GYRO = 27	// Special AV PINS
+, AV_LED_IMU_CAL_ACEL = 28	// Special AV PINS
+, AV_LED_IMU_CAL_MAGN = 29	// Special AV PINS
+, AV_LED_IMU_CAL_SYS = 30	// Special AV PINS
+
 };
 
-// Special A PINS
-#define AI_DELTA_TARGET 20
-#define AI_USER_MESSAGE 21
+# define MAX_AI (AI_IMU_Z+1)
 
 class BTArq: public VirtuinoBluetooth {
 

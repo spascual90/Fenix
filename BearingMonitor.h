@@ -82,7 +82,7 @@ public:
 	bool getCalibrationStatus(uint8_t &system);
 	bool getCalibrationStatus(void);
 	bool getCheckXYZ(uint16_t &x, int8_t &y, uint8_t &z);
-	bool getCheckSGAM(bool &S, bool &G, bool &A, bool &M);
+	bool getCheckSGAM(uint8_t &S, uint8_t &G, uint8_t &A, uint8_t &M);
 
 	float getCurrentHeading() {
 		return reduce360(_heading + _headingDev);
@@ -165,7 +165,7 @@ private:
 	int8_t _y;
 	uint8_t _z;
 
-	bool _calSys, _calGyro, _calAccel, _calMagn;
+	uint8_t _calSys, _calGyro, _calAccel, _calMagn;
 
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
 	float _SIMheading =0;

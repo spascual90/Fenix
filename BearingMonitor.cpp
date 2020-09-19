@@ -126,9 +126,7 @@ bool Bearing_Monitor::IMU_Cal_Loop(bool completeCal){
 		calibrated = (completeCal==true?_bno.isFullyCalibrated():getCalibrationStatus());
 		 _IMU_status= (calibrated? RECALIBRATED: CAL_INPROGRESS);
 
-		refreshCalStatus();
-		/* Wait the specified delay before requesting new data */
-		//delay(10);
+		//refreshCalStatus();
 
 	} else {
 		// Calibration period exceeded
@@ -183,17 +181,9 @@ bool Bearing_Monitor::IMU_CalCheck_Loop(void){
 		_y = int(event.orientation.y);
 		_z = int(event.orientation.z);
 
-//		DEBUG_PORT.print("X: ");
-//		DEBUG_PORT.print(_x);
-//		DEBUG_PORT.print("\tY: ");
-//		DEBUG_PORT.print(_y);
-//		DEBUG_PORT.print("\tZ: ");
-//		DEBUG_PORT.print(_z);
-//		DEBUG_PORT.print("\n");
-		/* Wait the specified delay before requesting new data */
-		//delay(500);
 		_IMU_check = CHECK_ONGOING;
 	} else {
+
 		_IMU_check = CHECK_FINISHED;
 	}
 
@@ -202,17 +192,24 @@ bool Bearing_Monitor::IMU_CalCheck_Loop(void){
 
 bool Bearing_Monitor::getCheckXYZ (uint16_t &x, int8_t &y, uint8_t &z) {
 
-	if (_IMU_check != CHECK_ONGOING) return false; //fn only return valid values when check is ongoing.
-	x= _x;
-	y= _y;
-	z= _z;
+	if (_IMU_check == CHECK_ONGOING) {
+		x= _x;
+		y= _y;
+		z= _z;
+		return true;
+	} else {
+		x= 0;
+		y= 0;
+		z= 0;
 
-	return true;
+		return false; //fn only return valid values when check is ongoing.
+	}
+	return false;
 }
 
-bool Bearing_Monitor::getCheckSGAM(bool &S, bool &G, bool &A, bool &M){
+bool Bearing_Monitor::getCheckSGAM(uint8_t &S, uint8_t &G, uint8_t &A, uint8_t &M){
 
-	if (_IMU_status != CAL_INPROGRESS) return false; //fn only return valid values when check is ongoing.
+	//if (_IMU_status != CAL_INPROGRESS) return false; //fn only return valid values when check is ongoing.
 	S=_calSys;
 	G=_calGyro;
 	A=_calAccel;
@@ -221,26 +218,16 @@ bool Bearing_Monitor::getCheckSGAM(bool &S, bool &G, bool &A, bool &M){
 	return true;
 }
 
-
-
 void Bearing_Monitor::displayCalStatus(void)
 {
-    /* Get the four calibration values (0..3) */
-    /* Any sensor data reporting 0 should be ignored, */
-    /* 3 means 'fully calibrated" */
-    uint8_t system, gyro, accel, mag;
-    system = gyro = accel = mag = 0;
-    _bno.getCalibration(&system, &gyro, &accel, &mag);
-
-    /* The data should be ignored until the system calibration is > 0 */
     DEBUG_print("\t");
-    if (!system)
+    if (!_calSys)
     {
       DEBUG_print("! ");
     }
 
     /* Display the individual values */
-	sprintf(DEBUG_buffer,"Sys:%i G:%i A:%i M:%i\n", system, gyro, accel, mag);
+	sprintf(DEBUG_buffer,"Sys:%i G:%i A:%i M:%i\n", _calSys, _calGyro, _calAccel, _calMagn);
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_PORT.flush();
 }
@@ -254,10 +241,10 @@ void Bearing_Monitor::refreshCalStatus(void)
     system = gyro = accel = mag = 0;
     _bno.getCalibration(&system, &gyro, &accel, &mag);
 
-    _calSys = (system == 3);
-    _calGyro = (gyro == 3);
-    _calAccel = (accel == 3);
-    _calMagn = (mag == 3);
+    _calSys = system;
+    _calGyro = gyro;
+    _calAccel = accel;
+    _calMagn = mag;
 
 }
 

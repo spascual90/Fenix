@@ -299,15 +299,15 @@ e_requestStatus HMIArq::userRequestAnswer (bool answer) {
 	}
 	switch (_requestStatus) {
 	case USER_ACCEPTED:
-		DEBUG_print( "User accepted\n" );
+		//DEBUG_print( "User accepted\n" );
 
 		break;
 	case USER_REJECTED:
-		DEBUG_print( "User rejected\n" );
+		//DEBUG_print( "User rejected\n" );
 
 		break;
 	default:
-		DEBUG_print( "Other\n" );
+		//DEBUG_print( "Other\n" );
 		break;
 	}
 

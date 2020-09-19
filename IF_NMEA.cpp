@@ -81,6 +81,7 @@ void IF_NMEA::refresh(){
 		printPEMC_03(& gpsPort);
 		printPEMC_05(& gpsPort);
 		printPEMC_07(& gpsPort);
+		printPEMC_12(& gpsPort);
 
 		fl= true;
 		TX1Reset();
