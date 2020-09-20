@@ -122,7 +122,7 @@ bool Bearing_Monitor::IMU_Cal_Loop(bool completeCal){
 	// Loops until fully calibrated or calibration time exceeded
 	if (_cal_iter++ < MAX_ITER) {
 		// check=true performs complete initial calibration + check (system==3 required)
-		// check=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
+		// check=false ensures minimum recalibration after each power-on ( as long as mag and gyro are over 1, data is realiable)
 		calibrated = (completeCal==true?_bno.isFullyCalibrated():getCalibrationStatus());
 		 _IMU_status= (calibrated? RECALIBRATED: CAL_INPROGRESS);
 
@@ -277,14 +277,16 @@ bool Bearing_Monitor::getCalibrationStatus(void) {
 	return getCalibrationStatus(system);
 }
 
-// return true if all sensors except accel are completely calibrated
+// return true if sensors are enough calibrated
 // return false on the contrary
 // Based on this solution to Technical Query, as long as mag and gyro are 3, data is realiable.
 // https://community.bosch-sensortec.com/t5/MEMS-sensors-forum/BNO055-Calibration-Staus-not-stable/td-p/8375
+// Due to difficulties in calibration, required sensor calibration status has been reducted.
+
 bool Bearing_Monitor::getCalibrationStatus(uint8_t &system) {
 	uint8_t gyro, accel, mag = 0;
 	_bno.getCalibration(&system, &gyro, &accel, &mag);
-	return (gyro==3 and mag==3);// (system==3 and gyro==3 and mag==3);
+	return (gyro>1 and mag>1);// (gyro==3 and mag==3); (system==3 and gyro==3 and mag==3);
 }
 
 void Bearing_Monitor::displaySensorOffsets()

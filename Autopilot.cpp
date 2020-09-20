@@ -255,7 +255,7 @@ void Autopilot::computeLongLoop() {
 			low_quality_data++;
 
 			if (low_quality_data>MAX_LOW_QDATA) {
-				reset_calibration();
+				if (_currentMode == STAND_BY) reset_calibration(); // Only reset in STAND BY
 				low_quality_data=0;
 			}
 		}
