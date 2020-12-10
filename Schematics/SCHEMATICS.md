@@ -25,9 +25,9 @@ https://github.com/spascual90/PCB-for-Fenix
 - 8 x Arduino stacking headers - 8 pins extra large
 https://www.sparkfun.com/products/9279
 
-- 2 x Screw terminals: 2-pin and 3-pin
-https://www.robotshop.com/en/screw-terminals-35mm-pitch-2-pin.html
-
+- 2 x Screw terminals 5.08mm pitch: 2-pin and 3-pin
+https://www.electronicaembajadores.com/en/Productos/Detalle/CTNA5102/connectors/pluggable-pcb-terminal-blocks/14-mm-pcb-terminal-block-5-08-mm-pitch-2-contacts-dg500-5-08-02p-14
+https://www.electronicaembajadores.com/en/Productos/Detalle/CTNA5103/connectors/pluggable-pcb-terminal-blocks/14-mm-pcb-terminal-block-5-08-mm-pitch-3-contacts-dg500-5-08-03p-14
 - 1 x Buzzer
 https://es.aliexpress.com/item/32986141749.html?spm=a2g0s.9042311.0.0.793f63c0tr601Q
 
