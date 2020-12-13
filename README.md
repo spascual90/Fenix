@@ -21,8 +21,8 @@ The goals of Fenix project are,
 - to develop and test a prototype of open-source DIY navigation system for mini-cruisers.  
 - to gather individual efforts to a joint solution.
 - get users to adopt the system into their own boats with minimum technical knowledge.
-All information in Fenix Project can be found here,
-https://emacua.fandom.com/wiki/EMacua_Wiki
+All information in Fenix Project can be found here... Ups, Wiki in Fandom.com is not working any more. Lessons learnt: Don't use free services.
+https://fenix-autopilot.com
 
 ## How to start with Fenix Autopilot?
 First of all integrate your hardware.
