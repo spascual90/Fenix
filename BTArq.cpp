@@ -31,11 +31,7 @@ BTArq::BTArq(NeoHWSerial &uart, uint32_t baud): BTserial(&uart){
     while (BTserial->available()) BTserial->read();
 
 }
-BTArq::BTArq(NeoHWSerial &uart): BTserial(&uart){
-
-
-
-}
+BTArq::BTArq(NeoHWSerial &uart): BTserial(&uart){}
 // SPM end modif
 #else
 BTArq::BTArq(HardwareSerial &uart, uint32_t baud): BTserial(&uart)
@@ -158,16 +154,16 @@ String BTArq::onRequested(char variableType, uint8_t variableIndex){
 
 //============================================================== virtuinoRun
   void BTArq::virtuinoRun(){
-    while (BTserial->available()) {
-        char tempChar=BTserial->read();
+	while (BTPort.available()) {
+        char tempChar=BTPort.read();
         if (tempChar==CM_START_CHAR) {               // a new command is starting...
               readBuffer=CM_START_CHAR;     // copy the new command to the virtuino readBuffer
-              readBuffer+=BTserial->readStringUntil(CM_END_CHAR);
+              readBuffer+=BTPort.readStringUntil(CM_END_CHAR);
               readBuffer+=CM_END_CHAR;
               if (debug) NeoSerial.println("\nCommand= "+readBuffer);
               String* response= getResponse();    // get the text that has to be sent to Virtuino as reply. The library will check the inptuBuffer and it will create the response text
               if (debug) NeoSerial.println("Response : "+*response);
-              BTserial->print(*response);
+              BTPort.print(*response);
               break;
          }
     }

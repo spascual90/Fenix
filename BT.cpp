@@ -25,7 +25,7 @@ void BT::setup() {
 
 	  //SPM original: Serial1.begin(9600);               // Enable this line if you want to use hardware serial (Mega, DUE etc.)
 	  //SPM modified:
-	  BTPort.begin(38400);               // Enable this line if you want to use hardware serial (Mega, DUE etc.)
+	  BTPort.begin(9600);//38400);               // Enable this line if you want to use hardware serial (Mega, DUE etc.)
 
 	  // Use virtuino.vPinMode instead default pinMode method for digital input or digital output pins.
 	  // Don't use vPinMode for PWM pins, or pins that their values change many times per second

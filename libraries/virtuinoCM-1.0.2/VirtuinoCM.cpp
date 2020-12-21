@@ -4,7 +4,8 @@
  * Download latest Virtuino android app from the link: https://play.google.com/store/apps/details?id=com.virtuino_automations.virtuino
  */
 
-
+#include <Arduino.h>
+#include "GPSport.h" // Ports configuration
 #include "VirtuinoCM.h"
 //===================================================== VirtuinoSE
  VirtuinoCM::VirtuinoCM(){}
