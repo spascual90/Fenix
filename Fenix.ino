@@ -65,6 +65,10 @@ void setup()
 	// Setup Bluetooth if defined
 	#ifdef HMI_BT
 	MyBT.setup();
+	// SPM INI VIRTUINOCM
+	MyBT.begin(MyBT.onReceived,MyBT.onRequested,256);  //Start Virtuino. Set the buffer to 256. With this buffer Virtuino can control about 28 pins (1 command = 9bytes) The T(text) commands with 20 characters need 20+6 bytes
+	  //virtuino.key="1234";                       //This is the Virtuino password. Only requests the start with this key are accepted from the library
+	// SPM INI VIRTUINOCM
 	#endif
 
 	// Setup autopilot

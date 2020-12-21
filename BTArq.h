@@ -2,8 +2,37 @@
 #define BTARQ_H_
 
 #include <Arduino.h>
-#include <VirtuinoBluetooth.h>                           // Include VirtuinoBluetooth library to your code
+#include <VirtuinoCM.h>                           // Include VirtuinoBluetooth library to your code
 #include "GPSport.h" // Ports configuration
+
+
+//SPM INI VIRTUINOCM
+
+
+//#define BLUETOOTH_USE_SOFTWARE_SERIAL  // disable this line if you want to use hardware serial
+// Modified SPM
+
+
+
+#define BLUETOOTH_USE_NEO_HW_SERIAL // disable this line if you want to use hardware serial or software serial
+
+#if defined(BLUETOOTH_USE_SOFTWARE_SERIAL) && defined(BLUETOOTH_USE_NEO_HW_SERIAL)
+	#error Only one Bluetooth Serial should be defined in VirtuinoBluetooth.h!
+#endif
+// SPM end modif.
+
+
+#include "Arduino.h"
+#ifdef BLUETOOTH_USE_SOFTWARE_SERIAL
+#include "SoftwareSerial.h"
+// SPM Modified
+#define BT_PORT_NAME "SoftwareSerial"
+  #elif defined (BLUETOOTH_USE_NEO_HW_SERIAL)
+#include "NeoHWSerial.h"
+//#define BT_PORT_NAME "NeoHWSerial"
+// SPM end modif.
+#endif
+//SPM FIN VIRTUINOCM
 
 // PUSH buttons BT_*
 // INDICATIVE SWITCH IS_*
@@ -66,10 +95,31 @@ enum e_BT_AI_PIN {
 #define AI_USER_MESSAGE 19
 #define AI_DELTA_TARGET 20
 
-class BTArq: public VirtuinoBluetooth {
+//SPM INI VIRTUINO CM
+#define V_memory_count 32          // the size of V memory. You can change it to a number <=255)
+static float V[V_memory_count];           // This array is synchronized with Virtuino V memory. You can change the type to int, long etc.
+//SPM FIN VIRTUINO CM
+
+class BTArq: public VirtuinoCM {
 
 public:
-	BTArq();
+//SPM INI VIRTUINOCM
+#ifdef BLUETOOTH_USE_SOFTWARE_SERIAL
+	BTArq(SoftwareSerial &uart);
+	BTArq(SoftwareSerial &uart, uint32_t baud);
+  // SPM Modified
+  #elif defined (BLUETOOTH_USE_NEO_HW_SERIAL)
+	BTArq(NeoHWSerial &uart);
+	BTArq(NeoHWSerial &uart, uint32_t baud);
+  // SPM end modif.
+  #else
+	BTArq(HardwareSerial &uart);
+	BTArq(HardwareSerial &uart, uint32_t baud);
+  #endif
+//SPM FIM VIRTUINOCM
+
+
+	//BTArq();
 	virtual ~BTArq();
 	void updateBT(float FM[]);
 	e_BT_push_button getButtonPressed();
@@ -77,8 +127,34 @@ public:
 	e_BT_push_button getRepeatedButton();
 	int getStatus (e_BT_push_button) const;
 
+	//SPM INI VIRTUINO CM
+	static void onReceived(char variableType, uint8_t variableIndex, String valueAsText);
+	static String onRequested(char variableType, uint8_t variableIndex);
+	void virtuinoRun();
+	void vDelay(int delayInMillis);
+	  //SPM FIN VIRTUINOCM
+
 private:
 	e_BT_push_button _button, _lastButton;
+
+	//SPM INI VIRTUINO CM
+	boolean debug = true;              // set this variable to false on the finale code to decrease the request time.
+
+protected: //SPM MODIF: Declared protected to be used by BTArq in AT mode
+
+  #ifdef BLUETOOTH_USE_SOFTWARE_SERIAL
+      SoftwareSerial *BTserial;
+  // SPM Modified
+  #elif defined (BLUETOOTH_USE_NEO_HW_SERIAL)
+      NeoHWSerial *BTserial;
+  // SPM end modif
+  #else
+      HardwareSerial *BTserial;
+  #endif
+
+
+	//SPM FIN VIRTUINO CM
+
 };
 
 #endif /* BTARQ_H_ */

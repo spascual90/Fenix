@@ -7,7 +7,9 @@
 #include "BT.h"
 
  BT::BT(Macua_Autopilot* Pilot)
- :HMIArq(Pilot)
+ :BTArq(BTPort)
+ ,HMIArq(Pilot)
+ //SPM VIRTUINOCM changed call to BT
 {
 	// TODO Auto-generated constructor stub
 	MyPilot = Pilot;
@@ -196,70 +198,75 @@ void BT::refresh() {
 
 void BT::updateSpecialBT() {
 
-	// SPECIAL OBJECTS IN APP
-	// update LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
-	vDigitalMemoryWrite(LED_START, MyPilot->getCurrentMode()== STAND_BY ? 0: 1);
-	vDigitalMemoryWrite(LED_DBACTIVE, MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0);
 
-	if (HMIArq::getRequestStatus()== WAITING_USER_ANSWER) { //TODO: This should be available in multiple HMI, not only in BT
-		MyPilot->setInformation(NEW_WP_RECEIVED);
-	} else if (MyPilot->getInformation() ==NEW_WP_RECEIVED) {
-		MyPilot->setInformation(NO_MESSAGE);
-	}
+	//SPM INI VIRTUINOCM-->COMENTADO PARA TEST
 
-	// USER MESSAGES BY PRIORITY: 1.ERROR, 2.WARNING, 3.INFO
-	int message = 0;
-
-	//3. INFO
-	int information = MyPilot->getInformation();
-	if (information!=NO_MESSAGE) message = information + INFORMATION_SLOT;
-
-	//2. WARNING
-	int warning = MyPilot->getWarning();
-	if (warning!=NO_WARNING) message = warning + WARNING_SLOT;
-
-	//1. ERROR
-	int error = MyPilot->getError();
-	if (error!=NO_ERROR) message = error + ERROR_SLOT;
-
-	//Only one message displayed, highest priority
-	vMemoryWrite(AI_USER_MESSAGE, message);
-
-	vMemoryWrite(AI_KP, MyPilot->GetKp());
-	vMemoryWrite(AI_KI, MyPilot->GetKi());
-	vMemoryWrite(AI_KD, MyPilot->GetKd());
-//	//INDICATIVE SWITCH buttons
-//	switch (vDigitalMemoryRead(IS_BLOCK_PID)) {
-//			case HIGH:
-//				// If unblocked, update AUTOPILOT with APP figures
-//				Change_PID(true, true, true, vMemoryRead(AI_KP), vMemoryRead(AI_KI), vMemoryRead(AI_KD));
-//				s_gain gain;
-//				gain.Kp.Towf_00(vMemoryRead(AI_KP));
-//				gain.Ki.Towf_00(vMemoryRead(AI_KI));
-//				gain.Kd.Towf_00(vMemoryRead(AI_KD));
-//				Change_PID({true, true, true}, gain);
-//				break;
-//			case LOW:
-//				// If blocked, update APP with AUTOPILOT figures
-//				vMemoryWrite(AI_KP, MyPilot->GetKp());
-//				vMemoryWrite(AI_KI, MyPilot->GetKi());
-//				vMemoryWrite(AI_KD, MyPilot->GetKd());
-//				break;
+//	// SPECIAL OBJECTS IN APP
+//	// update LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
+//	vDigitalMemoryWrite(LED_START, MyPilot->getCurrentMode()== STAND_BY ? 0: 1);
+//	vDigitalMemoryWrite(LED_DBACTIVE, MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0);
+//	//SPM FIN VIRTUINOCM-->COMENTADO PARA TEST
+//
+//	if (HMIArq::getRequestStatus()== WAITING_USER_ANSWER) { //TODO: This should be available in multiple HMI, not only in BT
+//		MyPilot->setInformation(NEW_WP_RECEIVED);
+//	} else if (MyPilot->getInformation() ==NEW_WP_RECEIVED) {
+//		MyPilot->setInformation(NO_MESSAGE);
 //	}
 //
-//	// SELECTOR SWITCH
-//	_k_change.Kp=(vMemoryRead(AI_KSELECT)==0?true:false);
-//	_k_change.Ki=(vMemoryRead(AI_KSELECT)==1?true:false);
-//	_k_change.Kd=(vMemoryRead(AI_KSELECT)==2?true:false);
+//	// USER MESSAGES BY PRIORITY: 1.ERROR, 2.WARNING, 3.INFO
+//	int message = 0;
+//
+//	//3. INFO
+//	int information = MyPilot->getInformation();
+//	if (information!=NO_MESSAGE) message = information + INFORMATION_SLOT;
+//
+//	//2. WARNING
+//	int warning = MyPilot->getWarning();
+//	if (warning!=NO_WARNING) message = warning + WARNING_SLOT;
+//
+//	//1. ERROR
+//	int error = MyPilot->getError();
+//	if (error!=NO_ERROR) message = error + ERROR_SLOT;
+//
+//	//Only one message displayed, highest priority
+//	vMemoryWrite(AI_USER_MESSAGE, message);
+//
+//	vMemoryWrite(AI_KP, MyPilot->GetKp());
+//	vMemoryWrite(AI_KI, MyPilot->GetKi());
+//	vMemoryWrite(AI_KD, MyPilot->GetKd());
+////	//INDICATIVE SWITCH buttons
+////	switch (vDigitalMemoryRead(IS_BLOCK_PID)) {
+////			case HIGH:
+////				// If unblocked, update AUTOPILOT with APP figures
+////				Change_PID(true, true, true, vMemoryRead(AI_KP), vMemoryRead(AI_KI), vMemoryRead(AI_KD));
+////				s_gain gain;
+////				gain.Kp.Towf_00(vMemoryRead(AI_KP));
+////				gain.Ki.Towf_00(vMemoryRead(AI_KI));
+////				gain.Kd.Towf_00(vMemoryRead(AI_KD));
+////				Change_PID({true, true, true}, gain);
+////				break;
+////			case LOW:
+////				// If blocked, update APP with AUTOPILOT figures
+////				vMemoryWrite(AI_KP, MyPilot->GetKp());
+////				vMemoryWrite(AI_KI, MyPilot->GetKi());
+////				vMemoryWrite(AI_KD, MyPilot->GetKd());
+////				break;
+////	}
+////
+////	// SELECTOR SWITCH
+////	_k_change.Kp=(vMemoryRead(AI_KSELECT)==0?true:false);
+////	_k_change.Ki=(vMemoryRead(AI_KSELECT)==1?true:false);
+////	_k_change.Kd=(vMemoryRead(AI_KSELECT)==2?true:false);
+//
+//
+//	// REGULATOR
+//	float target = vMemoryRead(AI_DELTA_TARGET);
+//	if (target!=0) {
+//		Set_NewCourse(target);
+//		vMemoryWrite(AI_DELTA_TARGET, 0);
+//	}
 
-
-	// REGULATOR
-	float target = vMemoryRead(AI_DELTA_TARGET);
-	if (target!=0) {
-		Set_NewCourse(target);
-		vMemoryWrite(AI_DELTA_TARGET, 0);
-	}
-
+	//SPM FIN VIRTUINOCM-->COMENTADO PARA TEST
 
 }
 
