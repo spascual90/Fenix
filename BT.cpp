@@ -7,16 +7,14 @@
 #include "BT.h"
 
  BT::BT(Autopilot* Pilot)
- :BTArq()
+ :BTArq(c_max_V, c_max_DV)
  ,HMIArq(Pilot)
 {
 	// TODO Auto-generated constructor stub
 	MyPilot = Pilot;
 }
 
-BT::~BT() {
-	// TODO Auto-generated destructor stub
-}
+BT::~BT() {};
 
 void BT::setup() {
 #ifdef BTPort
@@ -27,8 +25,7 @@ void BT::setup() {
 
 	  	DEBUG_print( "Bluetooth int... Started\n");
 	  	DEBUG_print( "Serial BT device on " BT_PORT_NAME "\n");
-	  	DEBUG_print( "Virtuino library version 1.63\n");
-	  	DEBUG_print( "Supports Virtuino app ver 1.2.0 or higher\n");
+	  	DEBUG_print( "Supports Fenix App ver 2.0 \n");
 
 	  	begin(onReceived,onRequested,512);  //Start Virtuino. Set the buffer to 256. With this buffer Virtuino can control about 28 pins (1 command = 9bytes) The T(text) commands with 20 characters need 20+6 bytes
 
@@ -38,16 +35,20 @@ void BT::setup() {
 void BT::refresh() {
 
 	updateBT();
+	virtuinoRun();        // Necessary function to communicate with Virtuino. Client handler
+	triggerAction();
+}
 
+void BT::triggerAction () {
 
-	updateSpecialBT();
+	uint8_t button = getButtonPressed();
 
-	// UPDATE VALUES TO APP AND GET BUTTON PRESSED
-	virtuinoRun();
+	if (button == BT_NO_BTN) return;
 
 	// Launch action accordingly to button pressed and current mode
 	e_APmode currentMode = MyPilot->getCurrentMode();
-	switch (getButtonPressed()) {
+
+	switch (button) {
 
 	//MAIN PANEL
 	case BT_START_STOP:
@@ -201,57 +202,56 @@ void BT::refresh() {
 
 
 void BT::updateBT(){
+
 	//VIRTUAL PIN IN APP (FLOAT)
-	V[AI_NEXTCTS] = float(MyPilot->getNextCourse());
-	V[AI_HEADING] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeading():888);
-	V[AI_TARGET] = MyPilot->getTargetBearing();
-	V[AI_DELTA] = MyPilot->getInput();
-	V[AI_RUDDER] = MyPilot->getCurrentRudder();
-	V[AI_KPCONTRIB] = float (MyPilot->getKpContrib());
-	V[AI_ITERM] = float (MyPilot->getITerm());
-	V[AI_KDCONTRIB] = float(MyPilot->getKdContrib());
-	V[AI_PIDOUT] = float(MyPilot->getOutput());
-	V[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
-	V[AI_DEADBAND_VALUE] = MyPilot->dbt.getDeadband();
-	V[AI_TRIM_VALUE] = MyPilot->dbt.getTrim();
+	_V[AI_NEXTCTS] = float(MyPilot->getNextCourse());
+	_V[AI_HEADING] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeading():888);
+	_V[AI_TARGET] = MyPilot->getTargetBearing();
+	_V[AI_DELTA] = MyPilot->getInput();
+	_V[AI_RUDDER] = MyPilot->getCurrentRudder();
+	_V[AI_KPCONTRIB] = float (MyPilot->getKpContrib());
+	_V[AI_ITERM] = float (MyPilot->getITerm());
+	_V[AI_KDCONTRIB] = float(MyPilot->getKdContrib());
+	_V[AI_PIDOUT] = float(MyPilot->getOutput());
+	_V[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
+	_V[AI_DEADBAND_VALUE] = MyPilot->dbt.getDeadband();
+	_V[AI_TRIM_VALUE] = MyPilot->dbt.getTrim();
 
 	static uint16_t X = 0;
 	int8_t Y = 0;
 	uint8_t Z = 0;
 	MyPilot->getCheckXYZ(X,Y,Z);
-	V[AI_IMU_X] = X;
-	V[AI_IMU_Y] = Y;
-	V[AI_IMU_Z] = Z;
+	_V[AI_IMU_X] = X;
+	_V[AI_IMU_Y] = Y;
+	_V[AI_IMU_Z] = Z;
 
 	static uint16_t fbk_min, fbk_max;
 	MyPilot->getFBKcalStatus(fbk_min, fbk_max);
-	V[AI_FBK_MIN] = fbk_min;
-	V[AI_FBK_MAX] = fbk_max;
+	_V[AI_FBK_MIN] = fbk_min;
+	_V[AI_FBK_MAX] = fbk_max;
 
 	static uint8_t S, G, A, M;
 	MyPilot->getCheckSGAM(S, G, A, M);
-	V[AV_LED_IMU_CAL_SYS] = S;
-	V[AV_LED_IMU_CAL_GYRO] = G;
-	V[AV_LED_IMU_CAL_ACEL] = A;
-	V[AV_LED_IMU_CAL_MAGN] = M;
+	_V[AV_LED_IMU_CAL_SYS] = S;
+	_V[AV_LED_IMU_CAL_GYRO] = G;
+	_V[AV_LED_IMU_CAL_ACEL] = A;
+	_V[AV_LED_IMU_CAL_MAGN] = M;
 
-	V[AV_LED_STATUS] = MyPilot->getCurrentMode();
+	_V[AV_LED_STATUS] = MyPilot->getCurrentMode();
+
+	_V[AI_KP] = MyPilot->GetKp();
+	_V[AI_KI] = MyPilot->GetKi();
+	_V[AI_KD] = MyPilot->GetKd();
 
 	// VIRTUAL DIGITAL PIN in APP
-	DV[DV_LED_DBACTIVE] = MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0;
+	_DV[DV_LED_DBACTIVE] = MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0;
 
 	updateSpecialBT();
-
-	BTArq::updateBT();
-
-
 
 }
 
 // SPECIAL OBJECTS IN APP
 void BT::updateSpecialBT() {
-
-
 
 	// USER MESSAGES BY PRIORITY: low.ERROR, med.WARNING, hich.INFO
 	int message = 0;
@@ -270,17 +270,13 @@ void BT::updateSpecialBT() {
 
 
 	//Only one message displayed, highest priority
-	V[AI_USER_MESSAGE] = message;
-
-	V[AI_KP] = MyPilot->GetKp();
-	V[AI_KI] = MyPilot->GetKi();
-	V[AI_KD] = MyPilot->GetKd();
+	_V[AI_USER_MESSAGE] = message;
 
 	// REGULATOR
-	if (V[AI_DELTA_TARGET]!=0) {
-		if (V[AI_DELTA_TARGET]<0) V[AI_DELTA_TARGET]+=360; // transform (-180,180) to (0, 360);
-		Set_NextCourse(V[AI_DELTA_TARGET]);
-		V[AI_DELTA_TARGET] = 0;
+	if (_V[AI_DELTA_TARGET]!=0) {
+		if (_V[AI_DELTA_TARGET]<0) _V[AI_DELTA_TARGET]+=360; // transform (-180,180) to (0, 360);
+		Set_NextCourse(_V[AI_DELTA_TARGET]);
+		_V[AI_DELTA_TARGET] = 0;
 	}
 
 }

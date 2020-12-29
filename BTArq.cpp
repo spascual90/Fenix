@@ -1,30 +1,38 @@
 #include "BTArq.h"
 
-//int variable_prueba;
+float *V;           // This array is synchronized with Virtuino V memory. You can change the type to int, long etc.
+float *DV;           // This array is synchronized with Virtuino DV memory.
+uint8_t v_button;
 
-float V[V_memory_count];           // This array is synchronized with Virtuino V memory. You can change the type to int, long etc.
-float DV[DV_memory_count];           // This array is synchronized with Virtuino DV memory.
-e_BT_push_button v_button;
+uint8_t _max_V;
+uint8_t _max_DV;
 
-BTArq::BTArq(){
-for (int a=0; a<V_memory_count;a++) {
-	V[a] = 0;
-}
-for (int a=0; a<DV_memory_count;a++) {
-	DV[a] = 0;
-}
-e_BT_push_button v_button = BT_NO_BTN;
-};
+BTArq::BTArq(uint8_t max_V, uint8_t max_DV){
+	_max_V = max_V;
+	_max_DV = max_DV;
+
+	V = new float [_max_V];
+	for (int a=0; a<_max_V;a++) {
+		V[a] = 0;
+	}
+
+	DV = new float [_max_DV];
+	for (int a=0; a<_max_DV;a++) {
+		DV[a] = 0;
+	}
+
+	v_button = BT_NO_BTN;
+
+	_V= V;
+	_DV= DV;
+
+	};
 
 BTArq::~BTArq() {};
 
-void BTArq::updateBT () {
-	virtuinoRun();        // Necessary function to communicate with Virtuino. Client handler
-}
 
-
-//// Return last pressed button and empty buffer
-e_BT_push_button BTArq::getButtonPressed()  {
+// Return last pressed button and empty buffer
+uint8_t BTArq::getButtonPressed()  {
 	_lastButton = v_button;
 	v_button = BT_NO_BTN;
 	return _lastButton;
@@ -35,33 +43,30 @@ e_BT_push_button BTArq::getButtonPressed()  {
 //============================================================== onCommandReceived
 //==============================================================
 /* This function is called every time Virtuino app sends a request to server to change a Pin value
- * The 'variableType' can be a character like V, T, O  V=Virtual pin  T=Text Pin    O=PWM Pin
+ * The 'variableType' can be a character like V, D  V=Virtual pin  D = Virtual Digital pin (button)
  * The 'variableIndex' is the pin number index of Virtuino app
  * The 'valueAsText' is the value that has sent from the app   */
  void onReceived(char variableType, uint8_t variableIndex, String valueAsText){
 
-	 if (variableType=='D') {
-		e_BT_push_button button = (e_BT_push_button) variableIndex;
-		if (button>START_BT && button<MAX_BT) {
-			if (valueAsText == "1") {
-				v_button = (e_BT_push_button)variableIndex;
-			}
-		}
-	} else if (variableType=='V'){
-        float fvalue = valueAsText.toFloat();        // convert the value to float. The valueAsText have to be numerical
-        if (variableIndex<V_memory_count) {
-        	V[variableIndex]=fvalue;              // copy the received value to arduino V memory array
-        }
-    }
+	 if (variableType=='D' and variableIndex<_max_DV) {
+		if (valueAsText == "1") {
+			v_button = variableIndex;			// only update value of button at press time. v_button is set to 0 after execution of related action.
+			DV[variableIndex]=1;              // copy the received value to arduino DV memory array
+	    } else if (valueAsText == "0") DV[variableIndex]=0;              // copy the received value to arduino DV memory array
+
+	 } else if (variableType=='V' and variableIndex<_max_V){
+			float fvalue = valueAsText.toFloat();        // convert the value to float. The valueAsText has to be numerical
+			V[variableIndex]=fvalue;              // copy the received value to arduino V memory array
+     }
 }
 
 //==============================================================
 /* This function is called every time Virtuino app requests to read a pin value*/
 String onRequested(char variableType, uint8_t variableIndex){
 
-    if (variableType=='V' and variableIndex<V_memory_count) {
+    if (variableType=='V' and variableIndex<_max_V) {
     	return  String(V[variableIndex]);   // return the value of the arduino V memory array
-  } else if (variableType=='D' and variableIndex<DV_memory_count) {
+  } else if (variableType=='D' and variableIndex<_max_DV) {
 	  return  String(DV[variableIndex]); // return the value of the arduino DV memory array
   }
 
