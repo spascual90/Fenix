@@ -2,8 +2,13 @@
 #define BTARQ_H_
 
 #include <Arduino.h>
-#include <VirtuinoBluetooth.h>                           // Include VirtuinoBluetooth library to your code
+#include <VirtuinoCM.h>                           // Include VirtuinoCM library to your code
 #include "GPSport.h" // Ports configuration
+
+#define V_memory_count 32          // the size of V memory. You can change it to a number <=255)
+extern float V[V_memory_count];           // This array is synchronized with Virtuino V memory. You can change the type to int, long etc.
+#define DV_memory_count 32          // the size of V memory. You can change it to a number <=255)
+extern float DV[DV_memory_count];           // This array is synchronized with Virtuino DV memory.
 
 // PUSH buttons BT_*
 // INDICATIVE SWITCH IS_*
@@ -38,6 +43,8 @@ enum e_BT_push_button {
 		, BT_NO_BTN
 		, BT_BTN_REPEATED
 	};
+
+extern e_BT_push_button v_button;
 
 // Special DV PINS
 #define DV_LED_DBACTIVE			27
@@ -80,21 +87,28 @@ enum e_BT_AI_PIN {
 
 };
 
-# define MAX_AI (AI_IMU_Z+1)
+void onReceived(char variableType, uint8_t variableIndex, String valueAsText);
+String onRequested(char variableType, uint8_t variableIndex);
 
-class BTArq: public VirtuinoBluetooth {
+class BTArq: public VirtuinoCM {
 
 public:
 	BTArq();
 	virtual ~BTArq();
-	void updateBT(float FM[]);
+	void updateBT(void);
 	e_BT_push_button getButtonPressed();
 	void setButton(e_BT_push_button);
 	e_BT_push_button getRepeatedButton();
-	int getStatus (e_BT_push_button) const;
+
+	void virtuinoRun();
+	void vDelay(int delayInMillis);
 
 private:
-	e_BT_push_button _button, _lastButton;
+	e_BT_push_button _lastButton = BT_NO_BTN;
+
+	boolean debug = false;              // set this variable to false on the final code to decrease the request time.
+
 };
+
 
 #endif /* BTARQ_H_ */

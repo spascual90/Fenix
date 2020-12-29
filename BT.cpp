@@ -7,7 +7,8 @@
 #include "BT.h"
 
  BT::BT(Autopilot* Pilot)
- :HMIArq(Pilot)
+ :BTArq()
+ ,HMIArq(Pilot)
 {
 	// TODO Auto-generated constructor stub
 	MyPilot = Pilot;
@@ -19,17 +20,7 @@ BT::~BT() {
 
 void BT::setup() {
 #ifdef BTPort
-	  //DEBUG=true;               // set this value TRUE to enable the serial monitor status
-
-	  //SPM original: Serial1.begin(9600);               // Enable this line if you want to use hardware serial (Mega, DUE etc.)
-	  //SPM modified:
 	  BTPort.begin(9600);//(38400);               // Enable this line if you want to use hardware serial (Mega, DUE etc.)
-
-	  // Use virtuino.vPinMode instead default pinMode method for digital input or digital output pins.
-	  // Don't use vPinMode for PWM pins, or pins that their values change many times per second
-	  // Every time the value of a vPinMode  pin is changed the virtuino library sends a message and inform virtuino about the pin value.
-	  // If an PWM pin is declared as vPinMode pin the arduino will continuously try  to send data to android device because the value of a pwm pin changes constantly
-	  // vPinMode(13,OUTPUT);
 
 	  while (!BTPort)
 	  	  ;
@@ -39,43 +30,20 @@ void BT::setup() {
 	  	DEBUG_print( "Virtuino library version 1.63\n");
 	  	DEBUG_print( "Supports Virtuino app ver 1.2.0 or higher\n");
 
-	  	//while(true)	{ATmode();}
+	  	begin(onReceived,onRequested,512);  //Start Virtuino. Set the buffer to 256. With this buffer Virtuino can control about 28 pins (1 command = 9bytes) The T(text) commands with 20 characters need 20+6 bytes
 
 #endif
 }
 
 void BT::refresh() {
-	float M[MAX_AI], temp=0;
 
-	//Float Virtual PIN
-	M[AI_HEADING] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeading():888);
-	M[AI_TARGET] = MyPilot->getTargetBearing();
-	M[AI_DELTA] = MyPilot->getInput();
-	M[AI_RUDDER] = MyPilot->getCurrentRudder();
-	M[AI_KPCONTRIB] = float (MyPilot->getKpContrib());
-	M[AI_ITERM] = float (MyPilot->getITerm());
-	M[AI_KDCONTRIB] = float(MyPilot->getKdContrib());
-	M[AI_PIDOUT] = float(MyPilot->getOutput());
-	M[AI_NEXTCTS] = float(MyPilot->getNextCourse());
-	M[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
-	M[AI_DEADBAND_VALUE] = MyPilot->dbt.getDeadband();
-	M[AI_TRIM_VALUE] = MyPilot->dbt.getTrim();
+	updateBT();
 
-	uint16_t X = 0;
-	int8_t Y = 0;
-	uint8_t Z = 0;
-	MyPilot->getCheckXYZ(X,Y,Z);
-	M[AI_IMU_X] = int(X);
-	M[AI_IMU_Y] = int(Y);
-	M[AI_IMU_Z] = int(Z);
-	uint16_t fbk_min, fbk_max;
-	MyPilot->getFBKcalStatus(fbk_min, fbk_max);
-	M[AI_FBK_MIN] = fbk_min;
-	M[AI_FBK_MAX] = fbk_max;
-	// UPDATE VALUES TO APP AND GET BUTTON PRESSED
-	updateBT (M);
 
 	updateSpecialBT();
+
+	// UPDATE VALUES TO APP AND GET BUTTON PRESSED
+	virtuinoRun();
 
 	// Launch action accordingly to button pressed and current mode
 	e_APmode currentMode = MyPilot->getCurrentMode();
@@ -84,15 +52,8 @@ void BT::refresh() {
 	//MAIN PANEL
 	case BT_START_STOP:
 		if (!MyPilot->isCalMode()) {
-//			if (userRequestAnswer (true)==USER_ACCEPTED){
-//				//There was a user request, and user accepted
-//			    MyPilot->buzzer_Beep();
-//			} else {
-//				Start_Stop(CURRENT_HEADING); // Accepts request only if necessary
-//			}
 			userRequestAnswer (false);
 			Start_Stop(CURRENT_HEADING); // Accepts request only if necessary
-
 		}
 		break;
 
@@ -238,29 +199,59 @@ void BT::refresh() {
 	}
 }
 
+
+void BT::updateBT(){
+	//VIRTUAL PIN IN APP (FLOAT)
+	V[AI_NEXTCTS] = float(MyPilot->getNextCourse());
+	V[AI_HEADING] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeading():888);
+	V[AI_TARGET] = MyPilot->getTargetBearing();
+	V[AI_DELTA] = MyPilot->getInput();
+	V[AI_RUDDER] = MyPilot->getCurrentRudder();
+	V[AI_KPCONTRIB] = float (MyPilot->getKpContrib());
+	V[AI_ITERM] = float (MyPilot->getITerm());
+	V[AI_KDCONTRIB] = float(MyPilot->getKdContrib());
+	V[AI_PIDOUT] = float(MyPilot->getOutput());
+	V[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
+	V[AI_DEADBAND_VALUE] = MyPilot->dbt.getDeadband();
+	V[AI_TRIM_VALUE] = MyPilot->dbt.getTrim();
+
+	static uint16_t X = 0;
+	int8_t Y = 0;
+	uint8_t Z = 0;
+	MyPilot->getCheckXYZ(X,Y,Z);
+	V[AI_IMU_X] = X;
+	V[AI_IMU_Y] = Y;
+	V[AI_IMU_Z] = Z;
+
+	static uint16_t fbk_min, fbk_max;
+	MyPilot->getFBKcalStatus(fbk_min, fbk_max);
+	V[AI_FBK_MIN] = fbk_min;
+	V[AI_FBK_MAX] = fbk_max;
+
+	static uint8_t S, G, A, M;
+	MyPilot->getCheckSGAM(S, G, A, M);
+	V[AV_LED_IMU_CAL_SYS] = S;
+	V[AV_LED_IMU_CAL_GYRO] = G;
+	V[AV_LED_IMU_CAL_ACEL] = A;
+	V[AV_LED_IMU_CAL_MAGN] = M;
+
+	V[AV_LED_STATUS] = MyPilot->getCurrentMode();
+
+	// VIRTUAL DIGITAL PIN in APP
+	DV[DV_LED_DBACTIVE] = MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0;
+
+	updateSpecialBT();
+
+	BTArq::updateBT();
+
+
+
+}
+
+// SPECIAL OBJECTS IN APP
 void BT::updateSpecialBT() {
 
-	// SPECIAL OBJECTS IN APP
-	// update VIRTUAL DIGITAL LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
-	vDigitalMemoryWrite(DV_LED_DBACTIVE, MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0);
 
-	uint8_t S, G, A, M; //Status disabled
-	int iS =2, iG=2, iA=2, iM=2;
-
-	if (MyPilot->getCheckSGAM(S, G, A, M)) {
-		iS = S;
-		iG = G;
-		iA = A;
-		iM = M;
-	}
-
-	vMemoryWrite(AV_LED_IMU_CAL_SYS, iS);
-	vMemoryWrite(AV_LED_IMU_CAL_GYRO, iG);
-	vMemoryWrite(AV_LED_IMU_CAL_ACEL, iA);
-	vMemoryWrite(AV_LED_IMU_CAL_MAGN, iM);
-
-	// update VIRTUAL ANALOG LED in APP. AS THERE ARE NOT MANY, ARE TREATED AS SPECIAL BUT EQUIVALENT BEHAVIOUR TO FLOAT VIRTUAL PIN COULD BE IMPLEMENTED
-	vMemoryWrite(AV_LED_STATUS, MyPilot->getCurrentMode());
 
 	// USER MESSAGES BY PRIORITY: low.ERROR, med.WARNING, hich.INFO
 	int message = 0;
@@ -279,44 +270,17 @@ void BT::updateSpecialBT() {
 
 
 	//Only one message displayed, highest priority
-	vMemoryWrite(AI_USER_MESSAGE, message);
+	V[AI_USER_MESSAGE] = message;
 
-
-	vMemoryWrite(AI_KP, MyPilot->GetKp());
-	vMemoryWrite(AI_KI, MyPilot->GetKi());
-	vMemoryWrite(AI_KD, MyPilot->GetKd());
-
-//	//INDICATIVE SWITCH buttons
-//	switch (vDigitalMemoryRead(IS_BLOCK_PID)) {
-//			case HIGH:
-//				// If unblocked, update AUTOPILOT with APP figures
-//				Change_PID(true, true, true, vMemoryRead(AI_KP), vMemoryRead(AI_KI), vMemoryRead(AI_KD));
-//				s_gain gain;
-//				gain.Kp.Towf_00(vMemoryRead(AI_KP));
-//				gain.Ki.Towf_00(vMemoryRead(AI_KI));
-//				gain.Kd.Towf_00(vMemoryRead(AI_KD));
-//				Change_PID({true, true, true}, gain);
-//				break;
-//			case LOW:
-//				// If blocked, update APP with AUTOPILOT figures
-//				vMemoryWrite(AI_KP, MyPilot->GetKp());
-//				vMemoryWrite(AI_KI, MyPilot->GetKi());
-//				vMemoryWrite(AI_KD, MyPilot->GetKd());
-//				break;
-//	}
-//
-//	// SELECTOR SWITCH
-//	_k_change.Kp=(vMemoryRead(AI_KSELECT)==0?true:false);
-//	_k_change.Ki=(vMemoryRead(AI_KSELECT)==1?true:false);
-//	_k_change.Kd=(vMemoryRead(AI_KSELECT)==2?true:false);
+	V[AI_KP] = MyPilot->GetKp();
+	V[AI_KI] = MyPilot->GetKi();
+	V[AI_KD] = MyPilot->GetKd();
 
 	// REGULATOR
-	float target = vMemoryRead(AI_DELTA_TARGET);
-	if (target!=0) {
-		if (target<0) target+=360; // transform (-180,180) to (0, 360);
-		//Set_NewCourse(target);
-		Set_NextCourse(target);
-		vMemoryWrite(AI_DELTA_TARGET, 0);
+	if (V[AI_DELTA_TARGET]!=0) {
+		if (V[AI_DELTA_TARGET]<0) V[AI_DELTA_TARGET]+=360; // transform (-180,180) to (0, 360);
+		Set_NextCourse(V[AI_DELTA_TARGET]);
+		V[AI_DELTA_TARGET] = 0;
 	}
 
 }

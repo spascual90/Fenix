@@ -9,7 +9,6 @@
 #define WARNING_SLOT (10)
 #define ERROR_SLOT (20)
 
-
 class BT: public BTArq, public HMIArq {
 
 public:
@@ -23,6 +22,7 @@ public:
 
 private:
 	Autopilot* MyPilot;
+	void updateBT();
 	void updateSpecialBT();
 	s_PIDgain_flag _k_change;
 
