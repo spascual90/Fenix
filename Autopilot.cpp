@@ -30,6 +30,12 @@ Autopilot::~Autopilot() {
 
 e_setup_status Autopilot::setup() {
 
+
+	// Autopilot version
+	DEBUG_print("Fenix Autopilot: ");
+	DEBUG_print(ARDUINO_VERSION);
+	DEBUG_print("\n");
+
 #ifdef RESTORE_EEPROM
 	//Format EEPROM
 	EEPROM_format();

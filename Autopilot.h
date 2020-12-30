@@ -8,6 +8,9 @@
 #ifndef AUTOPILOT_H_
 #define AUTOPILOT_H_
 
+//Fenix version
+#define ARDUINO_VERSION "v.1.2.B1"
+
 //DEBUG
 //#define VIRTUAL_ACTUATOR // When actuator is not installed, input from feedback is random. VIRTUAL_ACTUATOR set value to minimum.
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
@@ -15,8 +18,6 @@
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 
 // Buzzer PIN
-// #define PIN_BUZZER 8
-// V0.2 PWM and DIR PIN changed to ensure compatibility with LCDKeyPad
 #define PIN_BUZZER A12
 
 #define DELAY_BUZZBEAT_TIME 50 // Buzzer beat time in msec.

@@ -25,7 +25,7 @@ void BT::setup() {
 
 	  	DEBUG_print( "Bluetooth int... Started\n");
 	  	DEBUG_print( "Serial BT device on " BT_PORT_NAME "\n");
-	  	DEBUG_print( "Supports Fenix App ver 2.0 \n");
+	  	DEBUG_print( "Supports Fenix App v.1.0 \n");
 
 	  	begin(onReceived,onRequested,512);  //Start Virtuino. Set the buffer to 256. With this buffer Virtuino can control about 28 pins (1 command = 9bytes) The T(text) commands with 20 characters need 20+6 bytes
 

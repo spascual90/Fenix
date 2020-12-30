@@ -39,8 +39,6 @@ enum e_BT_push_button {
 		, BT_SAVE_FBK_CAL=18
 
 		, MAX_BT
-		, BT_NO_BTN
-		, BT_BTN_REPEATED
 	};
 
 // Special DV PINS
