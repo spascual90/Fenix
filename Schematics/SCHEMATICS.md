@@ -10,7 +10,9 @@ https://www.robotshop.com/en/cytron-10a-dc-motor-driver-arduino-shield.html
 https://es.aliexpress.com/item/33014366634.html?spm=a2g0s.9042311.0.0.274263c0mbz1Io
 
 1 x IMU BNO055
-https://www.adafruit.com/product/2472
+Different integrations are available,
+CJMCU-055 from Aliexpress and other cheap retailers tested and documented as part of this project:https://www.google.com/search?q=CJMCU-055
+Alternative from Adafruit (not tested):https://www.adafruit.com/product/2472
 
 1 x HC-05 Bluetooth module
 https://tienda.bricogeek.com/modulos-bluetooth/800-modulo-bluetooth-hc-05.html?gclid=EAIaIQobChMI5emk172s6gIVg4XVCh2WrwZjEAQYAyABEgJ1zvD_BwE
@@ -42,16 +44,16 @@ https://es.aliexpress.com/item/32986141749.html?spm=a2g0s.9042311.0.0.793f63c0tr
 
 - Alternative DC Motor Driver tested:
   - Cytron MD10C 10A 1 DC motor Driver
-  - Cytron 10A 1 DC Motor Driver Arduino Shield
+  - Cytron 10A 1 DC Motor Driver Arduino Shield (Recomended with Fenix PCB)
 
 - DC motor driver is powered by a 12V battery not represented.
 - Arduino can be powered by 12V battery using a step-down converter to at least 8.5V. Less tension will switch power source to USB leading Arduino to reset if current is too low (USB Laptop OK, Raspberry Pi USB NOK).
 - Breaker at the +12V entry should be used for security (Max. 10A recommended).
 
 ## Notes on IMU BNO055
-- I2C shall be connected to GND
-- Shortcircuit S0 and S1 negative poles
-- Install oscilator into available places
+Use of Fenix PCB provides necessary connections. If PCB is not used, I2C shall be connected to GND
+- Shortcircuit S0 and S1 negative poles (soldering)
+- Install crystal oscilator into available places
 
 <img alt="SCHEMATICS-9f91e269.PNG" src="assets/SCHEMATICS-9f91e269.PNG" width="" height="" >
 
