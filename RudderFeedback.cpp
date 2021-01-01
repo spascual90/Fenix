@@ -10,11 +10,11 @@
 RudderFeedback::RudderFeedback(int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback) {
 	//setup independent variables
 	setMRA(MRA, false); // TODO: MRA user configurable
+
 	setErrorFeedback(error, false);
 	setMinFeedback(minFeedback, false);
 	setMaxFeedback(maxFeedback, false);
 	setDeltaCenterOfRudder(deltaCenterOfRudder, false);
-	//setup(false); Commented as setup will be called in Macua_Autopilot::setup()
 }
 
 RudderFeedback::~RudderFeedback() {
@@ -24,9 +24,11 @@ RudderFeedback::~RudderFeedback() {
 e_feedback_status RudderFeedback::setup(bool b_ibit){
 	e_feedback_status ret = FEEDBACK_OK;
 	//setup dependent variables
+#ifndef VIRTUAL_ACTUATOR
 	setLimitMinFeedback(_min_feedback);
 	setLimitMaxFeedback(_max_feedback);
-	_feedback_lenght = _limit_max_feedback-_limit_min_feedback; //(LIMIT_MAX_FEEDBACK-(LIMIT_MIN_FEEDBACK));
+#endif
+	_feedback_lenght = _limit_max_feedback-_limit_min_feedback;
 	_ratio = RUDDER_LENGHT/float(_feedback_lenght);
 	_center_of_rudder = (RUDDER_LENGHT / 2) + 1 + getMinRudder() + getDeltaCenterOfRudder() ;
 	updateCurrentRudder();
@@ -97,15 +99,13 @@ e_feedback_status RudderFeedback::IBIT(){
 int RudderFeedback::updateCurrentRudder() {
 	int Feedback = getFeedback();
 
-	#ifdef VIRTUAL_ACTUATOR
-	Feedback = D_MIN_FEEDBACK;
-	#endif
-
 	//Transforms actuator feedback into rudder metrics based on RUDDERFEEDBACK.H PARAMETERS
-	// _ratio = RUDDER_LENGHT)/_feedback_lenght is constant float
 	_currentRudder = toRudder(Feedback-getLimitMinFeedback())+getMinRudder(); // (+MIN_RUDDER)
-	//sprintf(DEBUG_buffer,"Feedback, rudder: %i, %i\n", Feedback, _currentRudder);
-	//DEBUG_print();
+
+#ifdef VIRTUAL_ACTUATOR
+	_currentRudder = 0;
+#endif
+
 	return Feedback;
 }
 
@@ -115,9 +115,9 @@ int RudderFeedback::getFeedback() const {
 
 e_rudderStatus RudderFeedback::getRudderStatus() const {
 	int status = getCurrentRudder();
-	if ( abs(status) < getErrorFeedback ()) return CENTERED; //TODO: Errorfeedback is not in rudder units but in feedback...
+	if ( abs(status) < getErrorFeedback ()) return CENTERED;
 	else if (status >0) return EXTENDED;
-	return RETRACTED; // else if (status <0) {return RETRACTED;}
+	return RETRACTED;
 }
 
 int RudderFeedback::rudder_IBIT () {
@@ -169,10 +169,6 @@ void RudderFeedback::compute_Cal_Feedback() {
 	int feedback = getFeedback();
 	if(feedback<_cal_minFeedback) {_cal_minFeedback=feedback; changed = true;}
 	if(feedback>_cal_maxFeedback) {_cal_maxFeedback=feedback; changed = true;}
-	//if (changed) {
-	//	sprintf(DEBUG_buffer,"Feedback status: %i (min:%i, Max:%i)\n",feedback, _cal_minFeedback, _cal_maxFeedback );
-	//	DEBUG_print();
-	//}
 }
 
 void RudderFeedback::set_calFeedback() { //TODO: Calibration of error based on IBIT test results

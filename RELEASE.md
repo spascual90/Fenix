@@ -1,5 +1,5 @@
 # RELEASE
-## Version: 0.1
+## Version: 0.2
 ## System requirements
 | Req.ID# | Description | Criticity | Implemented |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----------- |
@@ -30,7 +30,18 @@
 | AP-39 | Closed | Ensure safety of the operations by requiring user confirmation before proceed and/or sound warning (i.e. error, start, stop, tack, decission/ action of user required...). | High
 | AP-40 | Closed | Minimum recomended motor controller performance: Bidirectional single-brushed. Support motor voltage to 16V. Support continous current: 10 A | High
 | AP-41 | Closed | Voltage threshold: 10-16V | High
+| AP-16   | Closed | Different deadband configurations for bad weather conditions: predefined, user defined, desactivated.   | High           |
+|AP-17 | Closed | Automatic deadband configuration  | Nice to have |  
+ | AP-36 | Closed | Tack starboard/ portboard in Compass mode. AP will turn by 100º the current heading in the direction selected by the user. | High|
+ | AP-38 | Closed | Tack in Nav mode is not possible. | High |
+ 
 
+## Requirements partially implemented
+| Req.ID# | Status | Description | Priority |
+| ------- | ------ | ----------------------------------------------------------------------------------------- | -------- |
+| AP-8  | Closed | Procedure to define installation parameters supported by Autopilot without additional SW. | High |
+
+ 
 # Autopilot requirements not implemented
 
 | Req.ID# | Status | Description                                                                                                                                                                                                 | Priority       |
@@ -43,8 +54,6 @@
 | AP-12   | Closed | Autogain for different SOW (speed over water).  | Low            |
 | AP-13   | Closed | If SOW is not available, user configurable speed shall be used. | AP.-14  | Closed | User configurable gain for testing purposes.    | High           |
 | AP-15   | Closed | Capability to record required parameters to analyze AP performance for different external conditions for testing purposes.     | High           |
-| AP-16   | Closed | Different deadband configurations for bad weather conditions: predefined, user defined, desactivated.   | High           |
-AP-17 | Closed | Automatic deadband configuration  | Nice to have |  
  AP-21 | Closed | Reception of magnetic/real course from external compass | Nice to have |
 AP-23 | Closed | Reception of SOW information from nautical slide. In Km or nautical miles. | Low |
   | AP-26 | Closed | Reception of real and apparent wind information. | High |
@@ -52,12 +61,6 @@ AP-23 | Closed | Reception of SOW information from nautical slide. In Km or naut
   | AP-30 | Closed | Wind mode is only possible when wind information is available from an external source. | Medium |
   | AP-32 | Closed | Nav mode. If not available from external source, the required course will be BTW. | Nice to have |
   | AP-33 | Open | Central position of tiller is by default considered the position where Autopilot is set to Compass mode. | Low |
-  | AP-36 | Closed | Tack starboard/ portboard in Compass mode. AP will turn by 100º the current heading in the direction selected by the user. | High
-| AP-37 | Closed | Tack in Wind mode. AP will turn to head the same Real Wind Angle but on the oposite band. Turn direction will be selected by AP as the shortest path to reach the target heading. | High |
- | AP-38 | Closed | Tack in Nav mode is not possible. | High |
+  AP-37 | Closed | Tack in Wind mode. AP will turn to head the same Real Wind Angle but on the oposite band. Turn direction will be selected by AP as the shortest path to reach the target heading. | High |
   | AP-42 | Open | Maximum thrust torque (at the end of the tiller): 250N. Minimum angular speed (tiller): 0 Kg: TBD º/sec 35 mm/seg 20 Kg: TBD º/sec 30 mm/seg 40 Kg: TBD º/sec 20 mm/seg | High |
 
-## Requirements partially implemented
-| Req.ID# | Status | Description | Priority |
-| ------- | ------ | ----------------------------------------------------------------------------------------- | -------- |
-| AP-8  | Closed | Procedure to define installation parameters supported by Autopilot without additional SW. | High |

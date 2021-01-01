@@ -187,6 +187,10 @@ void HMIArq::Set_NextCourse_delta(int delta){
 	Set_NextCourse (MyPilot->getNextCourse() + delta);
 }
 
+void HMIArq::Set_Tacking(int delta){
+	Set_NextCourse (MyPilot->getCurrentHeading() + delta);
+}
+
 void HMIArq::Set_NewDeltaCourse(float newDCourse){
 	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()+newDCourse);
 	  MyPilot->buzzer_Beep();

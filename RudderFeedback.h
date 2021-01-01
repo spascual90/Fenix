@@ -11,10 +11,8 @@
 #include <Arduino.h>
 #include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 
-//#define VIRTUAL_ACTUATOR // SPM TODO: Comment when actuator is connected
+// #define VIRTUAL_ACTUATOR // Uncomment to simulate rudder at bow. Useful when linear actuator is not available
 
-//#define PIN_RUDDER A15
-//#define PIN_RUDDER_NAME "A15"
 
 #define PIN_RUDDER A8
 #define PIN_RUDDER_NAME "A8"
@@ -28,7 +26,6 @@
 
 #define MIN_ERROR_FEEDBACK 3
 #define DEFAULT_ERROR_FEEDBACK 10 //A number between 0 and 1023 to protect linear actuator from overuse
-//#define STROKE 300 //actuator stroke in mm
 
 // ADDITIONAL RUDDER PARAMETERS
 // Parameters for rudder
@@ -128,7 +125,7 @@ private:
 	//dependent variables
 	int _limit_min_feedback = (D_MIN_FEEDBACK+DEFAULT_ERROR_FEEDBACK);//A number between 0 and 1023.
 	int _limit_max_feedback = (D_MAX_FEEDBACK-DEFAULT_ERROR_FEEDBACK);//A number between 0 and 1023.
-	int _feedback_lenght = (D_MAX_FEEDBACK-D_MIN_FEEDBACK-(2*DEFAULT_ERROR_FEEDBACK)); //(LIMIT_MAX_FEEDBACK-(LIMIT_MIN_FEEDBACK));
+	int _feedback_lenght = (D_MAX_FEEDBACK-D_MIN_FEEDBACK-(2*DEFAULT_ERROR_FEEDBACK));
 	float _ratio = RUDDER_LENGHT/_feedback_lenght;
 	int _center_of_rudder;
 	int _currentRudder;//Actuator feedback in rudder scale

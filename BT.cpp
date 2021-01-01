@@ -25,7 +25,9 @@ void BT::setup() {
 
 	  	DEBUG_print( "Bluetooth int... Started\n");
 	  	DEBUG_print( "Serial BT device on " BT_PORT_NAME "\n");
-	  	DEBUG_print( "Supports Fenix App v.1.0 \n");
+	  	DEBUG_print( "Supports Fenix App ");
+	  	DEBUG_print(FENIX_APP_COMPATIBILITY);
+	  	DEBUG_print("\n");
 
 	  	begin(onReceived,onRequested,512);  //Start Virtuino. Set the buffer to 256. With this buffer Virtuino can control about 28 pins (1 command = 9bytes) The T(text) commands with 20 characters need 20+6 bytes
 
@@ -132,12 +134,11 @@ void BT::triggerAction () {
     case BT_START_STOP_TARGET:
    		Start_Stop(CURRENT_TARGET);
     	break;
-    case BT_INC_TARGET_100:
-    	Set_NextCourse_delta(100);
-    	//Inc_Course_10();
+    case BT_TACK_STARBOARD:
+    	Set_Tacking(105);
     	break;
-     case BT_DEC_TARGET_100:
-    	 Set_NextCourse_delta(-100);
+     case BT_TACK_PORTBOARD:
+    	 Set_Tacking(-105);
     	break;
      case BT_INC_TARGET_10:
     	 Set_NextCourse_delta(10);
@@ -243,8 +244,31 @@ void BT::updateBT(){
 	_V[AI_KI] = MyPilot->GetKi();
 	_V[AI_KD] = MyPilot->GetKd();
 
-	// VIRTUAL DIGITAL PIN in APP
-	_DV[DV_LED_DBACTIVE] = MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0;
+	_V[AV_LED_DBACTIVE] = MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0;
+
+	_V[AI_USER_MESSAGE] = MyPilot->getInformation();
+
+//	Information codes (0 TO 7)
+//		NO_MESSAGE,
+//		NOT_USED,
+//		SETUP_INPROGRESS,
+//		IMU_RECAL_INPROGRESS,
+//		EE_PID_DEFAULT,
+//		TRACKMODE_AVAILABLE,
+//		TRACKING,
+//		CONFIRM_NEW_WP
+
+	_V[AI_WARNING] = MyPilot->getWarning();
+
+// Warning codes (0 TO 6)
+//		NO_WARNING,
+//		FBK_ERROR_HIGH,
+//		OUT_OF_COURSE,
+//		EE_INSTPARAM_NOTFOUND,
+//		EE_IMU_NOTFOUND,
+//		IMU_LOW,
+//		WP_INVALID
+
 
 	updateSpecialBT();
 
@@ -253,24 +277,21 @@ void BT::updateBT(){
 // SPECIAL OBJECTS IN APP
 void BT::updateSpecialBT() {
 
-	// USER MESSAGES BY PRIORITY: low.ERROR, med.WARNING, hich.INFO
-	int message = 0;
+	// USER MESSAGES AND WARNINGS/ ERRORS BY PRIORITY
+	// int message = 0;
 
 	//INFO
-	int information = MyPilot->getInformation();
-	if (information!=NO_MESSAGE) message = information + INFORMATION_SLOT;
+	//int information = MyPilot->getInformation();
+	//if (information!=NO_MESSAGE) message = information + INFORMATION_SLOT;
 
 	//WARNING
-	int warning = MyPilot->getWarning();
-	if (warning!=NO_WARNING) message = warning + WARNING_SLOT;
+	//int warning = MyPilot->getWarning();
+	//if (warning!=NO_WARNING) message = warning + WARNING_SLOT;
 
 	//ERROR
-	int error = MyPilot->getError();
-	if (error!=NO_ERROR) message = error + ERROR_SLOT;
+	//int error = MyPilot->getError();
+	//if (error!=NO_ERROR) message = error + ERROR_SLOT;
 
-
-	//Only one message displayed, highest priority
-	_V[AI_USER_MESSAGE] = message;
 
 	// REGULATOR
 	if (_V[AI_DELTA_TARGET]!=0) {

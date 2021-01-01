@@ -256,7 +256,7 @@ void Autopilot::computeLongLoop() {
 		if (isCalMode()) return; //TODO entonces sólo pasa por aqui 1 vez en cal_imu_complete mode (ya que no pasa por longloopreset)
 
 		if (updateHeading()) {
-			if (getWarning()==IMU_LOW) setWarning(NO_WARNING);
+			//if (getWarning()==IMU_LOW) setWarning(NO_WARNING);
 		} else {
 			low_quality_data++;
 

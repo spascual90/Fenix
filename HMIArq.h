@@ -56,6 +56,7 @@ protected:
 	void Set_NextCourse(float nextCourse);
 
 	void Set_NextCourse_delta(int delta);
+	void Set_Tacking(int delta);
 
 	void Accept_Next(void);
 	void Set_NewDeltaCourse(float newDCourse);

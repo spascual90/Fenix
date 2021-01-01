@@ -9,10 +9,9 @@
 #define AUTOPILOT_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.1.2.B1"
+#define ARDUINO_VERSION "v.2.0.B1"
 
 //DEBUG
-//#define VIRTUAL_ACTUATOR // When actuator is not installed, input from feedback is random. VIRTUAL_ACTUATOR set value to minimum.
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
 #define TXNMEA //Comment this line to stop periodic NMEA Transmission
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
@@ -39,13 +38,13 @@ enum e_working_status {RUNNING_OK, RUNNING_ERROR, RUN_OUT_OF_TIME};
 enum e_APmode {STAND_BY, CAL_IMU_MINIMUM, CAL_IMU_COMPLETE, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE};
 
 
-// Error codes *20
+// Error codes
 enum e_error {
 	NO_ERROR,
 	IMU_NOTFOUND
 };
 
-// Warning codes *10
+// Warning codes
 enum e_warning {
 	NO_WARNING,
 	FBK_ERROR_HIGH,

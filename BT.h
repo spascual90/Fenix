@@ -9,6 +9,8 @@
 #define WARNING_SLOT (10)
 #define ERROR_SLOT (20)
 
+#define FENIX_APP_COMPATIBILITY "v.2.x"
+
 // PUSH buttons BT_*
 // INDICATIVE SWITCH IS_*
 // Status LED LED_*
@@ -27,9 +29,9 @@ enum e_BT_push_button {
 		, BT_DEC_MIX_10=	6
 		, BT_NEXT_COURSE= 7
 		, BT_INC_TARGET_10=	8
-		, BT_INC_TARGET_100=	9
+		, BT_TACK_STARBOARD=	9
 		, BT_DEC_TARGET_10=	10
-		, BT_DEC_TARGET_100=	11
+		, BT_TACK_PORTBOARD=	11
 		, BT_RESET_PID= 	12
 		, BT_START_STOP_TARGET=	13
 		, BT_SET_HEADALIGN =14
@@ -37,12 +39,13 @@ enum e_BT_push_button {
 		, BT_START_STOP_FBK_CAL=16
 		, BT_SAVE_IMU_CAL=17
 		, BT_SAVE_FBK_CAL=18
-
-		, MAX_BT
+		, BT_FREE19 = 19
+		, BT_FREE20 = 20
+		, MAX_BT = BT_FREE20
 	};
 
-// Special DV PINS
-#define DV_LED_DBACTIVE			27
+// DV PINS not supported anymore
+//#define DV_LED_DBACTIVE			27
 
 //Analog Virtual PIN (Float values)
 // note, all values between START_AI and MAX_AI shall be defined!
@@ -70,8 +73,8 @@ enum e_BT_AI_PIN {
 , AI_IMU_Z = 19
 , AI_DELTA_TARGET = 20		// Special AI PINS
 , AI_USER_MESSAGE = 21		// Special AI PINS
-, FREE22 = 22
-, FREE23 = 23
+, AV_LED_DBACTIVE = 22		// Special AV PINS
+, AI_WARNING = 23			// Special AV PINS
 , FREE24 = 24
 , FREE25 = 25
 , AV_LED_STATUS = 26		// Special AV PINS
@@ -79,11 +82,14 @@ enum e_BT_AI_PIN {
 , AV_LED_IMU_CAL_ACEL = 28	// Special AV PINS
 , AV_LED_IMU_CAL_MAGN = 29	// Special AV PINS
 , AV_LED_IMU_CAL_SYS = 30	// Special AV PINS
+, FREE31 = 31
+, FREE32 = 32
+, MAX_AI = FREE32
 
 };
 
-const uint8_t c_max_V = 32;
-const uint8_t c_max_DV = 32;
+const uint8_t c_max_V = MAX_AI;
+const uint8_t c_max_DV = MAX_BT;
 
 class BT: public BTArq, public HMIArq {
 
