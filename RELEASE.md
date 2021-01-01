@@ -1,13 +1,13 @@
 # RELEASE
 ## Version: 0.2
-## System requirements
+## System requirements implemented
 | Req.ID# | Description | Criticity | Implemented |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----------- |
 | SR-1 | Minimize cost of adquisition. Based on COTS components and integrate Open-source projects as possible | High | Yes |
 | SR-2 | Ease integration with other systems or components by using industry standards. | High | Yes |
-| SR-3 | Ease system adoption from developers and users with appropriate documentation, minimizing requirements for technical knowledge on electronics, physics or SW. | High | No |
+| SR-3 | Ease system adoption from developers and users with appropriate documentation, minimizing requirements for technical knowledge on electronics, physics or SW. | High | Partial. User guide available, pending installation and commissioning chapters |
 | SR-4 | Modular approach priorizing escalability of components to implement requirements in later stages. Use of object oriented code. | High | Yes |
-| SR-5 | Provide test means in order to ease testing and recording of results | High | Partial |
+| SR-5 | Provide test means in order to ease testing and recording of results | High | Yes: Ship and linear actuator simulators available at compile time |
 
 ## Autopilot requirements implemented
 | Req.ID# | Status | Description | Priority |
@@ -37,10 +37,10 @@
  
 
 ## Requirements partially implemented
-| Req.ID# | Status | Description | Priority |
-| ------- | ------ | ----------------------------------------------------------------------------------------- | -------- |
-| AP-8  | Closed | Procedure to define installation parameters supported by Autopilot without additional SW. | High |
-
+| Req.ID# | Status | Description | Priority |Limitations |
+| ------- | ------ | ----------------------------------------------------------------------------------------- | -------- |------ |
+| AP-8  | Closed | Procedure to define installation parameters supported by Autopilot without additional SW. | High |IMU and linear actuator calibration functionalities from Android App. Predefined values for other parameters are workable|
+| AP-11   | Closed | Predefined pilot gain configurations for different speeds and boats. | High  | One predefined set of PID gains is available at first installation. |
  
 # Autopilot requirements not implemented
 
@@ -49,8 +49,6 @@
 | AP-2    | Closed | Protection by design of mechanical and electronic parts from blockage, intense use, short-cirtuit and humidity. Parts exposed to weather conditions shall have IPX4 equivalent protection.                  | High         |
 | AP-5    | Closed | Capability to use as alternative an external compass  | Nice to have |  
 | AP-9    | Closed | Mounting at starboard or portboard | High           |
-| AP-10   | Open   | Autotrim of tiller to keep current heading when lateral forces (wind, tide, non-centered engine) require permanent correction of tiller to follow the current way-route. Maximum 1 minute for autotrimming. | To be cheked |     |     |     |     |
-| AP-11   | Closed | Predefined pilot gain configurations for different speeds and boats. | High  |
 | AP-12   | Closed | Autogain for different SOW (speed over water).  | Low            |
 | AP-13   | Closed | If SOW is not available, user configurable speed shall be used. | AP.-14  | Closed | User configurable gain for testing purposes.    | High           |
 | AP-15   | Closed | Capability to record required parameters to analyze AP performance for different external conditions for testing purposes.     | High           |
@@ -60,7 +58,11 @@ AP-23 | Closed | Reception of SOW information from nautical slide. In Km or naut
   | AP-29 | Closed | Wing mode. AP will maintain current Apparent Wind Angle. | Medium |
   | AP-30 | Closed | Wind mode is only possible when wind information is available from an external source. | Medium |
   | AP-32 | Closed | Nav mode. If not available from external source, the required course will be BTW. | Nice to have |
-  | AP-33 | Open | Central position of tiller is by default considered the position where Autopilot is set to Compass mode. | Low |
   AP-37 | Closed | Tack in Wind mode. AP will turn to head the same Real Wind Angle but on the oposite band. Turn direction will be selected by AP as the shortest path to reach the target heading. | High |
-  | AP-42 | Open | Maximum thrust torque (at the end of the tiller): 250N. Minimum angular speed (tiller): 0 Kg: TBD º/sec 35 mm/seg 20 Kg: TBD º/sec 30 mm/seg 40 Kg: TBD º/sec 20 mm/seg | High |
 
+# Autopilot requirements to be defined
+| Req.ID# | Status | Description                                                                                                                                                                                                 | Priority       |
+| ------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| AP-10   | Open   | Autotrim of tiller to keep current heading when lateral forces (wind, tide, non-centered engine) require permanent correction of tiller to follow the current way-route. Maximum 1 minute for autotrimming. | To be cheked |     |     |     |     |
+  | AP-33 | Open | Central position of tiller is by default considered the position where Autopilot is set to Compass mode. | Low |
+  | AP-42 | Open | Maximum thrust torque (at the end of the tiller): 250N. Minimum angular speed (tiller): 0 Kg: TBD º/sec 35 mm/seg 20 Kg: TBD º/sec 30 mm/seg 40 Kg: TBD º/sec 20 mm/seg | High |
