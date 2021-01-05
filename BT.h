@@ -5,11 +5,17 @@
 #include "BTArq.h"
 #include "HMIArq.h"
 
-#define INFORMATION_SLOT (0)
-#define WARNING_SLOT (10)
-#define ERROR_SLOT (20)
-
 #define FENIX_APP_COMPATIBILITY "v.2.x"
+
+
+// Emulator arduino board reserved PINS
+//V0	Selected panel index
+//V2 	Number of failed connections
+//V3 	Enable/ disable BT server
+//V4	360-CTS
+//V12 Enable / disable App Demo mode
+//DV0
+
 
 // PUSH buttons BT_*
 // INDICATIVE SWITCH IS_*
@@ -44,16 +50,14 @@ enum e_BT_push_button {
 		, MAX_BT = BT_FREE20
 	};
 
-// DV PINS not supported anymore
-//#define DV_LED_DBACTIVE			27
 
 //Analog Virtual PIN (Float values)
 // note, all values between START_AI and MAX_AI shall be defined!
 enum e_BT_AI_PIN {
   START_AI = 	-1
-, AI_NEXTCTS= 	0
+, AI_NEXT_CTS= 	0
 , AI_HEADING= 	1
-, AI_TARGET= 	2
+, AI_CTS= 	2
 , AI_DELTA=		3
 , AI_RUDDER=	4
 , AI_KPCONTRIB= 5
@@ -75,14 +79,14 @@ enum e_BT_AI_PIN {
 , AI_USER_MESSAGE = 21		// Special AI PINS
 , AV_LED_DBACTIVE = 22		// Special AV PINS
 , AI_WARNING = 23			// Special AV PINS
-, FREE24 = 24
-, FREE25 = 25
+, AI_DELTA_CTS = 24			// Special AV PINS
+, AI_DELTA_NEXT_CTS = 25		// Special AV PINS
 , AV_LED_STATUS = 26		// Special AV PINS
 , AV_LED_IMU_CAL_GYRO = 27	// Special AV PINS
 , AV_LED_IMU_CAL_ACEL = 28	// Special AV PINS
 , AV_LED_IMU_CAL_MAGN = 29	// Special AV PINS
 , AV_LED_IMU_CAL_SYS = 30	// Special AV PINS
-, FREE31 = 31
+, AI_INV_HDG = 31
 , FREE32 = 32
 , MAX_AI = FREE32
 

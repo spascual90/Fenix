@@ -8,7 +8,7 @@
 #ifndef BEARINGMONITOR_H_
 #define BEARINGMONITOR_H_
 
-//#define SHIP_SIM // Simulates boat to tune PID
+#define SHIP_SIM // Simulates boat to tune PID
 
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>

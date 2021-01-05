@@ -437,7 +437,6 @@ bool Autopilot::activateWPnext(void) {
 		setWPactive(_WPnext.APB);
 		_WPnext.APB.isValid = false;
 		setNextCourse(_WPnext.APB.CTS.float_00());
-		//DEBUG_print ("!WPnext activated\n");
 
 		return true;
 	}
@@ -446,24 +445,17 @@ bool Autopilot::activateWPnext(void) {
 
 void Autopilot::APBreceived(s_APB APB) {
 
-	//DEBUG_print( "!APB Received..." );
 	if (_WPactive.APB.isValid) {
 		if (strcmp(_WPactive.APB.destID, APB.destID)==0) {
 			setWPactive(APB);
 			setInformation (TRACKING);
-			//DEBUG_print( "!update Active WP info\n" );
 		} else {
 			setWPnext(APB);
-			//DEBUG_print( "!update Next WP: Confirm turn\n" );
 			setInformation (CONFIRM_NEW_WP);
 		}
 	} else {
 		setWPnext(APB);
-		//DEBUG_print( "!update Next WP info\n" );
 		setInformation (TRACKMODE_AVAILABLE);
-		//sprintf(DEBUG_buffer,"WP:%s new WP:%s User?\n",_WPactive.APB.destID, APB.destID);
-		//DEBUG_print();
-
 	}
 }
 //$ECAPB,A,A,0.00,L,N,V,V,312.23,M,001,312.34,M,312.34,M*2A
@@ -478,8 +470,6 @@ void Autopilot::computeLongLoop_WP(void) {
 			_WPactive.APB.destID[4]= '-';
 			_WPactive.APB.destID[5]= '\n';
 
-
-			//DEBUG_print("!WPactive invalidated\n");
 	}
 
 	if ((_WPnext.APB.isValid) && ((millis()-_WPnext.t0)>MAX_APB_TIME)) {
@@ -491,7 +481,6 @@ void Autopilot::computeLongLoop_WP(void) {
 			_WPnext.APB.destID[4]= '-';
 			_WPnext.APB.destID[5]= '\n';
 			if (getInformation()==TRACKMODE_AVAILABLE) setInformation(NO_MESSAGE);
-			//DEBUG_print("!WPnext invalidated\n");
 	}
 
 }

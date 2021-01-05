@@ -135,10 +135,10 @@ void BT::triggerAction () {
    		Start_Stop(CURRENT_TARGET);
     	break;
     case BT_TACK_STARBOARD:
-    	Set_Tacking(105);
+    	Set_Tacking(100);
     	break;
      case BT_TACK_PORTBOARD:
-    	 Set_Tacking(-105);
+    	 Set_Tacking(-100);
     	break;
      case BT_INC_TARGET_10:
     	 Set_NextCourse_delta(10);
@@ -205,15 +205,16 @@ void BT::triggerAction () {
 void BT::updateBT(){
 
 	//VIRTUAL PIN IN APP (FLOAT)
-	_V[AI_NEXTCTS] = float(MyPilot->getNextCourse());
+	_V[AI_NEXT_CTS] = float(MyPilot->getNextCourse());
 	_V[AI_HEADING] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeading():888);
-	_V[AI_TARGET] = MyPilot->getTargetBearing();
+	_V[AI_CTS] = MyPilot->getTargetBearing();
 	_V[AI_DELTA] = MyPilot->getInput();
 	_V[AI_RUDDER] = MyPilot->getCurrentRudder();
 	_V[AI_KPCONTRIB] = float (MyPilot->getKpContrib());
 	_V[AI_ITERM] = float (MyPilot->getITerm());
 	_V[AI_KDCONTRIB] = float(MyPilot->getKdContrib());
 	_V[AI_PIDOUT] = float(MyPilot->getOutput());
+
 	_V[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
 	_V[AI_DEADBAND_VALUE] = MyPilot->dbt.getDeadband();
 	_V[AI_TRIM_VALUE] = MyPilot->dbt.getTrim();
@@ -276,29 +277,27 @@ void BT::updateBT(){
 
 // SPECIAL OBJECTS IN APP
 void BT::updateSpecialBT() {
+	// WIND ROSE
+	_V[AI_INV_HDG] = 360 - _V[AI_HEADING];
 
-	// USER MESSAGES AND WARNINGS/ ERRORS BY PRIORITY
-	// int message = 0;
+	_V[AI_DELTA_CTS] = _V[AI_CTS] - _V[AI_HEADING];
+	if (_V[AI_DELTA_CTS]<0) {_V[AI_DELTA_CTS]+= 360;}
+	_V[AI_DELTA_CTS] = fmod (_V[AI_DELTA_CTS], double(360));
 
-	//INFO
-	//int information = MyPilot->getInformation();
-	//if (information!=NO_MESSAGE) message = information + INFORMATION_SLOT;
-
-	//WARNING
-	//int warning = MyPilot->getWarning();
-	//if (warning!=NO_WARNING) message = warning + WARNING_SLOT;
-
-	//ERROR
-	//int error = MyPilot->getError();
-	//if (error!=NO_ERROR) message = error + ERROR_SLOT;
-
+	_V[AI_DELTA_NEXT_CTS] = _V[AI_NEXT_CTS] - _V[AI_HEADING];
+	if (_V[AI_DELTA_NEXT_CTS]<0) {_V[AI_DELTA_NEXT_CTS]+= 360;}
+	_V[AI_DELTA_NEXT_CTS] = fmod (_V[AI_DELTA_NEXT_CTS], double(360));
 
 	// REGULATOR
 	if (_V[AI_DELTA_TARGET]!=0) {
+		_V[AI_DELTA_TARGET]+=_V[AI_HEADING];
 		if (_V[AI_DELTA_TARGET]<0) _V[AI_DELTA_TARGET]+=360; // transform (-180,180) to (0, 360);
+		_V[AI_DELTA_TARGET] = fmod (_V[AI_DELTA_TARGET], double(360));
+
 		Set_NextCourse(_V[AI_DELTA_TARGET]);
 		_V[AI_DELTA_TARGET] = 0;
 	}
+
 
 }
 
