@@ -8,7 +8,8 @@ Fenix Autopilot is an open-source DIY tiller pilot for small boats based on Ardu
 ## Released versions
 - V0.1 beta1 Initial version
 - V0.1 beta2: Improves calibration information through App and NMEA I/F
-- V2.0 beta1: Improves performance of Android App
+- V2.0 beta1: Improves performance of Android App.  Compatible with Virtuino for Fenix V2.0
+- V2.1 beta1: Provides additional information to CTS panel in Android App V2.1. Compatible with Virtuino for Fenix V2.0 and V2.1
 
 Release documentation:
 https://github.com/spascual90/Fenix/blob/master/RELEASE.md
