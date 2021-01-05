@@ -9,7 +9,7 @@
 #define AUTOPILOT_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.2.0.B1"
+#define ARDUINO_VERSION "v.2.1.B1"
 
 //DEBUG
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!

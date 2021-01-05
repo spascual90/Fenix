@@ -5,7 +5,7 @@
 #include "BTArq.h"
 #include "HMIArq.h"
 
-#define FENIX_APP_COMPATIBILITY "v.2.x"
+#define FENIX_APP_COMPATIBILITY "v.2.0 and V.2.1"
 
 
 // Emulator arduino board reserved PINS
