@@ -3,7 +3,7 @@
 1 x Arduino Mega R3
 https://www.robotshop.com/en/arduino-mega-2560-microcontroller-rev3.html
 
-1 x DC Motor driver
+1 x DC Motor driver. This shield requires to set the jumpers to the right PINS (D6 and D7)
 https://www.robotshop.com/en/cytron-10a-dc-motor-driver-arduino-shield.html
 
 1 x Linear actuator 12v 300mm with potenciometer 300N 27mm/s
@@ -24,10 +24,10 @@ Fenix shield or Arduino megashield including,
 - 1 x Fenix autopilot PCB
 https://github.com/spascual90/PCB-for-Fenix
 
-- 8 x Arduino stacking headers - 8 pins extra large
+- 8 x Arduino stacking headers - 8 pins extra large (shorter pins might cause Fenix shield and Arduino PCB components touching each other and causing shortcuts)
 https://www.sparkfun.com/products/9279
 
-- 2 x Screw terminals 5.08mm pitch: 2-pin and 3-pin
+- 2 x Screw terminals 5.08mm pitch (distance between terminals), 0.8mm width of terminals: 2-pin and 3-pin
 https://www.electronicaembajadores.com/en/Productos/Detalle/CTNA5102/connectors/pluggable-pcb-terminal-blocks/14-mm-pcb-terminal-block-5-08-mm-pitch-2-contacts-dg500-5-08-02p-14
 https://www.electronicaembajadores.com/en/Productos/Detalle/CTNA5103/connectors/pluggable-pcb-terminal-blocks/14-mm-pcb-terminal-block-5-08-mm-pitch-3-contacts-dg500-5-08-03p-14
 - 1 x Buzzer
