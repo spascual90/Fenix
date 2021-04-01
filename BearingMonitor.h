@@ -137,6 +137,10 @@ public:
 protected:
     e_IMU_status setup(void);
     bool updateHeading();
+
+    // EXTERNAL COMPASS
+    bool updateHeading(bool valid, float HDM);
+
     void reset_calibration (void);
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
 	void SIM_updateShip(int tillerAngle);

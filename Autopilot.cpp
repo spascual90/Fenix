@@ -243,7 +243,6 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 	return true;
 }
 
-
 void Autopilot::computeLongLoop() {
 	static int low_quality_data=0;
 
@@ -255,9 +254,10 @@ void Autopilot::computeLongLoop() {
 		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU(true);
 		if (isCalMode()) return; //TODO entonces sólo pasa por aqui 1 vez en cal_imu_complete mode (ya que no pasa por longloopreset)
 
-		if (updateHeading()) {
-			//if (getWarning()==IMU_LOW) setWarning(NO_WARNING);
-		} else {
+		//If HDM messages are received within MAX_HDM_TIME seconds, external compass is used.
+		if (isValid_HDM()) {
+			updateHeading(_extHeading.HDM.flag.HDM,_extHeading.HDM.HDM.float_00());
+		} else if (!updateHeading()) {
 			low_quality_data++;
 
 			if (low_quality_data>MAX_LOW_QDATA) {
@@ -265,6 +265,7 @@ void Autopilot::computeLongLoop() {
 				low_quality_data=0;
 			}
 		}
+
 		computeLongLoop_WP();
 		computeLongLoop_TrackMode();
 		LongLoopReset();
@@ -417,6 +418,20 @@ void Autopilot::Enter_Exit_FBK_Calib(void) {
 	}
 }
 
+// EXTERNAL COMPASS MODE
+void Autopilot::set_extHeading(s_HDM HDM) {
+	_extHeading.HDM = HDM;
+	_extHeading.t0 = millis();
+	//DEBUG_print ("!ext Heading received\n");
+}
+
+//evaluate validity extHeading
+bool Autopilot::isValid_HDM (void) {
+	//if ((_extHeading.HDM.isValid) &&
+	_extHeading.HDM.isValid = (millis()-_extHeading.t0)<=MAX_HDM_TIME;
+	return _extHeading.HDM.isValid;
+}
+
 // TRACK MODE
 void Autopilot::setWPactive(s_APB APB) {
 	_WPactive.APB = APB;
@@ -459,6 +474,12 @@ void Autopilot::APBreceived(s_APB APB) {
 	}
 }
 //$ECAPB,A,A,0.00,L,N,V,V,312.23,M,001,312.34,M,312.34,M*2A
+
+void Autopilot::HDMreceived(s_HDM HDM) {
+	set_extHeading(HDM);
+}
+
+
 void Autopilot::computeLongLoop_WP(void) {
 	//evaluate validity WPactive
 	if ((_WPactive.APB.isValid) && ((millis()-_WPactive.t0)>MAX_APB_TIME)) {
@@ -482,6 +503,7 @@ void Autopilot::computeLongLoop_WP(void) {
 			_WPnext.APB.destID[5]= '\n';
 			if (getInformation()==TRACKMODE_AVAILABLE) setInformation(NO_MESSAGE);
 	}
+
 
 }
 

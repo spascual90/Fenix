@@ -9,7 +9,7 @@
 #define AUTOPILOT_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.2.1.B1"
+#define ARDUINO_VERSION "v.2.2.B1"
 
 //DEBUG
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
@@ -21,6 +21,7 @@
 
 #define DELAY_BUZZBEAT_TIME 50 // Buzzer beat time in msec.
 #define MAX_APB_TIME 10000 // Maximum time of APB data validity
+#define MAX_HDM_TIME 5000 // Maximum time of HDM data validity
 #define LONG_LOOP_TIME 100 // Loops to update current course and target bearing
 #define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
 
@@ -235,6 +236,21 @@ enum e_info {
 		long t0;
 	} ;
 
+
+	struct s_HDM {
+			// Is Valid indicates if data is valid or not
+			bool isValid=false;
+			struct {bool HDM;} flag;
+
+			whole_frac HDM;
+	} ;
+
+	struct s_extHeading {
+		s_HDM HDM;
+		long t0;
+	} ;
+
+
 	enum e_actions {
 		NO_INSTRUCTION
 		, START_STOP
@@ -268,6 +284,8 @@ enum e_info {
 		, REQ_INFO
 		//Track mode request
 		, REQ_TRACK
+		//External compass mode
+		, EXT_HEADING
 		//Save to EEPROM
 		, SAVE_CAL		// Save current calibration offsets to EEPROM
 		, SAVE_INST		// Save current instParam to EEPROM
@@ -338,6 +356,10 @@ public:
 		_targetBearing = fmod (targetBearing, double(360));
 	}
 
+	bool isExtHeading() const {
+		return _extHeading.HDM.isValid;
+	}
+
 	float getNextCourse(void);
 	void setNextCourse(float nextCourse);
 
@@ -350,7 +372,9 @@ public:
 	//TRACK MODE
 	bool activateWPnext(void); // User push Next button
 	void APBreceived(s_APB APB);
-	bool checkNextAPB_Timeout();
+
+	//EXTERNAL COMPASS MODE
+	void HDMreceived(s_HDM HDM);
 
 	//OVERLOADED FUNCTIONS
 	int changeRudder(int delta_rudder);
@@ -481,6 +505,11 @@ private:
 	void setWPnext(s_APB APB);
 	void computeLongLoop_WP(void);
 	void computeLongLoop_TrackMode(void);
+
+	//External compass mode
+	s_extHeading _extHeading;
+	void set_extHeading(s_HDM HDM);
+	bool isValid_HDM (void);
 
 	void reset(){
 		resetFunc();  //call reset

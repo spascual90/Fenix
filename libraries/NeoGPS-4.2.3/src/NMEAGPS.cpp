@@ -407,6 +407,11 @@ void NMEAGPS::storeFix()
 #if defined(NMEAGPS_PARSE_GSV) | defined(NMEAGPS_RECOGNIZE_ALL)
   static const char gsv[] __PROGMEM =  "GSV";
 #endif
+  // INI SPM
+  #if defined(NMEA_PARSE_HDM) | defined(NMEAGPS_RECOGNIZE_ALL)
+    static const char hdm[] __PROGMEM =  "HDM";
+  #endif
+  // FIN SPM
 #if defined(NMEAGPS_PARSE_RMC) | defined(NMEAGPS_RECOGNIZE_ALL)
   static const char rmc[] __PROGMEM =  "RMC";
 #endif
@@ -439,6 +444,12 @@ static const char * const std_nmea[] __PROGMEM =
     #if defined(NMEAGPS_PARSE_GSV) | defined(NMEAGPS_RECOGNIZE_ALL)
       gsv,
     #endif
+	// INI SPM
+	#if defined(NMEA_PARSE_HDM) | defined(NMEAGPS_RECOGNIZE_ALL)
+	  hdm,
+	#endif
+	// FIN SPM
+
     #if defined(NMEAGPS_PARSE_RMC) | defined(NMEAGPS_RECOGNIZE_ALL)
       rmc,
     #endif
@@ -702,6 +713,12 @@ bool NMEAGPS::parseField(char chr)
       #if defined(NMEAGPS_PARSE_GSV)
         case NMEA_GSV: return parseGSV( chr );
       #endif
+
+	// INI SPM
+	  #if defined(NMEA_PARSE_HDM)
+		case NMEA_HDM: return parseHDM( chr );
+	  #endif
+	// FIN SPM
 
       #if defined(NMEAGPS_PARSE_RMC)
         case NMEA_RMC: return parseRMC( chr );

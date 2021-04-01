@@ -66,7 +66,8 @@ void IF_NMEA::refresh(){
 			printPEMC_13(& gpsPort);
 			break;
 		default:
-			if (MyPilot->isHeadingValid()) {
+			// Only transmits HDM/HDG when no valid HDM message has been received.
+			if (MyPilot->isHeadingValid() and !MyPilot->isExtHeading()) {
 				printHDG(& gpsPort);
 				printHDM(& gpsPort);
 			}
@@ -164,9 +165,16 @@ void IF_NMEA::refresh_INorder() {
 		case REQ_TRACK: //APB received
 			if (!MyPilot->isCalMode()) {
 				received_APB(INorder.APB);
-				printAPB(& DEBUG_PORT, INorder.APB);
+				//printAPB(& DEBUG_PORT, INorder.APB); TODO: Deleted. I think it is for debugging only
 			}
 			break;
+
+		case EXT_HEADING: //HDM received
+			if (!MyPilot->isCalMode()) {
+				received_HDM(INorder.HDM);
+			}
+			break;
+
 
 		case START_CAL:
 			switch (currentMode) {

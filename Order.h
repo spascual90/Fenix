@@ -76,6 +76,7 @@ public:
 	s_PIDgain PIDgain;
 	s_instParam instParam;
 	s_APB APB;
+	s_HDM HDM;
 	s_IMUcal IMUcal;
 	s_FBKcal FBKcal;
 

@@ -271,6 +271,12 @@ bool Bearing_Monitor::updateHeading(){
 	return calStatus;
 }
 
+bool Bearing_Monitor::updateHeading(bool valid, float HDM){
+	if (valid) _heading = HDM;
+	_heading_isValid = valid;
+	return valid;
+}
+
 // fn available if system status value is not required
 bool Bearing_Monitor::getCalibrationStatus(void) {
 	uint8_t system;

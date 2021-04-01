@@ -33,7 +33,7 @@ void SERIALorder::reset () {
 	PIDgain.isValid=NO;
 	PIDgain.flag = {{false,false,false}, false, false};
 	instParam.isValid=NO;
-	instParam.flag = {false, false, false, false, false, false};
+	instParam.flag = {false, false, false, false, false, false}; //TODO: Check this warning
 	APB.isValid=NO;
 	APB.flag = {false,false,false,false,false,false,false};
 	isValid=NO;

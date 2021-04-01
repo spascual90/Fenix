@@ -75,6 +75,7 @@ protected:
 	bool Change_instParam (s_instParam instParam);
 	void setDBConf (type_DBConfig status);
 	void received_APB( s_APB APB);
+	void received_HDM( s_HDM HDM);
 
 	void Start_Cal();
 	void Cancel_Cal();

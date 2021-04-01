@@ -76,7 +76,7 @@ protected:
     void sentenceUnrecognized() ;
     NMEAGPS_VIRTUAL decode_t decode( char c ) override;
     NMEAGPS_VIRTUAL bool parseAPB( char chr );
-
+    NMEAGPS_VIRTUAL bool parseHDM( char chr );
     bool parse360(whole_frac & angle, char chr );
     bool parse180(whole_frac & angle, char chr );
     bool parse180( whole_frac & angle, char chr, bool & field_informed);

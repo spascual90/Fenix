@@ -83,6 +83,12 @@ public:
           NMEA_GSV,
         #endif
 
+		// INI SPM
+		#if defined(NMEA_PARSE_HDM) | defined(NMEAGPS_RECOGNIZE_ALL)
+		  NMEA_HDM,
+		#endif
+		// FIN SPM
+
         #if defined(NMEAGPS_PARSE_RMC) | defined(NMEAGPS_RECOGNIZE_ALL)
           NMEA_RMC,
         #endif

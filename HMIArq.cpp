@@ -202,6 +202,11 @@ void HMIArq::Set_Headalign(){
 	MyPilot->buzzer_Beep();
 }
 
+// External Compass mode functions
+void HMIArq::received_HDM( s_HDM HDM) {
+	MyPilot->HDMreceived(HDM);
+}
+
 // Track mode functions
 void HMIArq::received_APB( s_APB APB) {
 	MyPilot->APBreceived(APB);

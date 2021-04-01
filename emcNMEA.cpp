@@ -122,7 +122,7 @@ bool emcNMEA::parseField(char chr)
 
 } // parseField
 
-
+// $--APB,A,A,x.x,a,N,A,A,x.x,a,c--c,x.x,a,x.x,a*hh<CR><LF>
 bool emcNMEA::parseAPB( char chr )
 {
 	bool ok = true;
@@ -148,6 +148,21 @@ bool emcNMEA::parseAPB( char chr )
 	          }
 	return ok;
 }
+
+// $--HDM,x.x,M*hh<CR><LF>
+bool emcNMEA::parseHDM( char chr )
+{
+	bool ok = true;
+	switch (fieldIndex) {
+	  case 1: parseFloat( INorder.HDM.HDM, chr, 2, INorder.HDM.flag.HDM); break; //Heading magnetic value
+	  case 2:
+		  INorder.HDM.isValid=YES;
+	  	  INorder.set_order(EXT_HEADING);
+		  break;
+	          }
+	return ok;
+}
+
 
 bool emcNMEA::classifyPEMC( char chr )
 {
