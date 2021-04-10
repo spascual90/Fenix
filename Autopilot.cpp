@@ -244,8 +244,6 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 }
 
 void Autopilot::computeLongLoop() {
-	static int low_quality_data=0;
-
 	// Once each XX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	if (IsLongLooptime ()) {
 
@@ -254,18 +252,7 @@ void Autopilot::computeLongLoop() {
 		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU(true);
 		if (isCalMode()) return; //TODO entonces sólo pasa por aqui 1 vez en cal_imu_complete mode (ya que no pasa por longloopreset)
 
-		//If HDM messages are received within MAX_HDM_TIME seconds, external compass is used.
-		if (isValid_HDM()) {
-			updateHeading(_extHeading.HDM.flag.HDM,_extHeading.HDM.HDM.float_00());
-		} else if (!updateHeading()) {
-			low_quality_data++;
-
-			if (low_quality_data>MAX_LOW_QDATA) {
-				if (_currentMode == STAND_BY) reset_calibration(); // Only reset in STAND BY
-				low_quality_data=0;
-			}
-		}
-
+		computeLongLoop_heading();
 		computeLongLoop_WP();
 		computeLongLoop_TrackMode();
 		LongLoopReset();
@@ -428,7 +415,16 @@ void Autopilot::set_extHeading(s_HDM HDM) {
 //evaluate validity extHeading
 bool Autopilot::isValid_HDM (void) {
 	//if ((_extHeading.HDM.isValid) &&
+	bool prev_isValid = _extHeading.HDM.isValid;
 	_extHeading.HDM.isValid = (millis()-_extHeading.t0)<=MAX_HDM_TIME;
+//	if (prev_isValid!=_extHeading.HDM.isValid){
+//		if (prev_isValid == false) {
+//			DEBUG_print ("!EXT Heading\n");
+//			} else {
+//			DEBUG_print ("!INT Heading\n");
+//		}
+//	}
+
 	return _extHeading.HDM.isValid;
 }
 
@@ -479,6 +475,33 @@ void Autopilot::HDMreceived(s_HDM HDM) {
 	set_extHeading(HDM);
 }
 
+void Autopilot::computeLongLoop_heading(void) {
+	static bool extHeading = false; // false = internal IMU true = external IMU
+	static int low_quality_data=0;
+	bool isValidHeading;
+
+	//if HDM messages are received within MAX_HDM_TIME seconds, external compass is valid.
+	bool isValidHDM_return = isValid_HDM();
+
+	//only changes compass source (internal/ external) in STAND_BY
+	if (_currentMode == STAND_BY) {
+		extHeading = isValidHDM_return;
+	}
+
+	if (extHeading) {
+		isValidHeading = updateHeading(_extHeading.HDM.flag.HDM,_extHeading.HDM.HDM.float_00());
+	} else{
+		isValidHeading = updateHeading();
+	}
+	if (!isValidHeading) {
+		low_quality_data++;
+
+		if (low_quality_data>MAX_LOW_QDATA) {
+			if (_currentMode == STAND_BY) reset_calibration(); // Only reset in STAND BY
+			low_quality_data=0;
+		}
+	}
+}
 
 void Autopilot::computeLongLoop_WP(void) {
 	//evaluate validity WPactive

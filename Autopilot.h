@@ -9,7 +9,9 @@
 #define AUTOPILOT_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.2.2.B1"
+#define ARDUINO_VERSION "v.2.3.B1"
+
+//v.2.3.B1 implementation of capability to receive bearing from external IMU through HDM messages reception
 
 //DEBUG
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
@@ -21,7 +23,7 @@
 
 #define DELAY_BUZZBEAT_TIME 50 // Buzzer beat time in msec.
 #define MAX_APB_TIME 10000 // Maximum time of APB data validity
-#define MAX_HDM_TIME 5000 // Maximum time of HDM data validity
+#define MAX_HDM_TIME 10000 // Maximum time of HDM data validity
 #define LONG_LOOP_TIME 100 // Loops to update current course and target bearing
 #define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
 
@@ -503,6 +505,7 @@ private:
 	s_WP _WPactive, _WPnext;
 	void setWPactive(s_APB APB);
 	void setWPnext(s_APB APB);
+	void computeLongLoop_heading(void);
 	void computeLongLoop_WP(void);
 	void computeLongLoop_TrackMode(void);
 
