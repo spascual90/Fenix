@@ -97,6 +97,12 @@ public:
           NMEA_VTG,
         #endif
 
+		// INI SPM
+		#if defined(NMEA_PARSE_VWR) | defined(NMEAGPS_RECOGNIZE_ALL)
+		  NMEA_VWR,
+		#endif
+		// FIN SPM
+
         #if defined(NMEAGPS_PARSE_ZDA) | defined(NMEAGPS_RECOGNIZE_ALL)
           NMEA_ZDA,
         #endif

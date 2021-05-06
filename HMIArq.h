@@ -37,6 +37,7 @@ public:
 protected:
 	Autopilot* MyPilot;
 	void Start_Stop(e_start_stop type=CURRENT_HEADING);
+	void Start_Stop_wind(void);
 	void Set_TrackMode(s_APB APB);
 	void Inc_Rudder_1();
 	void Inc_Rudder_10();
@@ -76,6 +77,7 @@ protected:
 	void setDBConf (type_DBConfig status);
 	void received_APB( s_APB APB);
 	void received_HDM( s_HDM HDM);
+	void received_VWR( s_VWR VWR);
 
 	void Start_Cal();
 	void Cancel_Cal();

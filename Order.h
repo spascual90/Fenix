@@ -77,6 +77,7 @@ public:
 	s_instParam instParam;
 	s_APB APB;
 	s_HDM HDM;
+	s_VWR VWR;
 	s_IMUcal IMUcal;
 	s_FBKcal FBKcal;
 

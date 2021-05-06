@@ -9,9 +9,10 @@
 #define AUTOPILOT_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.2.3.B1"
+#define ARDUINO_VERSION "v.2.4.B1"
 
 //v.2.3.B1 implementation of capability to receive bearing from external IMU through HDM messages reception
+//v.2.4.B1 implementation of capability to receive relative wind direction through VWR messages reception
 
 //DEBUG
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
@@ -24,6 +25,7 @@
 #define DELAY_BUZZBEAT_TIME 50 // Buzzer beat time in msec.
 #define MAX_APB_TIME 10000 // Maximum time of APB data validity
 #define MAX_HDM_TIME 10000 // Maximum time of HDM data validity
+#define MAX_VWR_TIME 10000 // Maximum time of VWR data validity
 #define LONG_LOOP_TIME 100 // Loops to update current course and target bearing
 #define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
 
@@ -38,7 +40,7 @@ enum e_setup_status {SETUP_OK, IMU_ERROR, FEEDBACK_ERROR};
 enum e_working_status {RUNNING_OK, RUNNING_ERROR, RUN_OUT_OF_TIME};
 
 // working modes
-enum e_APmode {STAND_BY, CAL_IMU_MINIMUM, CAL_IMU_COMPLETE, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE};
+enum e_APmode {STAND_BY, CAL_IMU_MINIMUM, CAL_IMU_COMPLETE, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE, WIND_MODE};
 
 
 // Error codes
@@ -55,7 +57,8 @@ enum e_warning {
 	EE_INSTPARAM_NOTFOUND,
 	EE_IMU_NOTFOUND,
 	IMU_LOW,
-	WP_INVALID
+	WP_INVALID,
+	NO_WIND_DATA
 };
 
 // Information codes
@@ -252,6 +255,23 @@ enum e_info {
 		long t0;
 	} ;
 
+	struct s_VWR {
+		// Is Valid indicates if data is valid or not
+		bool isValid=false;
+		struct {bool windDirDeg; bool windDirLR;} flag;
+
+		//	Wind direction magnitude in degrees
+		whole_frac windDirDeg;
+
+		//	Wind direction Left/Right of bow
+		char windDirLR;
+	} ;
+
+	struct s_windDir {
+		s_VWR VWR;
+		long t0;
+	} ;
+
 
 	enum e_actions {
 		NO_INSTRUCTION
@@ -288,6 +308,8 @@ enum e_info {
 		, REQ_TRACK
 		//External compass mode
 		, EXT_HEADING
+		//Wind received
+		, RELATIVE_WIND
 		//Save to EEPROM
 		, SAVE_CAL		// Save current calibration offsets to EEPROM
 		, SAVE_INST		// Save current instParam to EEPROM
@@ -369,6 +391,7 @@ public:
 	void Request_instParam(s_instParam & instParam);
 	bool Change_instParam (s_instParam instParam);
 	void Start_Stop(e_start_stop type);
+	void Start_Stop_wind(void);
 	void Enter_Exit_FBK_Calib(void);
 
 	//TRACK MODE
@@ -377,6 +400,10 @@ public:
 
 	//EXTERNAL COMPASS MODE
 	void HDMreceived(s_HDM HDM);
+
+	//WIND MODE
+	void VWRreceived(s_VWR VWR);
+	int getWindDir(void);
 
 	//OVERLOADED FUNCTIONS
 	int changeRudder(int delta_rudder);
@@ -508,11 +535,19 @@ private:
 	void computeLongLoop_heading(void);
 	void computeLongLoop_WP(void);
 	void computeLongLoop_TrackMode(void);
+	void computeLongLoop_WindDir(void);
 
 	//External compass mode
 	s_extHeading _extHeading;
 	void set_extHeading(s_HDM HDM);
 	bool isValid_HDM (void);
+
+	//Wind mode
+	s_windDir _windDir;
+	int _targetWindDir; // Target wind direction relative to heading
+	void set_windDir(s_VWR VWR);
+	bool isValid_VWR (void);
+
 
 	void reset(){
 		resetFunc();  //call reset

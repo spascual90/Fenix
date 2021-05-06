@@ -418,6 +418,12 @@ void NMEAGPS::storeFix()
 #if defined(NMEAGPS_PARSE_VTG) | defined(NMEAGPS_RECOGNIZE_ALL)
   static const char vtg[] __PROGMEM =  "VTG";
 #endif
+// INI SPM
+#if defined(NMEA_PARSE_VWR) | defined(NMEAGPS_RECOGNIZE_ALL)
+static const char vwr[] __PROGMEM =  "VWR";
+#endif
+// FIN SPM
+
 #if defined(NMEAGPS_PARSE_ZDA) | defined(NMEAGPS_RECOGNIZE_ALL)
   static const char zda[] __PROGMEM =  "ZDA";
 #endif
@@ -456,6 +462,11 @@ static const char * const std_nmea[] __PROGMEM =
     #if defined(NMEAGPS_PARSE_VTG) | defined(NMEAGPS_RECOGNIZE_ALL)
       vtg,
     #endif
+	// INI SPM
+	#if defined(NMEA_PARSE_VWR) | defined(NMEAGPS_RECOGNIZE_ALL)
+	  vwr,
+	#endif
+	// FIN SPM
     #if defined(NMEAGPS_PARSE_ZDA) | defined(NMEAGPS_RECOGNIZE_ALL)
       zda
     #endif
@@ -727,6 +738,13 @@ bool NMEAGPS::parseField(char chr)
       #if defined(NMEAGPS_PARSE_VTG)
         case NMEA_VTG: return parseVTG( chr );
       #endif
+
+        // INI SPM
+    	  #if defined(NMEA_PARSE_VWR)
+    		case NMEA_VWR: return parseVWR( chr );
+    	  #endif
+    	// FIN SPM
+
 
       #if defined(NMEAGPS_PARSE_ZDA)
         case NMEA_ZDA: return parseZDA( chr );

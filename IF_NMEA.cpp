@@ -165,7 +165,6 @@ void IF_NMEA::refresh_INorder() {
 		case REQ_TRACK: //APB received
 			if (!MyPilot->isCalMode()) {
 				received_APB(INorder.APB);
-				//printAPB(& DEBUG_PORT, INorder.APB); TODO: Deleted. I think it is for debugging only
 			}
 			break;
 
@@ -175,6 +174,13 @@ void IF_NMEA::refresh_INorder() {
 			}
 			break;
 
+		case RELATIVE_WIND: //VWR received
+			if (!MyPilot->isCalMode()) {
+				received_VWR(INorder.VWR);
+			}
+			//DEBUG_print("!VWR\n");
+
+			break;
 
 		case START_CAL:
 			switch (currentMode) {

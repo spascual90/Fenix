@@ -163,6 +163,28 @@ bool emcNMEA::parseHDM( char chr )
 	return ok;
 }
 
+// $--VWR,x.x,a,,,,,,*hh<CR><LF>
+//$IIVWR,045.0,L,12.6,N,6.5,M,23.3,K*52
+bool emcNMEA::parseVWR( char chr )
+{
+	bool ok = true;
+	switch (fieldIndex) {
+	  case 1: parseFloat( INorder.VWR.windDirDeg, chr, 2, INorder.VWR.flag.windDirDeg); break; //Wind direction magnitude in degrees
+	  case 2: parseWindDir(chr); break;  // Wind direction Left/Right of bow: R/L
+	  case 3: return ok; //Speed
+	  case 4: return ok; //N = Knots
+	  case 5: return ok; //Speed
+	  case 6: return ok; //M = Meters Per Second
+	  case 7: return ok; //Speed
+	  case 8: //K = Kilometers Per Hour
+		  // TODO: If last field is empty Message is not recognized
+		  INorder.VWR.isValid=YES;
+	  	  INorder.set_order(RELATIVE_WIND);
+		  break;
+	          }
+	return ok;
+}
+
 
 bool emcNMEA::classifyPEMC( char chr )
 {
@@ -529,6 +551,29 @@ bool emcNMEA::parseDirSteer( char chr )
 
   return true;
 } // parsedirSteer
+
+
+bool emcNMEA::parseWindDir( char chr )
+{
+
+    if (chrCount == 0) {
+
+        // First char can only be 'R' or 'L'
+        if (chr == 'R'||chr == 'L' ) {
+
+        	INorder.VWR.windDirLR = chr;
+
+        } else {
+          sentenceInvalid();
+        }
+
+        // Second char can only be ','
+      } else if ((chrCount > 1) || (chr != ',')) {
+        sentenceInvalid();
+    }
+
+  return true;
+} // parseWindDir
 
 bool emcNMEA::parseAngleRef( whole_frac & angle, char chr)
 {

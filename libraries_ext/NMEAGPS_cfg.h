@@ -23,6 +23,7 @@
 // INI SPM
 #define NMEA_PARSE_APB
 #define NMEA_PARSE_HDM
+#define NMEA_PARSE_VWR
 // FIN SPM
 
 //------------------------------------------------------

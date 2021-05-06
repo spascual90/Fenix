@@ -132,6 +132,11 @@ void HMIArq::Start_Stop(e_start_stop type){
 	MyPilot->buzzer_Beep();
 }
 
+void HMIArq::Start_Stop_wind(void){
+	MyPilot->Start_Stop_wind();
+	MyPilot->buzzer_Beep();
+}
+
 void HMIArq::Enter_Exit_FBK_Calib() {
 	MyPilot->Enter_Exit_FBK_Calib();
     MyPilot->buzzer_Beep();
@@ -205,6 +210,12 @@ void HMIArq::Set_Headalign(){
 // External Compass mode functions
 void HMIArq::received_HDM( s_HDM HDM) {
 	MyPilot->HDMreceived(HDM);
+}
+
+
+// Wing mode functions
+void HMIArq::received_VWR( s_VWR VWR) {
+	MyPilot->VWRreceived(VWR);
 }
 
 // Track mode functions

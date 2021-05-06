@@ -77,6 +77,7 @@ protected:
     NMEAGPS_VIRTUAL decode_t decode( char c ) override;
     NMEAGPS_VIRTUAL bool parseAPB( char chr );
     NMEAGPS_VIRTUAL bool parseHDM( char chr );
+    NMEAGPS_VIRTUAL bool parseVWR( char chr );
     bool parse360(whole_frac & angle, char chr );
     bool parse180(whole_frac & angle, char chr );
     bool parse180( whole_frac & angle, char chr, bool & field_informed);
@@ -85,6 +86,7 @@ protected:
     bool parseDeadbandType( char chr );
     bool parseAPmode( char chr );
     bool parseDirSteer( char chr );
+    bool parseWindDir( char chr );
     bool parseXTEUnits( char chr );
     bool parseAlarmCircle( char chr );// AlarmCircle: A - Activated, V - no alarm.
     bool parseAlarmPerp( char chr );// AlarmPerp: A - Activated, V - no alarm.
@@ -135,6 +137,7 @@ protected:
     void printHDM(Stream * outStream);
     void printHDT(Stream * outStream);
     void printRSA(Stream * outStream);
+
 	void printDm();
 
 

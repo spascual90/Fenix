@@ -5,7 +5,7 @@
 #include "BTArq.h"
 #include "HMIArq.h"
 
-#define FENIX_APP_COMPATIBILITY "v.2.0 and V.2.1"
+#define FENIX_APP_COMPATIBILITY "v.3.X"
 
 
 // Emulator arduino board reserved PINS
@@ -45,9 +45,9 @@ enum e_BT_push_button {
 		, BT_START_STOP_FBK_CAL=16
 		, BT_SAVE_IMU_CAL=17
 		, BT_SAVE_FBK_CAL=18
-		, BT_FREE19 = 19
+		, BT_SET_VWR = 19
 		, BT_FREE20 = 20
-		, MAX_BT = BT_FREE20
+		, MAX_BT = BT_FREE20 +1
 	};
 
 
@@ -87,8 +87,8 @@ enum e_BT_AI_PIN {
 , AV_LED_IMU_CAL_MAGN = 29	// Special AV PINS
 , AV_LED_IMU_CAL_SYS = 30	// Special AV PINS
 , AI_INV_HDG = 31
-, FREE32 = 32
-, MAX_AI = FREE32
+, AI_DELTA_VWR = 32
+, MAX_AI = AI_DELTA_VWR +1
 
 };
 

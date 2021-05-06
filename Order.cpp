@@ -33,9 +33,14 @@ void SERIALorder::reset () {
 	PIDgain.isValid=NO;
 	PIDgain.flag = {{false,false,false}, false, false};
 	instParam.isValid=NO;
-	instParam.flag = {false, false, false, false, false, false}; //TODO: Check this warning
+	instParam.flag = {false, false, false, false, false, false};
 	APB.isValid=NO;
 	APB.flag = {false,false,false,false,false,false,false};
+	HDM.isValid=NO;
+	HDM.flag = {false};
+	VWR.isValid=NO;
+	VWR.flag = {false,false};
+
 	isValid=NO;
 	isRequest= false;
 	set_order(NO_INSTRUCTION);

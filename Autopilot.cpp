@@ -192,6 +192,28 @@ void Autopilot::computeLongLoop_TrackMode(void) {
 	}
 }
 
+void Autopilot::computeLongLoop_WindDir(void) {
+
+	// Evaluate validity of Wind info
+	isValid_VWR ();
+
+	// Act in consequence
+	if (_currentMode == WIND_MODE) {
+		if (_windDir.VWR.isValid) {
+			// Update course to steer
+			// CTS = HDG + VWR
+
+			setTargetBearing(getCurrentHeading() + getWindDir() - _targetWindDir);
+		} else {
+			// Cancel Wind mode
+			setInformation (NO_MESSAGE);
+			setWarning (NO_WIND_DATA);
+			setCurrentMode(AUTO_MODE);
+		}
+	}
+}
+
+
 // RETURN true = Mode changed successfully
 // false = Change mode aborted
 bool Autopilot::setCurrentMode(e_APmode newMode) {
@@ -255,6 +277,7 @@ void Autopilot::computeLongLoop() {
 		computeLongLoop_heading();
 		computeLongLoop_WP();
 		computeLongLoop_TrackMode();
+		computeLongLoop_WindDir();
 		LongLoopReset();
 	}
 
@@ -390,6 +413,27 @@ void Autopilot::Start_Stop(e_start_stop type){
 	}
 }
 
+void Autopilot::Start_Stop_wind(void){
+	float target =-1;
+	e_APmode mode = getCurrentMode();
+	target = getCurrentHeading();
+	setNextCourse(target);
+	setTargetBearing(target);
+
+	switch (mode) {
+	// If in STAND_BY --> set AUTO MODE
+	case WIND_MODE:
+		setCurrentMode(AUTO_MODE);
+		break;
+	// If in AUTO MODE --> set WIND_MODE
+	case AUTO_MODE:
+		_targetWindDir= getWindDir();
+		if (_targetWindDir!=-1) setCurrentMode(WIND_MODE);
+		break;
+	}
+}
+
+
 void Autopilot::Enter_Exit_FBK_Calib(void) {
 	switch (getCurrentMode()) {
 	// If in STAND_BY --> set FBK_CALIB mode
@@ -415,7 +459,7 @@ void Autopilot::set_extHeading(s_HDM HDM) {
 //evaluate validity extHeading
 bool Autopilot::isValid_HDM (void) {
 	//if ((_extHeading.HDM.isValid) &&
-	bool prev_isValid = _extHeading.HDM.isValid;
+	//bool prev_isValid = _extHeading.HDM.isValid;
 	_extHeading.HDM.isValid = (millis()-_extHeading.t0)<=MAX_HDM_TIME;
 //	if (prev_isValid!=_extHeading.HDM.isValid){
 //		if (prev_isValid == false) {
@@ -426,6 +470,26 @@ bool Autopilot::isValid_HDM (void) {
 //	}
 
 	return _extHeading.HDM.isValid;
+}
+
+// WIND MODE
+void Autopilot::set_windDir(s_VWR VWR) {
+	_windDir.VWR = VWR;
+	_windDir.t0 = millis();
+	//DEBUG_print ("!wind received\n");
+}
+
+//evaluate validity windDir
+bool Autopilot::isValid_VWR (void) {
+	_windDir.VWR.isValid = (millis()-_windDir.t0)<=MAX_VWR_TIME;
+	return _windDir.VWR.isValid;
+}
+
+// Return relative wind direction as an int angle between 0 and 359
+//if not valid data available return -1
+int Autopilot::getWindDir(void) {
+	if (_windDir.VWR.isValid) return (_windDir.VWR.windDirLR=='L'?360-_windDir.VWR.windDirDeg.whole:_windDir.VWR.windDirDeg.whole);
+	return -1;
 }
 
 // TRACK MODE
@@ -473,6 +537,10 @@ void Autopilot::APBreceived(s_APB APB) {
 
 void Autopilot::HDMreceived(s_HDM HDM) {
 	set_extHeading(HDM);
+}
+
+void Autopilot::VWRreceived(s_VWR VWR) {
+	set_windDir(VWR);
 }
 
 void Autopilot::computeLongLoop_heading(void) {

@@ -155,6 +155,17 @@ void BT::triggerAction () {
      case BT_SET_HEADALIGN:
     	 Set_Headalign();
     	 break;
+     case BT_SET_VWR:
+     	switch (currentMode) {
+     	case AUTO_MODE:
+     	case WIND_MODE:
+ 			userRequestAnswer (false);
+ 			Start_Stop_wind ();
+ 			break;
+     	default:
+     		break;
+     	}
+     	break;
 
 // CONFIGURATION PANEL
 
@@ -261,7 +272,7 @@ void BT::updateBT(){
 
 	_V[AI_WARNING] = MyPilot->getWarning();
 
-// Warning codes (0 TO 6)
+// Warning codes (0 TO 7)
 //		NO_WARNING,
 //		FBK_ERROR_HIGH,
 //		OUT_OF_COURSE,
@@ -269,7 +280,7 @@ void BT::updateBT(){
 //		EE_IMU_NOTFOUND,
 //		IMU_LOW,
 //		WP_INVALID
-
+//		NO_WIND_DATA
 
 	updateSpecialBT();
 
@@ -287,6 +298,9 @@ void BT::updateSpecialBT() {
 	_V[AI_DELTA_NEXT_CTS] = _V[AI_NEXT_CTS] - _V[AI_HEADING];
 	if (_V[AI_DELTA_NEXT_CTS]<0) {_V[AI_DELTA_NEXT_CTS]+= 360;}
 	_V[AI_DELTA_NEXT_CTS] = fmod (_V[AI_DELTA_NEXT_CTS], double(360));
+
+	_V[AI_DELTA_VWR] = float(MyPilot->getWindDir());
+	if (_V[AI_DELTA_VWR]==-1) _V[AI_DELTA_VWR]=180; // Hides pointer in App
 
 	// REGULATOR
 	if (_V[AI_DELTA_TARGET]!=0) {
