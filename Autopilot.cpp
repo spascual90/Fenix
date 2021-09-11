@@ -272,7 +272,7 @@ void Autopilot::computeLongLoop() {
 		refreshCalStatus();
 
 		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU(true);
-		if (isCalMode()) return; //TODO entonces sólo pasa por aqui 1 vez en cal_imu_complete mode (ya que no pasa por longloopreset)
+		if (isCalMode()) return;
 
 		computeLongLoop_heading();
 		computeLongLoop_WP();
@@ -565,7 +565,9 @@ void Autopilot::computeLongLoop_heading(void) {
 		low_quality_data++;
 
 		if (low_quality_data>MAX_LOW_QDATA) {
-			if (_currentMode == STAND_BY) reset_calibration(); // Only reset in STAND BY
+			//v.2.5.B2 IMU Calibration blocked in operational modes: IMU recalibration in ALL operational modes (not only STAND_BY)
+			//if (_currentMode == STAND_BY) reset_calibration(); // Only reset in STAND BY
+			reset_calibration(); // Reset calibration in all operational modes
 			low_quality_data=0;
 		}
 	}

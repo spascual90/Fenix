@@ -262,10 +262,16 @@ bool Bearing_Monitor::updateHeading(){
 	calStatus = getCalibrationStatus();
 	// - VECTOR_EULER         - degrees
 	imu::Vector<3> euler = _bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-	_heading = euler.x();
+	float read_heading = euler.x();
 
+	//even when heading is not valid, sometimes values can be used
     if  (!_heading_isValid) {
-    	if (int(_heading)!=0) _heading_isValid = true;
+		//v.2.5.B2 // IMU is not providing any value, keep previous value as the best approach
+    	//if (int(_heading)!=0) _heading_isValid = true;
+    	if (int(read_heading)!=0) {
+    		_heading_isValid = true;
+    		_heading = read_heading;
+    	}
     }
 #endif
 	return calStatus;
