@@ -75,11 +75,20 @@ e_setup_status Autopilot::setup() {
 
 	// Setup IMU
 
-	if (Bearing_Monitor::setup() == NOT_DETECTED) {
+	switch (Bearing_Monitor::setup()) {
+	case NOT_DETECTED:
 		// There was a problem detecting the IMU ... check your connections */
-		DEBUG_print("!ERROR: IMU Not detected. Check your wiring or I2C ADDR\n");
-		setError(IMU_NOTFOUND);
-		return IMU_ERROR;
+		DEBUG_print("!WARNING: IMU Not detected. Check your wiring or I2C ADDR\n");
+		setWarning(IMU_NOTFOUND);
+		//return IMU_ERROR; Lack of IMU is not an error anymore. External IMU can be used instead
+		return SETUP_OK;
+		break;
+	case SIMULATED:
+		DEBUG_print("!Debugging: IMU simulator enabled\n");
+		return SETUP_OK;
+		break;
+	default:
+		break;
 	}
 
 	//Enter into calibration mode
@@ -204,6 +213,10 @@ void Autopilot::computeLongLoop_WindDir(void) {
 			// CTS = HDG + VWR
 
 			setTargetBearing(getCurrentHeading() + getWindDir() - _targetWindDir);
+			setNextCourse(getTargetBearing());
+			//sprintf(DEBUG_buffer,"!Target Bearing: %i\n", int(getTargetBearing()));
+			//DEBUG_print();
+
 		} else {
 			// Cancel Wind mode
 			setInformation (NO_MESSAGE);
@@ -236,8 +249,14 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 	_currentMode = newMode;
 
 	switch (_currentMode) {
+	case AUTO_MODE:
+		DEBUG_print("!setCurrentMode: AUTO_MODE\n");
+		break;
+	case WIND_MODE:
+		DEBUG_print("!setCurrentMode: WIND_MODE\n");
+		break;
 	case STAND_BY:
-		//DEBUG_print("!setCurrentMode: STAND_BY\n");
+		DEBUG_print("!setCurrentMode: STAND_BY\n");
 		break;
 	case CAL_IMU_COMPLETE:
 	case CAL_IMU_MINIMUM:
@@ -401,9 +420,10 @@ void Autopilot::Start_Stop(e_start_stop type){
 		case STAND_BY:
 			setCurrentMode(AUTO_MODE);
 			break;
-		// If in TRACK MODE or AUTO MODE --> set STAND_BY
+		// If in TRACK MODE, WIND MODE or AUTO MODE --> set STAND_BY
 		case TRACK_MODE:
 		case AUTO_MODE:
+		case WIND_MODE:
 			setCurrentMode(STAND_BY);
 			break;
 		default:

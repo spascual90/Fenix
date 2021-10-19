@@ -11,7 +11,7 @@
 #include <Arduino.h>
 #include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 
-// #define VIRTUAL_ACTUATOR // Uncomment to simulate rudder at bow. Useful when linear actuator is not available
+//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder at bow. Useful when linear actuator is not available
 
 
 #define PIN_RUDDER A8

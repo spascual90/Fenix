@@ -15,6 +15,9 @@
 //  You should have received a copy of the GNU General Public License
 //  along with NeoGPS.  If not, see <http://www.gnu.org/licenses/>.
 
+// The first field of a sentence is called the "tag" and normally consists of a two-letter talker ID followed by a three-letter type code.
+// DATA OVERRUN: took too long to print NMEA data! --> TIP: Autopilot might be receiving messages without TAG
+
 #include "emcNMEA.h"
 
 

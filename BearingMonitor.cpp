@@ -24,7 +24,11 @@ e_IMU_status Bearing_Monitor::setup(void){
 		_IMU_status = CAL_NOT_STARTED;
 		IBIT();
 	} else {
+#ifdef SHIP_SIM
+		_IMU_status = SIMULATED;
+#else
 		_IMU_status = NOT_DETECTED;
+#endif
 	}
 	return _IMU_status;
 }

@@ -9,12 +9,14 @@
 #define AUTOPILOT_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.2.4.B2"
+#define ARDUINO_VERSION "v.2.6.B1"
 
 //v.2.3.B1 implementation of capability to receive bearing from external IMU through HDM messages reception
 //v.2.4.B1 implementation of capability to receive relative wind direction through VWR messages reception
 //v.2.5.B2 IMU Calibration blocked in operational modes: IMU recalibration in ALL operational modes (not only STAND_BY)
 //v.2.5.B2 IMU is not providing any value, keep previous value as the best approach
+//v.2.6.B1 implementation of Wind Mode
+
 
 //DEBUG
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
@@ -47,8 +49,8 @@ enum e_APmode {STAND_BY, CAL_IMU_MINIMUM, CAL_IMU_COMPLETE, CAL_FEEDBACK, AUTO_M
 
 // Error codes
 enum e_error {
-	NO_ERROR,
-	IMU_NOTFOUND
+	NO_ERROR
+//	,IMU_NOTFOUND
 };
 
 // Warning codes
@@ -60,7 +62,8 @@ enum e_warning {
 	EE_IMU_NOTFOUND,
 	IMU_LOW,
 	WP_INVALID,
-	NO_WIND_DATA
+	NO_WIND_DATA,
+	IMU_NOTFOUND
 };
 
 // Information codes
