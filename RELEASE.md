@@ -1,5 +1,5 @@
 # RELEASE
-## Version: 0.2
+## Version: 2.6
 ## System requirements implemented
 | Req.ID# | Description | Criticity | Implemented |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----------- |
@@ -34,31 +34,31 @@
 |AP-17 | Closed | Automatic deadband configuration  | Nice to have |  
  | AP-36 | Closed | Tack starboard/ portboard in Compass mode. AP will turn by 100º the current heading in the direction selected by the user. | High|
  | AP-38 | Closed | Tack in Nav mode is not possible. | High |
- 
+ | AP-5    | Closed | Capability to use as alternative an external compass  | Nice to have |  
+ | AP-21 | Closed | Reception of magnetic/real course from external compass | Nice to have |
+ | AP-29 | Closed | Wing mode. AP will maintain current Apparent Wind Angle. | Medium |
+ | AP-30 | Closed | Wind mode is only possible when wind information is available from an external source. | Medium |
+
 
 ## Requirements partially implemented
 | Req.ID# | Status | Description | Priority |Limitations |
 | ------- | ------ | ----------------------------------------------------------------------------------------- | -------- |------ |
 | AP-8  | Closed | Procedure to define installation parameters supported by Autopilot without additional SW. | High |IMU and linear actuator calibration functionalities from Android App. Predefined values for other parameters are workable|
 | AP-11   | Closed | Predefined pilot gain configurations for different speeds and boats. | High  | One predefined set of PID gains is available at first installation. |
- 
+| AP-26 | Closed | Reception of real and apparent wind information. | High |
+AP-37 | Closed | Tack in Wind mode. AP will turn to head the same Real Wind Angle but on the oposite band. Turn direction will be selected by AP as the shortest path to reach the target heading. | High |
+
 # Autopilot requirements not implemented
 
 | Req.ID# | Status | Description                                                                                                                                                                                                 | Priority       |
 | ------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | AP-2    | Closed | Protection by design of mechanical and electronic parts from blockage, intense use, short-cirtuit and humidity. Parts exposed to weather conditions shall have IPX4 equivalent protection.                  | High         |
-| AP-5    | Closed | Capability to use as alternative an external compass  | Nice to have |  
 | AP-9    | Closed | Mounting at starboard or portboard | High           |
 | AP-12   | Closed | Autogain for different SOW (speed over water).  | Low            |
 | AP-13   | Closed | If SOW is not available, user configurable speed shall be used. | AP.-14  | Closed | User configurable gain for testing purposes.    | High           |
 | AP-15   | Closed | Capability to record required parameters to analyze AP performance for different external conditions for testing purposes.     | High           |
- AP-21 | Closed | Reception of magnetic/real course from external compass | Nice to have |
 AP-23 | Closed | Reception of SOW information from nautical slide. In Km or nautical miles. | Low |
-  | AP-26 | Closed | Reception of real and apparent wind information. | High |
-  | AP-29 | Closed | Wing mode. AP will maintain current Apparent Wind Angle. | Medium |
-  | AP-30 | Closed | Wind mode is only possible when wind information is available from an external source. | Medium |
   | AP-32 | Closed | Nav mode. If not available from external source, the required course will be BTW. | Nice to have |
-  AP-37 | Closed | Tack in Wind mode. AP will turn to head the same Real Wind Angle but on the oposite band. Turn direction will be selected by AP as the shortest path to reach the target heading. | High |
 
 # Autopilot requirements to be defined
 | Req.ID# | Status | Description                                                                                                                                                                                                 | Priority       |
