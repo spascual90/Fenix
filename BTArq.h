@@ -11,7 +11,7 @@ String onRequested(char variableType, uint8_t variableIndex);
 class BTArq: public VirtuinoCM {
 
 public:
-	BTArq(uint8_t max_V, uint8_t max_DV);
+	BTArq(uint8_t max_V, uint8_t max_DV, uint8_t BTN_V);
 	virtual ~BTArq();
 	void vDelay(int delayInMillis);
 

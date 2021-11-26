@@ -250,13 +250,13 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 
 	switch (_currentMode) {
 	case AUTO_MODE:
-		DEBUG_print("!setCurrentMode: AUTO_MODE\n");
+		//DEBUG_print("!setCurrentMode: AUTO_MODE\n");
 		break;
 	case WIND_MODE:
-		DEBUG_print("!setCurrentMode: WIND_MODE\n");
+		//DEBUG_print("!setCurrentMode: WIND_MODE\n");
 		break;
 	case STAND_BY:
-		DEBUG_print("!setCurrentMode: STAND_BY\n");
+		//DEBUG_print("!setCurrentMode: STAND_BY\n");
 		break;
 	case CAL_IMU_COMPLETE:
 	case CAL_IMU_MINIMUM:

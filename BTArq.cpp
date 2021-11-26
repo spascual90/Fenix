@@ -6,11 +6,13 @@ uint8_t v_button;
 
 uint8_t _max_V;
 uint8_t _max_DV;
+uint8_t _BTN_V;
 
-BTArq::BTArq(uint8_t max_V, uint8_t max_DV){
+
+BTArq::BTArq(uint8_t max_V, uint8_t max_DV, uint8_t BTN_V){
 	_max_V = max_V;
 	_max_DV = max_DV;
-
+	_BTN_V = BTN_V;
 	V = new float [_max_V];
 	for (int a=0; a<_max_V;a++) {
 		V[a] = 0;
@@ -51,8 +53,15 @@ uint8_t BTArq::getButtonPressed()  {
 	 if (variableType=='D' and variableIndex<_max_DV) {
 		if (valueAsText == "1") {
 			v_button = variableIndex;			// only update value of button at press time. v_button is set to 0 after execution of related action.
-			DV[variableIndex]=1;              // copy the received value to arduino DV memory array
-	    } else if (valueAsText == "0") DV[variableIndex]=0;              // copy the received value to arduino DV memory array
+			DV[v_button]=1;              // copy the received value to arduino DV memory array
+		} else if (valueAsText == "0") DV[variableIndex]=0;              // copy the received value to arduino DV memory array
+
+	 } else if (variableType=='V' and variableIndex>= _BTN_V) {
+			if (valueAsText == "1") {
+				v_button = variableIndex- _BTN_V;			// only update value of button at press time. v_button is set to 0 after execution of related action.
+				DV[v_button]=1;              // copy the received value to arduino DV memory array
+			  	//DEBUG_print( "Button pressed\n");
+		    } else if (valueAsText == "0") DV[variableIndex- _BTN_V]=0;              // copy the received value to arduino DV memory array
 
 	 } else if (variableType=='V' and variableIndex<_max_V){
 			float fvalue = valueAsText.toFloat();        // convert the value to float. The valueAsText has to be numerical

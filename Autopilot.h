@@ -9,13 +9,14 @@
 #define AUTOPILOT_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.2.6.B1"
+#define ARDUINO_VERSION "v.3.0.B1"
 
 //v.2.3.B1 implementation of capability to receive bearing from external IMU through HDM messages reception
 //v.2.4.B1 implementation of capability to receive relative wind direction through VWR messages reception
 //v.2.5.B2 IMU Calibration blocked in operational modes: IMU recalibration in ALL operational modes (not only STAND_BY)
 //v.2.5.B2 IMU is not providing any value, keep previous value as the best approach
 //v.2.6.B1 implementation of Wind Mode
+//v.3.0.B1 Compatibility with Virtuino 6 (Virtuino for Fenix App.4.0) and retrocompatibility with Virtuino 5 (Virtuino for Fenix App.3.0)
 
 
 //DEBUG

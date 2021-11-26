@@ -5,15 +5,15 @@
 #include "BTArq.h"
 #include "HMIArq.h"
 
-#define FENIX_APP_COMPATIBILITY "v.3.X"
+#define FENIX_APP_COMPATIBILITY "v.4.X"
 
 
 // Emulator arduino board reserved PINS
-//V0	Selected panel index
-//V2 	Number of failed connections
-//V3 	Enable/ disable BT server
+//M0	Selected panel index
+//M2 	Number of failed connections
+//M3 	Enable/ disable BT server
 //V4	360-CTS
-//V12 Enable / disable App Demo mode
+//M12 Enable / disable App Demo mode
 //DV0
 
 
@@ -94,6 +94,8 @@ enum e_BT_AI_PIN {
 
 const uint8_t c_max_V = MAX_AI;
 const uint8_t c_max_DV = MAX_BT;
+const uint8_t c_BTN_V = 40;
+
 
 class BT: public BTArq, public HMIArq {
 

@@ -7,7 +7,7 @@
 #include "BT.h"
 
  BT::BT(Autopilot* Pilot)
- :BTArq(c_max_V, c_max_DV)
+ :BTArq(c_max_V, c_max_DV, c_BTN_V)
  ,HMIArq(Pilot)
 {
 	// TODO Auto-generated constructor stub
@@ -46,6 +46,9 @@ void BT::triggerAction () {
 	uint8_t button = getButtonPressed();
 
 	if (button == BT_NO_BTN) return;
+
+	//sprintf(DEBUG_buffer,"!triggerAction: %i\n", button);
+	//DEBUG_print();
 
 	// Launch action accordingly to button pressed and current mode
 	e_APmode currentMode = MyPilot->getCurrentMode();
