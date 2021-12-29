@@ -153,6 +153,7 @@ bool emcNMEA::parseAPB( char chr )
 }
 
 // $--HDM,x.x,M*hh<CR><LF>
+// Example: $IIHDM,245.0,M*21
 bool emcNMEA::parseHDM( char chr )
 {
 	bool ok = true;
@@ -167,7 +168,7 @@ bool emcNMEA::parseHDM( char chr )
 }
 
 // $--VWR,x.x,a,,,,,,*hh<CR><LF>
-//$IIVWR,045.0,L,12.6,N,6.5,M,23.3,K*52
+// Example: $IIVWR,045.0,L,12.6,N,6.5,M,23.3,K*52
 bool emcNMEA::parseVWR( char chr )
 {
 	bool ok = true;
