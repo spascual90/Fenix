@@ -473,7 +473,7 @@ void Autopilot::Enter_Exit_FBK_Calib(void) {
 void Autopilot::set_extHeading(s_HDM HDM) {
 	_extHeading.HDM = HDM;
 	_extHeading.t0 = millis();
-	//DEBUG_print ("!ext Heading received\n");
+//	DEBUG_print ("!ext Heading received\n");
 }
 
 //evaluate validity extHeading
@@ -1075,4 +1075,3 @@ bool Autopilot::EEload_PIDgain (void){
 //  }
 //  return crc;
 //}
-

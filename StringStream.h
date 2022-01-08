@@ -31,4 +31,3 @@ private:
 
 
 #endif // _STRING_STREAM_H_
-

@@ -151,7 +151,7 @@ void IF_NMEA::refresh_INorder() {
 			break;
 
 		case SET_GAIN: //$PEMC,06 received
-			// FLAGS SOLO SE ACTUALIZAN CON K*, para DBConfig no es necesario porque es el último campo del mensaje y funciona
+			// FLAGS SOLO SE ACTUALIZAN CON K*, para DBConfig no es necesario porque es el ï¿½ltimo campo del mensaje y funciona
 			Change_PID(INorder.PIDgain.flag.gain, INorder.PIDgain.gain);
 			setDBConf (INorder.PIDgain.DBConfig);
 			// Change PID time--> Not allowed as may impact in pilot performance
@@ -281,8 +281,3 @@ void IF_NMEA::printAPB(Stream * outStream, s_APB APB) {
 
 
 #endif //SERIAL_IF_AVAILABLE
-
-
-
-
-

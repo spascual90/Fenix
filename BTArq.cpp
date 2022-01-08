@@ -101,5 +101,3 @@ String onRequested(char variableType, uint8_t variableIndex){
 
 //============================================================== vDelay
   void BTArq::vDelay(int delayInMillis){long t=millis()+delayInMillis;while (millis()<t) virtuinoRun();}
-
-

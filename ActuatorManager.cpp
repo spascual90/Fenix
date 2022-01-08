@@ -171,4 +171,3 @@ int ActuatorManager::controlActuator(int target_rudder, boolean deadband, int tr
 void ActuatorManager::ResetTunings(){
 	SetTunings (_KpIni, _KiIni, _KdIni);
 }
-

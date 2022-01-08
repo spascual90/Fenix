@@ -337,7 +337,3 @@ e_requestStatus HMIArq::userRequestAnswer (bool answer) {
 e_requestStatus HMIArq::getRequestStatus () {
 	return _requestStatus;
 }
-
-
-
-

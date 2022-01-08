@@ -1141,7 +1141,7 @@ void emcNMEA::printRSA(Stream * outStream) {
 
 void emcNMEA::printDm() {
 		//	Compass Variation and Deviation
-		//	Note that magnetic compass are also subject to their own errors due to magnetic interferences of metals around; this is called DEVIATION (ES: Desvío).
+		//	Note that magnetic compass are also subject to their own errors due to magnetic interferences of metals around; this is called DEVIATION (ES: Desvï¿½o).
 		//	For an state of the art 6DOF IMU, this error is detected and corrected on the fly. For instance, only acelerometer is used when magnetometer is not reliable.
 		//	The assumption of this specification is IMU Deviation is 0.
 
@@ -1187,6 +1187,3 @@ bool emcNMEA::IsTX1time () {
 		return false;}
 	return true;
 }
-
-
-

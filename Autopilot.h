@@ -145,7 +145,7 @@ enum e_info {
 
 		//Centered Tiller Position:
 		//Indicates the linear actuator position when the tiller is aligned with the hull.
-		//This is the 0º reference for Trimming function.
+		//This is the 0ï¿½ reference for Trimming function.
 		//	Centered Tiller Position
 		int16_t centerTiller;
 
@@ -180,15 +180,15 @@ enum e_info {
 
 		//	Magnetic Variation
 		//Level of magnetic variation present at the boat's current position. Used by the autopilot when information is not received from external sources.
-		whole_frac magVariation; //(-45º;+45º)
+		whole_frac magVariation; //(-45ï¿½;+45ï¿½)
 
 		//	Heading alignment
 		//Installation of magnetic compass may not be aligned with boat's steering compass, or a known transit bearing.
-		whole_frac headAlign; //	(-180º, 180º)
+		whole_frac headAlign; //	(-180ï¿½, 180ï¿½)
 
 		//	Off course alarm angle
 		//Angle of Off course alarm. This alarm warns if the AP is unable to maintain its course when mode <> STANDY.
-		uint8_t offcourseAlarm; //	(10º;30º).
+		uint8_t offcourseAlarm; //	(10ï¿½;30ï¿½).
 
 		//minimum/maximum values read on feedback (without error protection)
 		uint16_t minFeedback;

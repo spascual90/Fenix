@@ -71,4 +71,3 @@ void LCDKeyPadArq::turnLight(bool Status) {
 		_DelayLight=false;
 		}
 }
-

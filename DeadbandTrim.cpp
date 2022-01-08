@@ -126,5 +126,3 @@ void DeadbandTrim::trimLearn (float PIDerrorPrima, float rudder) {
 	if (_meanRudder > VALUE_MAXTRIM) _meanRudder = VALUE_MAXTRIM;
 
 }
-
-

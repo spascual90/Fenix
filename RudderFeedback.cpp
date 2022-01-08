@@ -184,5 +184,3 @@ void RudderFeedback::set_calFeedback() { //TODO: Calibration of error based on I
 	setDeltaCenterOfRudder(0, false);
 	setup(true); // launches recalculation of dependent variables with IBIT
 }
-
-
