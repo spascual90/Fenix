@@ -58,7 +58,7 @@ void IF_NMEA::refresh(){
 	bool fl = false;
 	if (IsTXtime()) {
 		switch (MyPilot->getCurrentMode()) {
-		case CAL_IMU_MINIMUM:
+//		case CAL_IMU_MINIMUM:
 		case CAL_IMU_COMPLETE:
 			printPEMC_12(& gpsPort);
 			break;

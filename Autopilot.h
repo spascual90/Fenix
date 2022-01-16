@@ -9,7 +9,7 @@
 #define AUTOPILOT_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.3.0.B1"
+#define ARDUINO_VERSION "v.3.1.B1"
 
 //v.2.3.B1 implementation of capability to receive bearing from external IMU through HDM messages reception
 //v.2.4.B1 implementation of capability to receive relative wind direction through VWR messages reception
@@ -17,7 +17,7 @@
 //v.2.5.B2 IMU is not providing any value, keep previous value as the best approach
 //v.2.6.B1 implementation of Wind Mode
 //v.3.0.B1 Compatibility with Virtuino 6 (Virtuino for Fenix App.4.0) and retrocompatibility with Virtuino 5 (Virtuino for Fenix App.3.0)
-
+//v.3.1.B1 Fix IMU not working since 2.5 (internal IMU not working, external IMU ok)
 
 //DEBUG
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
@@ -45,7 +45,7 @@ enum e_setup_status {SETUP_OK, IMU_ERROR, FEEDBACK_ERROR};
 enum e_working_status {RUNNING_OK, RUNNING_ERROR, RUN_OUT_OF_TIME};
 
 // working modes
-enum e_APmode {STAND_BY, CAL_IMU_MINIMUM, CAL_IMU_COMPLETE, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE, WIND_MODE};
+enum e_APmode {STAND_BY, CAL_IMU_COMPLETE, XXX_DEPRECATED, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE, WIND_MODE};
 
 
 // Error codes
@@ -425,7 +425,7 @@ public:
 	void EEsave_ReqCal (bool reqCalib);
 	bool EEload_ReqCal (void);
 	bool EEsave_Calib();
-	e_IMU_status EEload_Calib();
+	e_IMU_cal_status EEload_Calib();
 	bool EEsave_HCParam(); //Save HARDCODED InstParam and PIDgain
 	bool EEsave_instParam(bool HC=false);
 	bool EEload_instParam();
@@ -528,7 +528,7 @@ private:
 	// FUNCTIONAL MODULE: WORKING MODES
 	bool before_changeMode(e_APmode newMode, e_APmode currentMode);
 	bool after_changeMode(e_APmode currentMode, e_APmode preMode);
-	e_working_status compute_TrackMode(void);
+	e_working_status compute_OperationalMode(void);
 	e_working_status compute_Stand_By(void);
 	e_working_status compute_Cal_IMU(bool completeCal);
 	e_working_status compute_Cal_Feedback(void);

@@ -27,8 +27,9 @@
 #define PIN_SCL 21
 
 
-enum e_IMU_status {NOT_DETECTED, CAL_NOT_STARTED, CAL_INPROGRESS, RECALIBRATED, NOT_CALIBRATED, SIMULATED};
-enum e_IMU_check {NOT_STARTED, CHECK_ONGOING, CHECK_FINISHED};
+enum e_IMU_status {NOT_DETECTED, OPERATIONAL, SIMULATED, CAL_MODE};
+enum e_IMU_cal_status {CAL_NOT_STARTED, CAL_START, CAL_INPROGRESS, CAL_RESULT_RECALIBRATED, CAL_RESULT_NOT_CALIBRATED};
+enum e_IMU_check {CHECK_NOT_STARTED, CHECK_ONGOING, CHECK_FINISHED};
 class Bearing_Monitor {
 public:
 	Bearing_Monitor(float headingDev);
@@ -134,6 +135,10 @@ public:
 		return _IMU_check;
 	}
 
+	e_IMU_cal_status getImuCalStatus() const {
+		return _IMU_cal_status;
+	}
+
 protected:
     e_IMU_status setup(void);
     bool updateHeading();
@@ -161,7 +166,8 @@ private:
 
 	//Calibration settings
 	e_IMU_status _IMU_status= NOT_DETECTED;
-	e_IMU_check _IMU_check= NOT_STARTED;
+	e_IMU_cal_status _IMU_cal_status= CAL_NOT_STARTED;
+	e_IMU_check _IMU_check= CHECK_NOT_STARTED;
 	int _cal_iter = 0;
 	bool IMU_Cal_Loop(bool completeCal);
 	bool IMU_CalCheck_Loop(void);

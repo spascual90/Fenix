@@ -42,14 +42,14 @@ void HMIArq::Request_IMUcal(s_IMUcal & IMUcal) {
 		IMUcal.IMUcalstatus = 'C';
 	} else {
 		switch (MyPilot->getIMUstatus()) {
-		case NOT_DETECTED:
 		case CAL_NOT_STARTED:
+		case CAL_START:
 			IMUcal.IMUcalstatus = '-'; break;
 		case CAL_INPROGRESS:
 			IMUcal.IMUcalstatus = 'O'; break;
-		case RECALIBRATED:
+		case CAL_RESULT_RECALIBRATED:
 			IMUcal.IMUcalstatus = 'R'; break;
-		case NOT_CALIBRATED:
+		case CAL_RESULT_NOT_CALIBRATED:
 			IMUcal.IMUcalstatus = 'N'; break;
 		}
 	}

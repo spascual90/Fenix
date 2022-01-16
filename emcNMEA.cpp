@@ -994,7 +994,7 @@ void emcNMEA::printPEMC_07(Stream * outStream) {
     	case STAND_BY:
     		bufferStream->print("S");
     		break;
-    	case CAL_IMU_MINIMUM:
+//    	case CAL_IMU_MINIMUM:
     	case CAL_IMU_COMPLETE:
     	case CAL_FEEDBACK:
     		bufferStream->print("C");

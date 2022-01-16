@@ -105,7 +105,7 @@ e_setup_status Autopilot::setup() {
 	  }
 
 	 //  Get and restore BNO Calibration offsets
-	 if (EEload_Calib()==NOT_CALIBRATED) {
+	 if (EEload_Calib()==CAL_RESULT_NOT_CALIBRATED) {
 		// There was a problem reading IMU calibration values
 		//EEsave_ReqCal(true); // Set flag to enabled to enter into Calibration mode next time system is reset
 		DEBUG_print("!Please enter into Calibration Mode\n"); // System is not reset automatically to avoid recurrent writing EEPROM
@@ -113,7 +113,7 @@ e_setup_status Autopilot::setup() {
 		return SETUP_OK;
 	 }
 	// Ensures calibration is valid by recalibrating (without check feature)
-	setCurrentMode (CAL_IMU_MINIMUM);
+	 reset_calibration ();
 
 	setInformation(NO_MESSAGE);
 	return SETUP_OK;
@@ -139,31 +139,30 @@ e_working_status Autopilot::Compute() {
 	switch (_currentMode) {
 	case AUTO_MODE:
 	case TRACK_MODE:
-		ws = compute_TrackMode();
-		break;
-	case CAL_IMU_COMPLETE:
-		//ws = compute_Cal_IMU(true);
-		break;
-	case CAL_IMU_MINIMUM:
-		ws = compute_Cal_IMU(false);
-		break;
-	case CAL_FEEDBACK:
-		ws = compute_Cal_Feedback();
+	case WIND_MODE:
+		ws = compute_OperationalMode();
 		break;
 	case STAND_BY:
 		ws = compute_Stand_By();
 		break;
+	case CAL_IMU_COMPLETE:
+		return RUNNING_OK;
+		break;
+	case CAL_FEEDBACK:
+		ws = compute_Cal_Feedback();
+		break;
 	}
+
+	// update IMU calibration except in CAL_IMU_COMPLETE
+	if (_currentMode!=CAL_IMU_COMPLETE and ws==RUNNING_OK) ws = compute_Cal_IMU(false);
+
 
 	return ws;
 }
 
 e_working_status Autopilot::compute_Cal_IMU(bool completeCal){
 	if (!Bearing_Monitor::compute_Cal_IMU(completeCal)) {
-		setCurrentMode (STAND_BY);
 	}
-
-	//for (int i = 0; i < 5000; i++) {;}
 
 	return RUNNING_OK;
 }
@@ -178,7 +177,7 @@ e_working_status Autopilot::compute_Stand_By(){
 	return RUNNING_OK;
 }
 
-e_working_status Autopilot::compute_TrackMode(void){
+e_working_status Autopilot::compute_OperationalMode(void){
 	float PIDerrorPrima = delta180(getTargetBearing(), Bearing_Monitor::getCurrentHeading());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	if (ActuatorManager::Compute(PIDerrorPrima)!=1) return RUNNING_ERROR;
@@ -259,7 +258,6 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 		//DEBUG_print("!setCurrentMode: STAND_BY\n");
 		break;
 	case CAL_IMU_COMPLETE:
-	case CAL_IMU_MINIMUM:
 		//Start IMU calibration
 		//setInformation(IMU_CAL_INPROGRESS);
 		break;
@@ -306,7 +304,7 @@ bool Autopilot::reset_calibration(){
 	setWarning(IMU_LOW);
 	refreshCalStatus();
 	Bearing_Monitor::reset_calibration();
-	setCurrentMode(CAL_IMU_MINIMUM);
+	//setCurrentMode(CAL_IMU_MINIMUM);
 	return true;
 }
 
@@ -378,7 +376,6 @@ void Autopilot::setHeadingDev(float headingDev) {
 bool Autopilot::isCalMode(void){
 	switch (getCurrentMode()) {
 	case CAL_IMU_COMPLETE:
-	case CAL_IMU_MINIMUM:
 	case CAL_FEEDBACK:
 		return true;
 	default:
@@ -635,7 +632,6 @@ int Autopilot::changeRudder(int delta_rudder) {
 		ret = cal_FBK_move(dir);
 		break;
 	case CAL_IMU_COMPLETE:
-	case CAL_IMU_MINIMUM:
 		break;
 	default:
 		setCurrentMode(STAND_BY);
@@ -909,7 +905,7 @@ bool Autopilot::EEsave_Calib(){
     return DataStored;
 }  //  end EEsave_Calib
 
-e_IMU_status Autopilot::EEload_Calib(){
+e_IMU_cal_status Autopilot::EEload_Calib(){
 	//  Get and restore BNO Calibration offsets
 	long EE_bnoID, bnoID;
 	adafruit_bno055_offsets_t calibrationData;
@@ -924,7 +920,10 @@ e_IMU_status Autopilot::EEload_Calib(){
 
 	if (EE_bnoID != bnoID) {
 		DEBUG_print("!WARNING: No Calibration Data for this sensor found!\n");
-		return NOT_CALIBRATED;
+		sprintf(DEBUG_buffer,"ID found: %i\n",EE_bnoID);
+		DEBUG_print(DEBUG_buffer);
+
+		return CAL_RESULT_NOT_CALIBRATED;
 	}
 	DEBUG_print("!Found Calibration data...\n");
 	eeAddress += sizeof(long);
@@ -932,7 +931,7 @@ e_IMU_status Autopilot::EEload_Calib(){
 	setIniCalib(calibrationData);
 	displaySensorOffsets();
 
-	return RECALIBRATED;
+	return CAL_RESULT_RECALIBRATED;
 }
 
 

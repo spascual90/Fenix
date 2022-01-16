@@ -21,7 +21,8 @@ Bearing_Monitor::~Bearing_Monitor() {
 e_IMU_status Bearing_Monitor::setup(void){
 	_bno = Adafruit_BNO055(55);
 	if(_bno.begin(Adafruit_BNO055::OPERATION_MODE_NDOF)) {
-		_IMU_status = CAL_NOT_STARTED;
+		_IMU_status = CAL_MODE;
+		_IMU_cal_status = CAL_START;
 		IBIT();
 	} else {
 #ifdef SHIP_SIM
@@ -45,42 +46,54 @@ void Bearing_Monitor::IBIT(){
 }
 
 void Bearing_Monitor::reset_calibration () {
+	DEBUG_print("***calib\n");
 	setup();
 	setSensorOffsets();
 	displaySensorOffsets();
-	_IMU_status = CAL_NOT_STARTED;
+	_IMU_status = CAL_MODE;
+	_IMU_cal_status = CAL_START;
+
 }
 
 // Recurrent loop for calibration
-//CAL_INPROGRESS-->(NOT_CALIBRATED; RECALIBRATED)
-//RECALIBRATED-->completeCal?-->CHECK_ONGOING-->CHECK_FINISHED
+//CAL_START-->CAL_INPROGRESS-->(CAL_RESULT_NOT_CALIBRATED; CAL_RESULT_RECALIBRATED)
+//CAL_RESULT_RECALIBRATED-->completeCal?-->CHECK_ONGOING-->CHECK_FINISHED
 //return true-->process ongoing
-//return false-->process finished
+//return false-->process finished / IMU in operational mode again
 bool Bearing_Monitor::compute_Cal_IMU(bool completeCal) {
-
-	switch (_IMU_status) {
+	bool ret=false;
+	switch (_IMU_cal_status) {
 	case CAL_NOT_STARTED:
-		return Bearing_Monitor::IMU_startCalibration(completeCal);
+		ret=false;
+		break;
+	case CAL_START:
+		ret=Bearing_Monitor::IMU_startCalibration(completeCal);
 		break;
 	case CAL_INPROGRESS:
-		return Bearing_Monitor::IMU_Cal_Loop(completeCal);
+		ret=Bearing_Monitor::IMU_Cal_Loop(completeCal);
 		break;
-	case NOT_CALIBRATED:
-		return false;
+	case CAL_RESULT_NOT_CALIBRATED:
+		ret=false;
 		break;
-	case RECALIBRATED:
+	case CAL_RESULT_RECALIBRATED:
 		// Check calibration status
 		// completeCal=true performs complete initial calibration + check (system==3 required)
 		// completeCal=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
-		if (!completeCal) return false;
-		return compute_check_IMU();
+		if (completeCal) {
+			ret=compute_check_IMU();
+		} else {
+			ret=false;
+		}
 		break;
 	default:
-		return false;
+		ret=false;
 		break;
 	}
-
-	return false;
+	if (ret == false and _IMU_status != OPERATIONAL) {
+		_IMU_status = OPERATIONAL;
+		DEBUG_print("***Finished calib\n");
+	}
+	return ret;
 }
 
 //return true-->process ongoing
@@ -88,7 +101,7 @@ bool Bearing_Monitor::compute_Cal_IMU(bool completeCal) {
 bool Bearing_Monitor::compute_check_IMU(void) {
 
 	switch (_IMU_check) {
-	case NOT_STARTED:
+	case CHECK_NOT_STARTED:
 		//start check
 		return IMU_startCalCheck(CAL_CHECK_LOOP);
 		break;
@@ -106,7 +119,7 @@ bool Bearing_Monitor::compute_check_IMU(void) {
 
 bool Bearing_Monitor::IMU_startCalibration(bool completeCal) {
 	_cal_iter = 0;
-	_IMU_status = CAL_INPROGRESS;
+	_IMU_cal_status = CAL_INPROGRESS;
 
 	//First iteration only
 	(completeCal?DEBUG_print("IMU Calibration: Complete + Check.\n"):DEBUG_print("IMU Calibration: Minimum.\n"));
@@ -121,28 +134,28 @@ bool Bearing_Monitor::IMU_Cal_Loop(bool completeCal){
 	bool calibrated;
 
 	// Exit if calibration is not in progress
-	if (_IMU_status != CAL_INPROGRESS) return false;
+	if (_IMU_cal_status != CAL_INPROGRESS) return false;
 
 	// Loops until fully calibrated or calibration time exceeded
 	if (_cal_iter++ < MAX_ITER) {
 		// check=true performs complete initial calibration + check (system==3 required)
 		// check=false ensures minimum recalibration after each power-on ( as long as mag and gyro are over 1, data is realiable)
 		calibrated = (completeCal==true?_bno.isFullyCalibrated():getCalibrationStatus());
-		 _IMU_status= (calibrated? RECALIBRATED: CAL_INPROGRESS);
+		 _IMU_cal_status= (calibrated? CAL_RESULT_RECALIBRATED: CAL_INPROGRESS);
 
 		//refreshCalStatus();
 
 	} else {
 		// Calibration period exceeded
 		// System status is lower than 3, IMU does not provide data of enough quality for calibration
-		_IMU_status= NOT_CALIBRATED;
+		_IMU_cal_status= CAL_RESULT_NOT_CALIBRATED;
 		displaySensorOffsets();
 		DEBUG_print("\nCalibration time out!\n");
 		DEBUG_print("WARNING: Calibration failed. Bearing values might be inaccurate.\n");
 		return false;
 	}
 
-	if (_IMU_status==RECALIBRATED) {
+	if (_IMU_cal_status==CAL_RESULT_RECALIBRATED) {
 		DEBUG_print("\nCalibrated! Ok\n");
 		// Heading value is not received until a slight movement is detected by IMU
 		// Practically speaking this is not an issue, but some info is provided to user

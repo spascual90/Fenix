@@ -4,3 +4,5 @@ core/
 .cproject
 .ino.cpp
 .project
+/HEX/
+/Schematics/
