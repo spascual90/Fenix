@@ -32,7 +32,6 @@
 #define MAX_HDM_TIME 10000 // Maximum time of HDM data validity
 #define MAX_VWR_TIME 10000 // Maximum time of VWR data validity
 #define LONG_LOOP_TIME 100 // Loops to update current course and target bearing
-#define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
 
 #include "ActuatorManager.h"
 #include "BearingMonitor.h"
@@ -461,9 +460,6 @@ public:
 		EEsave_Calib();
 		EEsave_ReqCal(false); // Update Calibration Flag to disabled
 	}
-
-	bool reset_calibration(void);
-
 
 	//return delta value (-180, 179)
 	//on error, return -360

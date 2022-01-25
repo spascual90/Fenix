@@ -113,7 +113,9 @@ e_setup_status Autopilot::setup() {
 		return SETUP_OK;
 	 }
 	// Ensures calibration is valid by recalibrating (without check feature)
-	 reset_calibration ();
+	refreshCalStatus();
+	reset_calibration();
+
 
 	setInformation(NO_MESSAGE);
 	return SETUP_OK;
@@ -154,7 +156,7 @@ e_working_status Autopilot::Compute() {
 	}
 
 	// update IMU calibration except in CAL_IMU_COMPLETE
-	if (_currentMode!=CAL_IMU_COMPLETE and ws==RUNNING_OK) ws = compute_Cal_IMU(false);
+	if (_currentMode!=CAL_IMU_COMPLETE) ws = compute_Cal_IMU(false);
 
 
 	return ws;
@@ -162,6 +164,7 @@ e_working_status Autopilot::Compute() {
 
 e_working_status Autopilot::compute_Cal_IMU(bool completeCal){
 	if (!Bearing_Monitor::compute_Cal_IMU(completeCal)) {
+		if (_currentMode==CAL_IMU_COMPLETE) setCurrentMode(STAND_BY);
 	}
 
 	return RUNNING_OK;
@@ -300,13 +303,6 @@ void Autopilot::computeLongLoop() {
 
 }
 
-bool Autopilot::reset_calibration(){
-	setWarning(IMU_LOW);
-	refreshCalStatus();
-	Bearing_Monitor::reset_calibration();
-	//setCurrentMode(CAL_IMU_MINIMUM);
-	return true;
-}
 
 bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode){
 	switch (currentMode) {
@@ -561,32 +557,14 @@ void Autopilot::VWRreceived(s_VWR VWR) {
 }
 
 void Autopilot::computeLongLoop_heading(void) {
-	static bool extHeading = false; // false = internal IMU true = external IMU
-	static int low_quality_data=0;
-	bool isValidHeading;
-
 	//if HDM messages are received within MAX_HDM_TIME seconds, external compass is valid.
-	bool isValidHDM_return = isValid_HDM();
-
 	//only changes compass source (internal/ external) in STAND_BY
-	if (_currentMode == STAND_BY) {
-		extHeading = isValidHDM_return;
-	}
+	updateHeading(_currentMode == STAND_BY, isValid_HDM(), _extHeading.HDM.HDM.float_00());
 
-	if (extHeading) {
-		isValidHeading = updateHeading(_extHeading.HDM.flag.HDM,_extHeading.HDM.HDM.float_00());
-	} else{
-		isValidHeading = updateHeading();
-	}
-	if (!isValidHeading) {
-		low_quality_data++;
-
-		if (low_quality_data>MAX_LOW_QDATA) {
-			//v.2.5.B2 IMU Calibration blocked in operational modes: IMU recalibration in ALL operational modes (not only STAND_BY)
-			//if (_currentMode == STAND_BY) reset_calibration(); // Only reset in STAND BY
-			reset_calibration(); // Reset calibration in all operational modes
-			low_quality_data=0;
-		}
+	//If heading value is not valid in operational mode set STAND BY mode
+	if (!isHeadingValid() and !isCalMode() and getCurrentMode()!=STAND_BY) {
+		setWarning(IMU_LOW);
+		setCurrentMode(STAND_BY);
 	}
 }
 

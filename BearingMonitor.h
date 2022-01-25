@@ -15,8 +15,8 @@
 #include <EEPROM.h>
 
 # define MAX_ITER 100000 // Max number of iterations to consider calibration procedure has failed
-# define CAL_CHECK_LOOP 20000 // Number of iterations to check IMU Calibration results
-
+# define CAL_CHECK_LOOP 7000//20000 // Number of iterations to check IMU Calibration results
+#define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
 
 //SDA - I2C data pin, connect to your microcontrollers I2C data line. This pin can be
 //used with 3V or 5V logic, and there's a 10K pullup on this pin.
@@ -27,9 +27,11 @@
 #define PIN_SCL 21
 
 
-enum e_IMU_status {NOT_DETECTED, OPERATIONAL, SIMULATED, CAL_MODE};
+enum e_IMU_status {NOT_DETECTED, OPERATIONAL, SIMULATED, CAL_MODE, EXTERNAL_IMU};
 enum e_IMU_cal_status {CAL_NOT_STARTED, CAL_START, CAL_INPROGRESS, CAL_RESULT_RECALIBRATED, CAL_RESULT_NOT_CALIBRATED};
 enum e_IMU_check {CHECK_NOT_STARTED, CHECK_ONGOING, CHECK_FINISHED};
+enum e_internalIMU_status {INT_NOT_DETECTED, INT_DETECTED};
+
 class Bearing_Monitor {
 public:
 	Bearing_Monitor(float headingDev);
@@ -127,6 +129,10 @@ public:
 		return _heading_isValid;
 	}
 
+	bool isHeadingFrozen() const {
+		return _heading_isFrozen;
+	}
+
 	e_IMU_status getIMUstatus() const {
 		return _IMU_status;
 	}
@@ -141,10 +147,8 @@ public:
 
 protected:
     e_IMU_status setup(void);
-    bool updateHeading();
 
-    // EXTERNAL COMPASS
-    bool updateHeading(bool valid, float HDM);
+    e_IMU_status updateHeading(bool fixedSource, bool valid, float HDM);
 
     void reset_calibration (void);
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
@@ -163,9 +167,12 @@ private:
 	float _dm = 0; // Magnetic variation
 
 	bool _heading_isValid = false;
+	bool _heading_isFrozen = true;
+
 
 	//Calibration settings
 	e_IMU_status _IMU_status= NOT_DETECTED;
+	e_internalIMU_status _internalIMU_status = INT_NOT_DETECTED;
 	e_IMU_cal_status _IMU_cal_status= CAL_NOT_STARTED;
 	e_IMU_check _IMU_check= CHECK_NOT_STARTED;
 	int _cal_iter = 0;
@@ -176,6 +183,11 @@ private:
 	uint8_t _z;
 
 	uint8_t _calSys, _calGyro, _calAccel, _calMagn;
+
+    e_IMU_status updateHeading();
+
+    // EXTERNAL COMPASS
+    e_IMU_status updateHeading(bool valid, float HDM);
 
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
 	float _SIMheading =0;
