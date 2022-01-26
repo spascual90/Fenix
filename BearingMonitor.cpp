@@ -307,6 +307,7 @@ e_IMU_status Bearing_Monitor::updateHeading(bool fixedSource, bool validExternal
 #ifdef SHIP_SIM
 	_heading = _SIMheading;
 	_heading_isValid = true;
+	_heading_isFrozen = false;
 	return SIMULATED;
 #else
 	//decide if changing IMU status
@@ -375,13 +376,14 @@ e_IMU_status Bearing_Monitor::updateHeading(){
 		low_quality_data++;
 
 		if (low_quality_data>MAX_LOW_QDATA) {
-			if (!_heading_isFrozen) {
-			// First time to get low quality data after calibration. Heading is frozen and still valid until valid data is received from IMU.
-			//v.2.5.B2 IMU Calibration blocked in operational modes: IMU recalibration in ALL operational modes (not only STAND_BY)
+			if (_heading_isFrozen==false) {
+			// Low quality data and last data was not frozen. This is the first time to get low quality data for a while after last calibration reset.
+			// Freeze Heading (last value still valid) until valid data is received from IMU.
+			//IMU calibration reset in ALL operational modes (not only STAND_BY)
 			reset_calibration(); // Reset calibration in all operational modes
 			low_quality_data=0;
 			_heading_isFrozen = true;} else {
-				//second time to get low quality data in a row. Heading is not valid any more
+				//Low quality data for two times in a row. Heading is not valid any more
 				_heading_isValid = false;
 			}
 		}

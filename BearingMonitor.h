@@ -44,16 +44,6 @@ public:
 	}
 
 
-	void setSensorOffsets(void) {
-		setSensorOffsets(_iniCalib);
-	}
-
-	void setSensorOffsets(adafruit_bno055_offsets_t Calib) {
-		_bno.setExtCrystalUse(false);// TEST
-		_bno.setSensorOffsets(Calib);
-		_bno.setExtCrystalUse(true);
-	}
-
 	void setIniCalib (adafruit_bno055_offsets_t iniCalib) {
 		_iniCalib = iniCalib;
 		setSensorOffsets();
@@ -74,7 +64,6 @@ public:
 
 	bool IMU_startCalibration(bool completeCal);
 	bool compute_Cal_IMU(bool completeCal);
-	bool IMU_startCalCheck(int maxLoop);
 	bool compute_check_IMU(void);
 
 	void displaySensorOffsets(void);
@@ -147,9 +136,8 @@ public:
 
 protected:
     e_IMU_status setup(void);
-
     e_IMU_status updateHeading(bool fixedSource, bool valid, float HDM);
-
+    bool IMU_startCalCheck(int maxLoop);
     void reset_calibration (void);
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
 	void SIM_updateShip(int tillerAngle);
@@ -183,6 +171,17 @@ private:
 	uint8_t _z;
 
 	uint8_t _calSys, _calGyro, _calAccel, _calMagn;
+
+
+	void setSensorOffsets(void) {
+		setSensorOffsets(_iniCalib);
+	}
+
+	void setSensorOffsets(adafruit_bno055_offsets_t Calib) {
+		_bno.setExtCrystalUse(false);// TEST
+		_bno.setSensorOffsets(Calib);
+		_bno.setExtCrystalUse(true);
+	}
 
     e_IMU_status updateHeading();
 
