@@ -3,13 +3,20 @@
 //Fenix version
 #define ARDUINO_VERSION "v.3.1.B1"
 
+// RELEASE v.2.0.B1
+// RELEASE v.2.1.B1
 //v.2.3.B1 implementation of capability to receive bearing from external IMU through HDM messages reception
 //v.2.4.B1 implementation of capability to receive relative wind direction through VWR messages reception
 //v.2.5.B2 IMU Calibration blocked in operational modes: IMU recalibration in ALL operational modes (not only STAND_BY)
 //v.2.5.B2 IMU is not providing any value, keep previous value as the best approach
 //v.2.6.B1 implementation of Wind Mode
+// RELEASE v.2.6.B1
 //v.3.0.B1 Compatibility with Virtuino 6 (Virtuino for Fenix App.4.0) and retrocompatibility with Virtuino 5 (Virtuino for Fenix App.3.0)
 //v.3.1.B1 Fix IMU not working since 2.5 (internal IMU not working, external IMU ok)
+//v.3.1.B1 Fix IMU recalibration in ALL operational modes: Fixes lost of autopilot operation when IMU recalibrates
+//v.3.1.B1 Improved IMU validity data management. After 2 recalibrations w/o suceeding set STAND_BY
+//v.3.1.B1 All config parameters into one file: Fenix_config.h
+// RELEASE v.3.1.B1
 
 //DEBUG
 // Defined for Release version
