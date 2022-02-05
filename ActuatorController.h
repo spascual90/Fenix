@@ -12,16 +12,15 @@
 #include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 
 //TODO: Config control
-// V0.1 PWM and DIR PIN changed to ensure compatibility with LCDKeyPad
-#define PIN_PWM 6
-#define PIN_DIR 7
-// V0.2 PWM and DIR PIN changed to ensure compatibility with LCDKeyPad
-//#define PIN_PWM 11
-//#define PIN_DIR 12
 
 
-#define MIN_SPEED 0
-#define MAX_SPEED 255
+// All configurations are managed in Fenix_config.h
+#include "Fenix_config.h"
+
+//#define PIN_PWM 6
+//#define PIN_DIR 7
+//#define MIN_SPEED 0
+//#define MAX_SPEED 255
 
 // setup status
 enum e_dir {EXTEND, RETRACT};

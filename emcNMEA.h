@@ -14,8 +14,10 @@
 #include "NeoGPS_cfg.h"
 #include "GPSport.h"
 
-# define DELAY_TX_TIME 1000 // period of NMEA transmission in millisecs (1000 = 1sec)
-# define DELAY_TX1_TIME 5000 // period of PEMC transmission in millisecs (5000 = 3sec)
+// All configurations are managed in Fenix_config.h
+#include "Fenix_config.h"
+//# define DELAY_TX_TIME 1000 // period of NMEA transmission in millisecs (1000 = 1sec)
+//# define DELAY_TX1_TIME 5000 // period of PEMC transmission in millisecs (5000 = 3sec)
 
 //------------------------------------------------------------
 // Enable/disable the parsing of specific proprietary NMEA sentences.

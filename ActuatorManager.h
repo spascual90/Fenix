@@ -13,15 +13,16 @@
 #include "ActuatorController.h"
 #include "DeadbandTrim.h"
 
+// All configurations are managed in Fenix_config.h
+#include "Fenix_config.h"
 
-//for DEBUGGING
-#include "GPSport.h"
-#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
-//#define DEBUG
-
-
-// ACTUATOR PARAMETERS
-#define SPEED_CRUISE 255
+// All configurations are managed in Fenix_config.h
+////for DEBUGGING
+////#include "GPSport.h"
+////#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
+////#define DEBUG
+//// ACTUATOR PARAMETERS
+//#define SPEED_CRUISE 255
 
 
 // INSTALATION PARAMETERS: POSSIBLE VALUES

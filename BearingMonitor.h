@@ -8,23 +8,26 @@
 #ifndef BEARINGMONITOR_H_
 #define BEARINGMONITOR_H_
 
-//#define SHIP_SIM // Uncomment to simulate boat to tune PID
-
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 #include <EEPROM.h>
 
-# define MAX_ITER 100000 // Max number of iterations to consider calibration procedure has failed
-# define CAL_CHECK_LOOP 7000//20000 // Number of iterations to check IMU Calibration results
-#define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
+// All configurations are managed in Fenix_config.h
+#include "Fenix_config.h"
 
-//SDA - I2C data pin, connect to your microcontrollers I2C data line. This pin can be
-//used with 3V or 5V logic, and there's a 10K pullup on this pin.
-#define PIN_SDA 20
-
-//SCL - I2C clock pin, connect to your microcontrollers I2C clock line. This pin can be
-// used with 3V or 5V logic, and there's a 10K pullup on this pin
-#define PIN_SCL 21
+////#define SHIP_SIM // Uncomment to simulate boat to tune PID
+//
+//# define MAX_ITER 100000 // Max number of iterations to consider calibration procedure has failed
+//# define CAL_CHECK_LOOP 7000//20000 // Number of iterations to check IMU Calibration results
+//#define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
+//
+////SDA - I2C data pin, connect to your microcontrollers I2C data line. This pin can be
+////used with 3V or 5V logic, and there's a 10K pullup on this pin.
+//#define PIN_SDA 20
+//
+////SCL - I2C clock pin, connect to your microcontrollers I2C clock line. This pin can be
+//// used with 3V or 5V logic, and there's a 10K pullup on this pin
+//#define PIN_SCL 21
 
 
 enum e_IMU_status {NOT_DETECTED, OPERATIONAL, SIMULATED, CAL_MODE, EXTERNAL_IMU};

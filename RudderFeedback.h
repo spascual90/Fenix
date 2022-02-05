@@ -11,26 +11,29 @@
 #include <Arduino.h>
 #include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 
-//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder at bow. Useful when linear actuator is not available
+// All configurations are managed in Fenix_config.h
+#include "Fenix_config.h"
+////#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder at bow. Useful when linear actuator is not available
+//
+//
+//#define PIN_RUDDER A8
+//#define PIN_RUDDER_NAME "A8"
+//
+//// FEEDBACK PARAMETERS HARDCODED
+//// Parameters for linear actuator THAT DEPENDS ON THE SPECIFIC LINEAR ACTUATOR
+//
+//// MIN/MAX VALUES FOR IDEAL LINEAR ACTUATOR
+//#define D_MIN_FEEDBACK 0 //AS READ FROM PIN_RUDDER IN THE RETRACTED POSITION OF THE ACTUATOR
+//#define D_MAX_FEEDBACK 1023 //AS READ FROM PIN_RUDDER IN THE EXTENDED POSITION OF THE ACTUATOR
+//
+//#define MIN_ERROR_FEEDBACK 3
+//#define DEFAULT_ERROR_FEEDBACK 10 //A number between 0 and 1023 to protect linear actuator from overuse
+//
+//// ADDITIONAL RUDDER PARAMETERS
+//// Parameters for rudder
+//#define DEFAULT_MRA 512 // MRA = ABS_MIN_RUDDER Value in degrees *10
+//#define RUDDER_LENGHT 1023 // Value in degrees *10
 
-
-#define PIN_RUDDER A8
-#define PIN_RUDDER_NAME "A8"
-
-// FEEDBACK PARAMETERS HARDCODED
-// Parameters for linear actuator THAT DEPENDS ON THE SPECIFIC LINEAR ACTUATOR
-
-// MIN/MAX VALUES FOR IDEAL LINEAR ACTUATOR
-#define D_MIN_FEEDBACK 0 //AS READ FROM PIN_RUDDER IN THE RETRACTED POSITION OF THE ACTUATOR
-#define D_MAX_FEEDBACK 1023 //AS READ FROM PIN_RUDDER IN THE EXTENDED POSITION OF THE ACTUATOR
-
-#define MIN_ERROR_FEEDBACK 3
-#define DEFAULT_ERROR_FEEDBACK 10 //A number between 0 and 1023 to protect linear actuator from overuse
-
-// ADDITIONAL RUDDER PARAMETERS
-// Parameters for rudder
-#define DEFAULT_MRA 512 // MRA = ABS_MIN_RUDDER Value in degrees *10
-#define RUDDER_LENGHT 1023 // Value in degrees *10
 //Rudder status
 enum e_rudderStatus {EXTENDED, CENTERED, RETRACTED};
 enum e_feedback_status {FEEDBACK_OK, OK_VIRTUAL, ERROR_TOO_BIG};

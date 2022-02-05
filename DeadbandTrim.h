@@ -10,16 +10,19 @@
 
 #include <LinearRegression.h>
 
-//for DEBUGGING
-#include "GPSport.h"
+// All configurations are managed in Fenix_config.h
+#include "Fenix_config.h"
 
-// Period definition
-#define DELAY_SAMPLING_PERIOD 1000 //mSec long period for evaluation
-#define NUMBER_SAMPLING 10 // number of iterations within long period for evaluation
-
-#define VALUE_MAXDB 15
-#define VALUE_MINDB 5
-#define VALUE_MAXTRIM 15
+////for DEBUGGING
+////#include "GPSport.h"
+//
+//// Period definition
+//#define DELAY_SAMPLING_PERIOD 1000 //mSec long period for evaluation
+//#define NUMBER_SAMPLING 10 // number of iterations within long period for evaluation
+//
+//#define VALUE_MAXDB 15
+//#define VALUE_MINDB 5
+//#define VALUE_MAXTRIM 15
 
 typedef enum type_DBConfig {MAXDB, MINDB, AUTODB} type_DBConfig;
 typedef enum type_trimConfig {TRIM_OFF, TRIM_AUTO} type_trimConfig;
