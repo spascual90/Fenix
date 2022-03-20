@@ -24,8 +24,8 @@
 #define TXNMEA //Comment this line to stop periodic NMEA Transmission
 
 // Commented for Release version
-//#define SHIP_SIM // Uncomment to simulate boat to tune PID
-//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder at bow. Useful when linear actuator is not available
+#define SHIP_SIM // Uncomment to simulate boat to tune PID
+#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder at bow. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
 
@@ -78,15 +78,21 @@
 # define DELAY_TX_TIME 1000 // period of NMEA transmission in millisecs (1000 = 1sec)
 # define DELAY_TX1_TIME 5000 // period of PEMC transmission in millisecs (5000 = 3sec)
 
+
+// autotune
+# define ATUNE_NOISE 5 // magnetic degrees (input signal noise). Maximum bandwith value recommended
+# define ATUNE_STEP 30 // rudder degrees (D value for output step)
+# define ATUNE_LOOKBACK 5000 //mseg look back time (local peaks filtering)
+
 // *** DeadbandTrim.h ***
 
 // Period definition
 #define DELAY_SAMPLING_PERIOD 1000 //mSec long period for evaluation
 #define NUMBER_SAMPLING 10 // number of iterations within long period for evaluation
 
-#define VALUE_MAXDB 15
-#define VALUE_MINDB 5
-#define VALUE_MAXTRIM 15
+#define VALUE_MAXDB 5//15 magnetic degrees
+#define VALUE_MINDB 0//5 magnetic degrees
+#define VALUE_MAXTRIM 15 // Rudder degrees
 
 // *** RudderFeedback.h ***
 
@@ -102,6 +108,15 @@
 // Parameters for rudder
 #define DEFAULT_MRA 512 // MRA = ABS_MIN_RUDDER Value in degrees *10
 #define RUDDER_LENGHT 1023 // Value in degrees *10
+
+// VIRTUAL_ACTUATOR Parameters
+#define VA_MRA 512 // Rudder value. MIN_RUDDER = -MRA; MAX_RUDDER = MRA-1
+#define VA_ERROR 5
+#define VA_DELTACENTEROFRUDDER 0
+#define VA_MINFEEDBACK 34 //value between 0 and 1024
+#define VA_MAXFEEDBACK 935 //value between 0 and 1024
+#define VA_SPEEDFEEDBACK 0.2 // speed in mm/mseg    20mm/seg--> 0.02 mm/mseg
+#define VA_LENGHTFEEDBACK 300.0 // mm lenght
 
 
 // *** HMIArq.h ***

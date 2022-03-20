@@ -54,7 +54,7 @@ e_setup_status Autopilot::setup() {
 	ActuatorController::setup();
 
 	// Setup Actuator manager
-	ActuatorManager::setup();
+	ActuatorManager::setup( ATUNE_NOISE, ATUNE_STEP, ATUNE_LOOKBACK);
 
 
 	// Setup rudder feedback
@@ -135,6 +135,10 @@ e_working_status Autopilot::Compute() {
 	// Play buzzer if required
 	buzzer_play();
 
+	#ifdef VIRTUAL_ACTUATOR
+	ActuatorManager::compute_VA();
+	#endif
+
 	// Updates current rudder just once each loop. Stores value for later use.
 	if (updateCurrentRudder()<0) return RUNNING_ERROR;
 
@@ -152,6 +156,9 @@ e_working_status Autopilot::Compute() {
 		break;
 	case CAL_FEEDBACK:
 		ws = compute_Cal_Feedback();
+		break;
+	case CAL_AUTOTUNE:
+		ws = compute_Autotune();
 		break;
 	}
 
@@ -185,6 +192,13 @@ e_working_status Autopilot::compute_OperationalMode(void){
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	if (ActuatorManager::Compute(PIDerrorPrima)!=1) return RUNNING_ERROR;
 	compute_OCA (PIDerrorPrima);
+	return RUNNING_OK;
+}
+
+e_working_status Autopilot::compute_Autotune(void){
+	float PIDerrorPrima = delta180(getTargetBearing(), Bearing_Monitor::getCurrentHeading());
+	if (PIDerrorPrima==-360) return RUNNING_ERROR;
+	if (ActuatorManager::Compute_Autotune(PIDerrorPrima)!=1) return RUNNING_ERROR;
 	return RUNNING_OK;
 }
 
@@ -671,9 +685,9 @@ bool Autopilot::Change_instParam (s_instParam instParam) {
 }
 
 void Autopilot::Request_PIDgain(s_PIDgain & PIDgain) {
-	PIDgain.gain.Kp.Towf_00(float(GetKp()));
-	PIDgain.gain.Ki.Towf_00(float(GetKi()));
-	PIDgain.gain.Kd.Towf_00(float(GetKd()));
+	PIDgain.gain.Kp.Towf_00(float(PID::GetKp()));
+	PIDgain.gain.Ki.Towf_00(float(PID::GetKi()));
+	PIDgain.gain.Kd.Towf_00(float(PID::GetKd()));
 	PIDgain.sTime= GetSampleTime();
 	PIDgain.DBConfig = dbt.getDBConf();
 	PIDgain.flag = {{true, true, true}, true, true};

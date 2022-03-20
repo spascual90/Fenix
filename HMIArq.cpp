@@ -66,21 +66,20 @@ void HMIArq::Request_FBKcal(s_FBKcal & FBKcal) {
 	return;
  }
 
-
 void HMIArq::Change_PID(s_PIDgain_flag change, s_gain gain) {
 	// if change.K* is true, take value from argument k*. If false, getK*() retrieves current value
-	float Kp = (change.Kp ? gain.Kp.float_00() : MyPilot->GetKp());
-	float Ki = (change.Ki ? gain.Ki.float_00() : MyPilot->GetKi());
-	float Kd = (change.Kd ? gain.Kd.float_00() : MyPilot->GetKd());
+	float Kp = (change.Kp ? gain.Kp.float_00() : MyPilot->PID::GetKp());
+	float Ki = (change.Ki ? gain.Ki.float_00() : MyPilot->PID::GetKi());
+	float Kd = (change.Kd ? gain.Kd.float_00() : MyPilot->PID::GetKd());
 	MyPilot->SetTunings (Kp, Ki, Kd);
     MyPilot->buzzer_Beep();
 }
 
 void HMIArq::Change_PID_rel (s_PIDgain_flag change, e_operation op, float value ){
 
-	float Kp=MyPilot->GetKp();
-	float Ki=MyPilot->GetKi();
-	float Kd=MyPilot->GetKd();
+	float Kp=MyPilot->PID::GetKp();
+	float Ki=MyPilot->PID::GetKi();
+	float Kd=MyPilot->PID::GetKd();
 
 	if (change.Kp) operation (op, Kp, value);
 	if (change.Ki) operation (op, Ki, value);
@@ -118,6 +117,14 @@ bool HMIArq::Change_instParam (s_instParam instParam) {
 	return MyPilot->Change_instParam (instParam);
     MyPilot->buzzer_Beep();
 
+}
+
+void HMIArq::Apply_PIDrecom(){
+	if (MyPilot->CopyToPIDAutoTune()) {
+		MyPilot->buzzer_Beep();
+	} else {
+		DEBUG_print ("!PID recommendation not available\n");
+	}
 }
 
 

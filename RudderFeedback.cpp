@@ -8,6 +8,8 @@
 #include "RudderFeedback.h"
 
 RudderFeedback::RudderFeedback(int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback) {
+
+//	#ifndef VIRTUAL_ACTUATOR
 	//setup independent variables
 	setMRA(MRA, false); // TODO: MRA user configurable
 
@@ -15,6 +17,16 @@ RudderFeedback::RudderFeedback(int MRA, int error, int deltaCenterOfRudder, int 
 	setMinFeedback(minFeedback, false);
 	setMaxFeedback(maxFeedback, false);
 	setDeltaCenterOfRudder(deltaCenterOfRudder, false);
+//	#else
+//	//setup independent variables
+//	setMRA(VA_MRA, false); // TODO: MRA user configurable
+//
+//	setErrorFeedback(VA_ERROR, false);
+//	setMinFeedback(VA_MINFEEDBACK, false);
+//	setMaxFeedback(VA_MAXFEEDBACK, false);
+//	setDeltaCenterOfRudder(VA_DELTACENTEROFRUDDER, false);
+//	#endif
+
 }
 
 RudderFeedback::~RudderFeedback() {
@@ -24,10 +36,8 @@ RudderFeedback::~RudderFeedback() {
 e_feedback_status RudderFeedback::setup(bool b_ibit){
 	e_feedback_status ret = FEEDBACK_OK;
 	//setup dependent variables
-#ifndef VIRTUAL_ACTUATOR
 	setLimitMinFeedback(_min_feedback);
 	setLimitMaxFeedback(_max_feedback);
-#endif
 	_feedback_lenght = _limit_max_feedback-_limit_min_feedback;
 	_ratio = RUDDER_LENGHT/float(_feedback_lenght);
 	_center_of_rudder = (RUDDER_LENGHT / 2) + 1 + getMinRudder() + getDeltaCenterOfRudder() ;
@@ -68,9 +78,6 @@ void RudderFeedback::setDeltaCenterOfRudder(int deltaCenterOfRudder, bool recalc
 }
 
 e_feedback_status RudderFeedback::IBIT(){
-#ifdef VIRTUAL_ACTUATOR
-	return OK_VIRTUAL;
-#else
 	int l=8, d=2;
 	char c4[l+3];
 
@@ -91,9 +98,15 @@ e_feedback_status RudderFeedback::IBIT(){
 	sprintf(DEBUG_buffer,"Feedback error: %i (Max:%i)\n",feed_error, getErrorFeedback ());
 	DEBUG_print();
 	if (feed_error>getErrorFeedback ()) return ERROR_TOO_BIG;
-#endif
+
 	DEBUG_PORT.flush();
+
+#ifdef VIRTUAL_ACTUATOR
+	return OK_VIRTUAL;
+#else
 	return FEEDBACK_OK;
+#endif
+
 }
 
 int RudderFeedback::updateCurrentRudder() {
@@ -102,15 +115,19 @@ int RudderFeedback::updateCurrentRudder() {
 	//Transforms actuator feedback into rudder metrics based on RUDDERFEEDBACK.H PARAMETERS
 	_currentRudder = toRudder(Feedback-getLimitMinFeedback())+getMinRudder(); // (+MIN_RUDDER)
 
-#ifdef VIRTUAL_ACTUATOR
-	_currentRudder = 0;
-#endif
+//#ifdef VIRTUAL_ACTUATOR
+//	_currentRudder = 0;
+//#endif
 
 	return Feedback;
 }
 
 int RudderFeedback::getFeedback() const {
+#ifndef VIRTUAL_ACTUATOR
 	return analogRead(PIN_RUDDER);
+#else
+	return _va_analogRead;
+#endif
 }
 
 e_rudderStatus RudderFeedback::getRudderStatus() const {
@@ -121,6 +138,9 @@ e_rudderStatus RudderFeedback::getRudderStatus() const {
 }
 
 int RudderFeedback::rudder_IBIT () {
+#ifdef VIRTUAL_ACTUATOR
+	return VA_ERROR;
+#else
 	int val, val_min=1024, val_max =0, error;
 	int i = 0;
 	DEBUG_print("Checking feedback error. It may take a few seconds...");
@@ -135,8 +155,8 @@ int RudderFeedback::rudder_IBIT () {
 	DEBUG_print("Ok.\n");
 
 	error = val_max-val_min;
-
 	return error;
+#endif
 }
 
 // FEEDBACK CALIBRATION FUNCTIONS

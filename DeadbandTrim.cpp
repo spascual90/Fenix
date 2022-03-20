@@ -81,7 +81,7 @@ int DeadbandTrim::calculateDBTrim(float PIDerrorPrima, float rudder){
 		_n++;
 
 		if (_n==NUMBER_SAMPLING) {
-			// Update DB and trimm
+			// Update DB and trim
 //			int l=8, d=2;
 //			char c3[l+3];
 //			char c4[l+3];

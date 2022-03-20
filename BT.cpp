@@ -176,6 +176,10 @@ void BT::triggerAction () {
     	ResetPID();
     	break;
 
+    case BT_APPLY_PID_RECOM:
+    	Apply_PIDrecom();
+    	break;
+
  // IMU CALIBRATION PANEL
     case BT_START_IMU_CAL:
 		if (currentMode==STAND_BY) Start_Cal();
@@ -255,9 +259,13 @@ void BT::updateBT(){
 
 	_V[AV_LED_STATUS] = MyPilot->getCurrentMode();
 
-	_V[AI_KP] = MyPilot->GetKp();
-	_V[AI_KI] = MyPilot->GetKi();
-	_V[AI_KD] = MyPilot->GetKd();
+	_V[AI_KP] = MyPilot->PID::GetKp();
+	_V[AI_KI] = MyPilot->PID::GetKi();
+	_V[AI_KD] = MyPilot->PID::GetKd();
+
+	_V[AI_RECOM_KP] = MyPilot->PID_ATune::GetKp();
+	_V[AI_RECOM_KI] = MyPilot->PID_ATune::GetKi();
+	_V[AI_RECOM_KD] = MyPilot->PID_ATune::GetKd();
 
 	_V[AV_LED_DBACTIVE] = MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0;
 

@@ -47,8 +47,8 @@ enum e_BT_push_button {
 		, BT_SAVE_IMU_CAL=17
 		, BT_SAVE_FBK_CAL=18
 		, BT_SET_VWR = 19
-		, BT_FREE20 = 20
-		, MAX_BT = BT_FREE20 +1
+		, BT_APPLY_PID_RECOM = 20
+		, MAX_BT = BT_APPLY_PID_RECOM +1
 	};
 
 
@@ -89,6 +89,9 @@ enum e_BT_AI_PIN {
 , AV_LED_IMU_CAL_SYS = 30	// Special AV PINS
 , AI_INV_HDG = 31 // img:compass5 (compass heading bow, not north!)
 , AI_DELTA_VWR = 32 // img: vwr01 (wind dir rel to bow - white cloud)
+, AI_RECOM_KP = 33
+, AI_RECOM_KI = 34
+, AI_RECOM_KD = 35
 , MAX_AI = AI_DELTA_VWR +1
 
 };

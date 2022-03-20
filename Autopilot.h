@@ -47,7 +47,7 @@ enum e_setup_status {SETUP_OK, IMU_ERROR, FEEDBACK_ERROR};
 enum e_working_status {RUNNING_OK, RUNNING_ERROR, RUN_OUT_OF_TIME};
 
 // working modes
-enum e_APmode {STAND_BY, CAL_IMU_COMPLETE, XXX_DEPRECATED, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE, WIND_MODE};
+enum e_APmode {STAND_BY, CAL_IMU_COMPLETE, XXX_DEPRECATED, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE, WIND_MODE, CAL_AUTOTUNE};
 
 
 // Error codes
@@ -349,16 +349,26 @@ enum e_info {
 	static s_instParam const HC_INSTPARAM ={
 			true, //isValid
 			{true, true, true, true, true, true, true, true, true, true}, // flag
+			#ifndef VIRTUAL_ACTUATOR
 			0, // centerTiller
 			512, //maxRudder
+			#else
+			VA_DELTACENTEROFRUDDER, // centerTiller
+			VA_MRA, //maxRudder
+			#endif
 			5, //avdSpeed
 			type_instSide::STARBOARD , //instSide
 			5, //rudDamping
 			{2,50}, //magVariation
 			{0,0}, //headAlign
 			20, //offCourseAlarm
+			#ifndef VIRTUAL_ACTUATOR
 			0, //minFeedback
 			1024 // maxFeedback
+			#else
+			VA_MINFEEDBACK, //minFeedback
+			VA_MAXFEEDBACK // maxFeedback
+			#endif
 	};
 
 enum e_start_stop {CURRENT_HEADING, CURRENT_TARGET};
@@ -531,6 +541,8 @@ private:
 	e_working_status compute_Stand_By(void);
 	e_working_status compute_Cal_IMU(bool completeCal);
 	e_working_status compute_Cal_Feedback(void);
+	e_working_status compute_Autotune(void);
+
 	void computeLongLoop(void);
 
 	//TRACK MODE

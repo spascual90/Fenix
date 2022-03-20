@@ -9,7 +9,8 @@
 
 ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback)
 	: PID_ext(&_Input, &_Output, &_Setpoint, Kp, Ki, Kd, ControllerDirection),
-	RudderFeedback(MRA, error, deltaCenterOfRudder, minFeedback, maxFeedback)
+	  PID_ATune(&_Input, &_Output),
+	  RudderFeedback(MRA, error, deltaCenterOfRudder, minFeedback, maxFeedback)
 {
 
 	// Implement PID gain initial values
@@ -29,7 +30,7 @@ ActuatorManager::~ActuatorManager() {
 }
 
 
-void ActuatorManager::setup(){
+void ActuatorManager::setup(double aTuneNoise, double aTuneStep, double aTuneLookBack){
 	int feedback = updateCurrentRudder();
 	bool out_min = feedback < getLimitMinFeedback();
 	bool out_max = feedback > getLimitMaxFeedback();
@@ -43,6 +44,8 @@ void ActuatorManager::setup(){
 		setDir(RETRACT);
 		DEBUG_print("Warning: Linear actuator over limit\n");
 	}
+
+	setupAutoTune(aTuneNoise, aTuneStep, aTuneLookBack);
 
 }
 
@@ -60,6 +63,8 @@ void ActuatorManager::startAutoMode(){
 	//turn the PID on
 	SetMode(AUTOMATIC);
 	dbt.StartSampling();
+	// Cancel autotune after starting automode
+	stopAutoTune();
 
 }
 
@@ -67,6 +72,8 @@ void ActuatorManager::stopAutoMode(){
 	//turn the PID on
 	SetMode(MANUAL);
 	setTargetRudder(getCurrentRudder());
+	// Starts autotune after stopping automode
+	startAutoTune();
 }
 
 
@@ -95,9 +102,13 @@ int ActuatorManager::Compute(float setPoint, float processVariable) {
 }
 
 int ActuatorManager::Compute(float PIDerrorPrima) {
-		static float prevPIDerrorPrima = PIDerrorPrima;
+
+	//static float prevPIDerrorPrima = PIDerrorPrima;
 		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 		//setSetpoint(0); If always 0 it is not necessary to update value...
+
+		//evaluateAutoTune();
+
 		PID_ext::Compute();
 
 		dbt.calculateDBTrim(PIDerrorPrima, getCurrentRudder());
@@ -106,6 +117,34 @@ int ActuatorManager::Compute(float PIDerrorPrima) {
 
 		return 1;
 	}
+
+int ActuatorManager::Compute_Autotune(float PIDerrorPrima) {
+
+		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
+		//setSetpoint(0); If always 0 it is not necessary to update value...
+
+		evaluateAutoTune();
+
+		controlActuator (getOutput(), 0, 0);
+
+		return 1;
+	}
+
+int ActuatorManager::compute_VA() {
+	// Refresh virtual actuator status
+	#ifdef VIRTUAL_ACTUATOR
+	float distance = ActuatorController::compute_VA();
+	int new_analog = getVAanalogRead() + int(distance * 1024.0);
+	int l=8, d=4;
+	char c3[l+3];
+	char c4[l+3];
+//	sprintf(DEBUG_buffer,"distance, new_analog: %s, %i\n",dtostrf(distance,l,d,c3), new_analog);
+//	DEBUG_print();
+//	DEBUG_PORT.flush();
+
+	setVAanalogRead(new_analog);
+	#endif
+}
 
 int ActuatorManager::changeRudder(int delta_rudder) {
 
@@ -171,3 +210,97 @@ int ActuatorManager::controlActuator(int target_rudder, boolean deadband, int tr
 void ActuatorManager::ResetTunings(){
 	SetTunings (_KpIni, _KiIni, _KdIni);
 }
+
+
+// AUTOTUNE
+//input: bearing
+//input noise band: max. bandwith: 5 degrees
+//look back time (local peaks filtering): 5 seg
+//
+//The number of cycles performed will vary between 3 and 10.
+//The algorithm waits until the last 3 maxima have been within 5% of each other.
+//This is trying to ensure that we’ve reached a stable oscillation and there’s no external strangeness happening. This leads me to…
+//
+//output: rudder angle
+//
+//proceso:
+//- En modo Auto, navegar hacia un rumbo estable
+//- Extender actuador al máximo hasta alcanzar un rumbo 100º a estribor
+//- Retraer actuador al mínimo hasta alcanzar un rumbo 200º a babor
+//- Extender actuador al máximo hasta alcanzar un rumbo 200º a estribor
+//- Repetir hasta que Autotune considere necesario (3/10 veces)
+//
+//Monitorización:
+//Target bearing en cada momento
+//Numero de ciclos
+//Estado del proceso: Starting process, turn starboard, turn portboard, process finished successfully, process finished with errors
+
+void ActuatorManager::setupAutoTune(double aTuneNoise, double aTuneStep, double aTuneLookBack)
+{
+    SetNoiseBand(aTuneNoise);
+    SetOutputStep(aTuneStep);
+    SetLookbackSec((int)aTuneLookBack);
+}
+
+
+void ActuatorManager::startAutoTune(void) {
+ if(!_tuning)
+  {
+    //Set the output to the desired starting frequency.
+	//    output=aTuneStartValue;
+	//    SetNoiseBand(aTuneNoise);
+	//    SetOutputStep(aTuneStep);
+	//    SetLookbackSec((int)aTuneLookBack);
+    //AutoTuneHelper(true);
+    _tuning = true;
+	DEBUG_print("!ATune started\n");
+  }
+}
+
+bool ActuatorManager::evaluateAutoTune(void) {
+	if(_tuning) {
+		  byte val = (Runtime());
+		  if (val!=0) {
+			DEBUG_print("!Autotune finished\n");
+			stopAutoTune();
+		  }
+		  return _tuning;
+	}
+}
+
+
+void ActuatorManager::stopAutoTune(void) {
+	if (_tuning) {
+		//cancel autotune
+		Cancel();
+		_tuning = false;
+		DEBUG_print("!ATune stopped\n");
+
+	}
+}
+
+bool ActuatorManager::CopyToPIDAutoTune(void) {
+
+	if(!_tuning) {
+		//we're done, set the tuning parameters
+		double l_kp = PID_ATune::GetKp();
+		double l_ki = PID_ATune::GetKi();
+		double l_kd = PID_ATune::GetKd();
+		SetTunings(l_kp,l_ki,l_kd);
+	}
+	return (!_tuning);
+}
+
+//void SerialSend()
+//{
+//	DEBUG_print("setpoint: ",setpoint);
+//  DEBUG_print("input: "),input);
+//  DEBUG_print("output: ",output);
+//  if(_tuning){
+//    DEBUG_print("tuning mode\n");
+//  } else {
+//    DEBUG_print("kp: ");myPID.GetKp())
+//    DEBUG_print("ki: ");myPID.GetKi())
+//    DEBUG_print("kd: ");myPID.GetKd())
+//  }
+//}

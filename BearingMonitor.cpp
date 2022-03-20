@@ -21,7 +21,7 @@ Bearing_Monitor::~Bearing_Monitor() {
 e_IMU_status Bearing_Monitor::setup(void){
 #ifdef SHIP_SIM
 		_IMU_status = SIMULATED;
-		_internalIMU_status= NOT_DETECTED;
+		_internalIMU_status= INT_NOT_DETECTED;
 
 #else
 	_bno = Adafruit_BNO055(55);
@@ -33,8 +33,8 @@ e_IMU_status Bearing_Monitor::setup(void){
 	} else {
 		_IMU_status = NOT_DETECTED;
 		_internalIMU_status= INT_NOT_DETECTED;
-#endif
 	}
+#endif
 	return _IMU_status;
 }
 

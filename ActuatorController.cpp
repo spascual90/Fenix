@@ -48,15 +48,7 @@ e_dir ActuatorController::setDir(e_dir dir) {
 	if (dir!=_currentDirection) {
 		_currentDirection = dir;
 		digitalWrite(PIN_DIR,_currentDirection);   // set DIR to EXTEND or RETRACT
-		// PROTECT LINEAR ACTUATOR FROM HIGH THROUGHPUT DUE TO CHANGE OF DIRECTION
-		//t0 = millis();
-		//blocked_dirCharge = true;
-
 	}
-	//if ((millis()-t0) > delay_dirChange) {
-	//	blocked_dirCharge = false;
-	//	digitalWrite(PIN_DIR,_currentDirection);   // set DIR to EXTEND or RETRACT
-	//}
 
 	return _currentDirection;
 }
@@ -66,9 +58,32 @@ int ActuatorController::setSpeed(int speed) {
 		_currentSpeed = speed;
 		analogWrite(PIN_PWM, _currentSpeed);
 	}
-	/*if (!blocked_dirCharge) {
-		analogWrite(PIN_PWM, _currentSpeed);
-	}*/
 
 	return _currentSpeed;
 }
+
+//VIRTUAL ACTUATOR status update
+// returns a float between (-1, 1) representing the % of actuator length run in the last period
+float ActuatorController::compute_VA (void) {
+	float const c_ratio = float(VA_SPEEDFEEDBACK) / float(VA_LENGHTFEEDBACK);
+	static long lastTime = millis();
+	long  thisTime = millis();
+	float deltaTime = thisTime-lastTime;
+	float value;
+	lastTime = thisTime;
+	if (_currentSpeed == 0) return 0;
+	//value = (float(VA_SPEEDFEEDBACK) * float(deltaTime) / float(VA_LENGHTFEEDBACK));
+	value = ( c_ratio * float(deltaTime) );
+		if (_currentDirection== RETRACT) value = -value;
+
+//				int l=8, d=4;
+//				char c3[l+3];
+//				char c4[l+3];
+//				sprintf(DEBUG_buffer,"deltaTime, value=%s,%s\n",dtostrf(deltaTime,l,d,c3), dtostrf(value,l,d,c4));
+//				DEBUG_print();
+//				DEBUG_PORT.flush();
+
+	return value;
+
+}
+

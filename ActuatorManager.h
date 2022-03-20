@@ -12,6 +12,8 @@
 #include "RudderFeedback.h"
 #include "ActuatorController.h"
 #include "DeadbandTrim.h"
+#include "PID_AutoTune_v0.h"
+
 
 // All configurations are managed in Fenix_config.h
 #include "Fenix_config.h"
@@ -36,17 +38,19 @@
 // Installation side
 typedef enum type_instSide {STARBOARD, PORTBOARD} type_instSide;
 
-class ActuatorManager: public PID_ext,
+class ActuatorManager: public PID_ext, public PID_ATune,
 		public RudderFeedback,
 		public ActuatorController {
 public:
 	ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback);
 	virtual ~ActuatorManager();
-	void setup();
+	void setup(double aTuneNoise, double aTuneStep, double aTuneLookBack);
 	void startAutoMode();
 	void stopAutoMode();
 	int Compute(float setPoint, float processVariable);
 	int Compute(float PIDerrorPrima);
+	int Compute_Autotune(float PIDerrorPrima);
+	int compute_VA(void);
 	int controlActuator (int target, bool deadband = false, int trim = 0);
 	void ResetTunings();
 
@@ -87,6 +91,13 @@ public:
 		_installation_side = installationSide;
 	}
 
+	void setupAutoTune(double aTuneNoise, double aTuneStep, double aTuneLookBack);
+	void startAutoTune(void);
+	void stopAutoTune (void);
+	bool evaluateAutoTune (void);
+	bool CopyToPIDAutoTune(void);
+
+
 	//DeadbandTrim
 	DeadbandTrim dbt;
 
@@ -105,8 +116,10 @@ private:
 	//Installation side
 	type_instSide _installation_side = STARBOARD;
 
-	void SetMode(int Mode);
+	//PID Tune
+	boolean _tuning = false;
 
+	void SetMode(int Mode);
 
 };
 

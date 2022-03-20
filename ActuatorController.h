@@ -47,12 +47,14 @@ public:
 	int get_PIN_PWM() {return PIN_PWM;}
 	int get_PIN_DIR() {return PIN_DIR;}
 
-
 protected:
 	void setup();
 
 	//Feedback Calibration
 	int cal_FBK_move(e_dir dir);
+
+	//VIRTUAL ACTUATOR status update
+	float compute_VA (void);
 
 private:
 	e_dir _currentDirection= EXTEND; // EXTEND or RETRACT

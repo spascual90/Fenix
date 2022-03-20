@@ -75,6 +75,7 @@ protected:
 
 	void Change_PID(s_PIDgain_flag, s_gain);
 	void Change_PID_rel (s_PIDgain_flag change, e_operation op, float value );
+	void Apply_PIDrecom();
 	bool Change_instParam (s_instParam instParam);
 	void setDBConf (type_DBConfig status);
 	void received_APB( s_APB APB);

@@ -91,6 +91,17 @@ public:
 	void setLimitMaxFeedback(int limitMaxFeedback = D_MAX_FEEDBACK);
 	void getFBKcalStatus(uint16_t & cal_min, uint16_t & cal_max);
 
+	int getVAanalogRead() const {
+		return _va_analogRead;
+	}
+
+	void setVAanalogRead(int vaAnalogRead) {
+		//sprintf(DEBUG_buffer,"_va_analogRead=%i\n",vaAnalogRead);
+		//DEBUG_print();
+
+		_va_analogRead = vaAnalogRead;
+	}
+
 protected:
 	//fn to change independent variables in Standby mode
 	void setDeltaCenterOfRudder(int deltaCenterOfRudder = 0, bool recalc = true);
@@ -116,15 +127,23 @@ protected:
 
 	void compute_Cal_Feedback();
 
-
 private:
+#ifdef VIRTUAL_ACTUATOR
+	//independent variables
+	int _errorFeedback = VA_ERROR;
+	int _min_feedback = VA_MINFEEDBACK;//A number between 0 and 1023.
+	int _max_feedback = VA_MAXFEEDBACK;//A number between 0 and 1023.
+	int _delta_center_of_rudder =VA_DELTACENTEROFRUDDER;
+	int _MRA = VA_MRA; // MIN_RUDDER = -MRA; MAX_RUDDER = MRA-1
+
+#else
 	//independent variables
 	int _errorFeedback = DEFAULT_ERROR_FEEDBACK;
 	int _min_feedback = D_MIN_FEEDBACK;//A number between 0 and 1023.
 	int _max_feedback = D_MAX_FEEDBACK;//A number between 0 and 1023.
 	int _delta_center_of_rudder =0;
 	int _MRA = DEFAULT_MRA; // MIN_RUDDER = -MRA; MAX_RUDDER = MRA-1
-
+#endif
 	//dependent variables
 	int _limit_min_feedback = (D_MIN_FEEDBACK+DEFAULT_ERROR_FEEDBACK);//A number between 0 and 1023.
 	int _limit_max_feedback = (D_MAX_FEEDBACK-DEFAULT_ERROR_FEEDBACK);//A number between 0 and 1023.
@@ -141,7 +160,8 @@ private:
 	char* get_PIN_RUDDER() {return (PIN_RUDDER_NAME);}
 	int rudder_IBIT ();
 
-
+	// Virtual actuator feeback read
+	int _va_analogRead = 512;
 };
 
 #endif /* RUDDERFEEDBACK_H_ */
