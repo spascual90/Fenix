@@ -24,8 +24,8 @@
 #define TXNMEA //Comment this line to stop periodic NMEA Transmission
 
 // Commented for Release version
-#define SHIP_SIM // Uncomment to simulate boat to tune PID
-#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder at bow. Useful when linear actuator is not available
+//#define SHIP_SIM // Uncomment to simulate boat to tune PID
+//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder at bow. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
 
@@ -81,8 +81,8 @@
 
 // autotune
 # define ATUNE_NOISE 5 // magnetic degrees (input signal noise). Maximum bandwith value recommended
-# define ATUNE_STEP 30 // rudder degrees (D value for output step)
-# define ATUNE_LOOKBACK 5000 //mseg look back time (local peaks filtering)
+# define ATUNE_STEP 500 // rudder degrees (D value for output step)
+# define ATUNE_LOOKBACK 50 //mseg look back time (local peaks filtering)
 
 // *** DeadbandTrim.h ***
 
@@ -115,7 +115,7 @@
 #define VA_DELTACENTEROFRUDDER 0
 #define VA_MINFEEDBACK 34 //value between 0 and 1024
 #define VA_MAXFEEDBACK 935 //value between 0 and 1024
-#define VA_SPEEDFEEDBACK 0.2 // speed in mm/mseg    20mm/seg--> 0.02 mm/mseg
+#define VA_SPEEDFEEDBACK 0.05 // speed in mm/mseg    20mm/seg--> 0.02 mm/mseg
 #define VA_LENGHTFEEDBACK 300.0 // mm lenght
 
 

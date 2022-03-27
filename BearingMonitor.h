@@ -193,7 +193,7 @@ private:
 
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
 	float _SIMheading =0;
-	int unstat0= 200;//	ddeg
+	int unstat0= 0;//200;//	ddeg
 	float alfaMax = 0.048;//	deg/mseg
 	unsigned long deltaT=100;//	mseg
 	float softFactor =10000;

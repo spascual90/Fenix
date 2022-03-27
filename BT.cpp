@@ -176,7 +176,7 @@ void BT::triggerAction () {
     	ResetPID();
     	break;
 
-    case BT_APPLY_PID_RECOM:
+    case BT_SAVE_PID_RECOM:
     	Apply_PIDrecom();
     	break;
 
@@ -197,9 +197,26 @@ void BT::triggerAction () {
     case BT_SAVE_FBK_CAL:
 		if (currentMode == CAL_FEEDBACK ) Enter_Exit_FBK_Calib();// Exit FBK cal mode
 		Save_instParam();
-
 		break;
 
+
+// AUTOTUNE PANEL
+    case BT_START_AUTOTUNE:
+    	if (currentMode == STAND_BY ) Start_Cancel_AutotunePID();
+    	break;
+
+    case BT_STOP_AUTOTUNE:
+    	if (currentMode == CAL_AUTOTUNE) {
+    		MyPilot->stopAutoTune();
+    		MyPilot->setCurrentMode(STAND_BY);
+    	}
+    	break;
+
+    case BT_RESTORE_PID:
+    	if (currentMode == STAND_BY) {
+    		MyPilot->ResetTunings();
+    	}
+    	break;
 
 // Deprecated functions
 //    case BT_K_MUL2:
@@ -267,6 +284,9 @@ void BT::updateBT(){
 	_V[AI_RECOM_KI] = MyPilot->PID_ATune::GetKi();
 	_V[AI_RECOM_KD] = MyPilot->PID_ATune::GetKd();
 
+	_V[AI_AUTOTUNE_CYCLE] = MyPilot->getPeakCount();
+	_V[AI_AUTOTUNE_INPUT] = MyPilot->PID_ATune::getInput();
+
 	_V[AV_LED_DBACTIVE] = MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0;
 
 	_V[AI_USER_MESSAGE] = MyPilot->getInformation();
@@ -292,6 +312,12 @@ void BT::updateBT(){
 //		IMU_LOW,
 //		WP_INVALID
 //		NO_WIND_DATA
+
+//	, AI_RECOM_KP = 33
+//	, AI_RECOM_KI = 34
+//	, AI_RECOM_KD = 35
+//	, AI_AUTOTUNE_CYCLE = 36
+//	, AI_AUTOTUNE_INFO = 37
 
 	updateSpecialBT();
 

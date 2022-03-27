@@ -54,8 +54,7 @@ e_setup_status Autopilot::setup() {
 	ActuatorController::setup();
 
 	// Setup Actuator manager
-	ActuatorManager::setup( ATUNE_NOISE, ATUNE_STEP, ATUNE_LOOKBACK);
-
+	ActuatorManager::setup( ATUNE_NOISE, ATUNE_STEP, ATUNE_LOOKBACK );
 
 	// Setup rudder feedback
 	e_feedback_status f_status = RudderFeedback::setup(true);
@@ -283,6 +282,14 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 		//set_calFeedback();
 		start_calFeedback();
 		break;
+
+	case CAL_AUTOTUNE:
+		startAutoTune();
+    	DEBUG_print("!SetCurrentMode: CAL_AUTOTUNE\n");
+		break;
+
+
+
 	default:
 		break;
 	}
@@ -306,6 +313,8 @@ void Autopilot::computeLongLoop() {
 		refreshCalStatus();
 
 		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU(true);
+		if (_currentMode == CAL_AUTOTUNE) computeLongLoop_heading();
+
 		if (isCalMode()) return;
 
 		computeLongLoop_heading();
@@ -328,6 +337,13 @@ bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode){
 			setTargetBearing (_WPactive.APB.CTS.float_00());
 		}
 		break;
+
+	case STAND_BY:
+		if (newMode == CAL_AUTOTUNE) {
+			setTargetBearing (getCurrentHeading());
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -387,6 +403,7 @@ bool Autopilot::isCalMode(void){
 	switch (getCurrentMode()) {
 	case CAL_IMU_COMPLETE:
 	case CAL_FEEDBACK:
+	case CAL_AUTOTUNE:
 		return true;
 	default:
 		return false;
@@ -471,6 +488,22 @@ void Autopilot::Enter_Exit_FBK_Calib(void) {
 		setCurrentMode(STAND_BY);
 		break;
 		// If other case REJECT
+	default:
+		break;
+	}
+}
+
+
+void Autopilot::Start_Cancel_AutotunePID(void) {
+	switch (getCurrentMode()) {
+	// If in STAND_BY --> set AutotunePID mode
+	case STAND_BY:
+		setCurrentMode(CAL_AUTOTUNE);
+		break;
+	case CAL_AUTOTUNE:
+		setCurrentMode(STAND_BY);
+		break;
+		// In other case REJECT
 	default:
 		break;
 	}

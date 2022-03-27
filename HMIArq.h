@@ -65,6 +65,8 @@ protected:
 	void Set_NewDeltaCourse(float newDCourse);
 	void Set_Headalign();
 	void Enter_Exit_FBK_Calib();
+	void Start_Cancel_AutotunePID();
+
 
 	void ResetPID();
 	void Request_PIDgain(s_PIDgain & PIDgain);

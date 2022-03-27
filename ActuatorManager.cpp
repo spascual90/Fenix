@@ -9,7 +9,7 @@
 
 ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback)
 	: PID_ext(&_Input, &_Output, &_Setpoint, Kp, Ki, Kd, ControllerDirection),
-	  PID_ATune(&_Input, &_Output),
+	  PID_ATune(&_ATune_Input, &_ATune_Output),
 	  RudderFeedback(MRA, error, deltaCenterOfRudder, minFeedback, maxFeedback)
 {
 
@@ -63,8 +63,7 @@ void ActuatorManager::startAutoMode(){
 	//turn the PID on
 	SetMode(AUTOMATIC);
 	dbt.StartSampling();
-	// Cancel autotune after starting automode
-	stopAutoTune();
+
 
 }
 
@@ -72,10 +71,7 @@ void ActuatorManager::stopAutoMode(){
 	//turn the PID on
 	SetMode(MANUAL);
 	setTargetRudder(getCurrentRudder());
-	// Starts autotune after stopping automode
-	startAutoTune();
 }
-
 
 int ActuatorManager::Compute(float setPoint, float processVariable) {
 
@@ -103,11 +99,8 @@ int ActuatorManager::Compute(float setPoint, float processVariable) {
 
 int ActuatorManager::Compute(float PIDerrorPrima) {
 
-	//static float prevPIDerrorPrima = PIDerrorPrima;
 		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 		//setSetpoint(0); If always 0 it is not necessary to update value...
-
-		//evaluateAutoTune();
 
 		PID_ext::Compute();
 
@@ -120,12 +113,12 @@ int ActuatorManager::Compute(float PIDerrorPrima) {
 
 int ActuatorManager::Compute_Autotune(float PIDerrorPrima) {
 
-		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
+		setATuneInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 		//setSetpoint(0); If always 0 it is not necessary to update value...
 
 		evaluateAutoTune();
 
-		controlActuator (getOutput(), 0, 0);
+		controlActuator (int(_ATune_Output), false, 0);
 
 		return 1;
 	}
@@ -135,12 +128,6 @@ int ActuatorManager::compute_VA() {
 	#ifdef VIRTUAL_ACTUATOR
 	float distance = ActuatorController::compute_VA();
 	int new_analog = getVAanalogRead() + int(distance * 1024.0);
-	int l=8, d=4;
-	char c3[l+3];
-	char c4[l+3];
-//	sprintf(DEBUG_buffer,"distance, new_analog: %s, %i\n",dtostrf(distance,l,d,c3), new_analog);
-//	DEBUG_print();
-//	DEBUG_PORT.flush();
 
 	setVAanalogRead(new_analog);
 	#endif
@@ -221,7 +208,7 @@ void ActuatorManager::ResetTunings(){
 //The algorithm waits until the last 3 maxima have been within 5% of each other.
 //This is trying to ensure that we’ve reached a stable oscillation and there’s no external strangeness happening. This leads me to…
 //
-//output: rudder angle
+//output: target rudder angle
 //
 //proceso:
 //- En modo Auto, navegar hacia un rumbo estable
@@ -247,22 +234,27 @@ void ActuatorManager::startAutoTune(void) {
  if(!_tuning)
   {
     //Set the output to the desired starting frequency.
-	//    output=aTuneStartValue;
-	//    SetNoiseBand(aTuneNoise);
-	//    SetOutputStep(aTuneStep);
-	//    SetLookbackSec((int)aTuneLookBack);
-    //AutoTuneHelper(true);
+
     _tuning = true;
 	DEBUG_print("!ATune started\n");
   }
 }
 
 bool ActuatorManager::evaluateAutoTune(void) {
+	int l=8, d=4;
+	char c3[l+3];
+	char c4[l+3];
+	char c5[l+3];
+
 	if(_tuning) {
 		  byte val = (Runtime());
 		  if (val!=0) {
 			DEBUG_print("!Autotune finished\n");
 			stopAutoTune();
+
+			sprintf(DEBUG_buffer,"Kp, Ki, Kd: %s, %s, %s\n",dtostrf(PID_ATune::GetKp(),l,d,c3) ,dtostrf(PID_ATune::GetKi(),l,d,c4),dtostrf(PID_ATune::GetKd(),l,d,c5));
+			DEBUG_print();
+
 		  }
 		  return _tuning;
 	}
@@ -274,6 +266,8 @@ void ActuatorManager::stopAutoTune(void) {
 		//cancel autotune
 		Cancel();
 		_tuning = false;
+		_ATune_Output = 0;
+		_ATune_Input = 0;
 		DEBUG_print("!ATune stopped\n");
 
 	}
@@ -290,17 +284,3 @@ bool ActuatorManager::CopyToPIDAutoTune(void) {
 	}
 	return (!_tuning);
 }
-
-//void SerialSend()
-//{
-//	DEBUG_print("setpoint: ",setpoint);
-//  DEBUG_print("input: "),input);
-//  DEBUG_print("output: ",output);
-//  if(_tuning){
-//    DEBUG_print("tuning mode\n");
-//  } else {
-//    DEBUG_print("kp: ");myPID.GetKp())
-//    DEBUG_print("ki: ");myPID.GetKi())
-//    DEBUG_print("kd: ");myPID.GetKd())
-//  }
-//}

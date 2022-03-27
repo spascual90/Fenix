@@ -411,6 +411,7 @@ public:
 	void Start_Stop(e_start_stop type);
 	void Start_Stop_wind(void);
 	void Enter_Exit_FBK_Calib(void);
+	void Start_Cancel_AutotunePID(void);
 
 	//TRACK MODE
 	bool activateWPnext(void); // User push Next button

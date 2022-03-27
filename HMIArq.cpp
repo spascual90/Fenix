@@ -122,6 +122,7 @@ bool HMIArq::Change_instParam (s_instParam instParam) {
 void HMIArq::Apply_PIDrecom(){
 	if (MyPilot->CopyToPIDAutoTune()) {
 		MyPilot->buzzer_Beep();
+		MyPilot->setCurrentMode(STAND_BY);
 	} else {
 		DEBUG_print ("!PID recommendation not available\n");
 	}
@@ -148,6 +149,13 @@ void HMIArq::Enter_Exit_FBK_Calib() {
 	MyPilot->Enter_Exit_FBK_Calib();
     MyPilot->buzzer_Beep();
 }
+
+void HMIArq::Start_Cancel_AutotunePID() {
+	MyPilot->Start_Cancel_AutotunePID();
+    MyPilot->buzzer_Beep();
+}
+
+
 
 void HMIArq::Inc_Rudder_1(){
     MyPilot->changeRudder(+RATE_1);

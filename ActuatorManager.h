@@ -97,6 +97,9 @@ public:
 	bool evaluateAutoTune (void);
 	bool CopyToPIDAutoTune(void);
 
+	void setATuneInput(double aTuneInput) {
+		_ATune_Input = aTuneInput;
+	}
 
 	//DeadbandTrim
 	DeadbandTrim dbt;
@@ -116,8 +119,10 @@ private:
 	//Installation side
 	type_instSide _installation_side = STARBOARD;
 
-	//PID Tune
+	//ATunePID
 	boolean _tuning = false;
+	//ATune PID: Define Variables we'll be connecting to
+	double _ATune_Input, _ATune_Output;
 
 	void SetMode(int Mode);
 
