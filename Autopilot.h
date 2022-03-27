@@ -431,6 +431,7 @@ public:
                                           //   of changing tunings during runtime for Adaptive control
     void setHeadingDev(float headingDev = 0);
 	void setDBConf (type_DBConfig status);
+	type_DBConfig nextDBConf (void);
 
 	//FUNCTIONAL MODULE: EEPROM
 	void EEPROM_setup();

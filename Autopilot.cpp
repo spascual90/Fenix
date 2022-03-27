@@ -671,7 +671,12 @@ void Autopilot::setDBConf (type_DBConfig status) {
 	if (!isCalMode()) dbt.setDBConf (status);
 }
 
-
+type_DBConfig Autopilot::nextDBConf (void) {
+	if (!isCalMode()) {
+		return dbt.nextDBConf ();
+	}
+	return dbt.getDBConf();
+}
 
 
 void Autopilot::Request_instParam(s_instParam & instParam) {

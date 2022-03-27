@@ -113,6 +113,12 @@ void HMIArq::setDBConf (type_DBConfig status) {
 
 }
 
+void HMIArq::nextDBConf () {
+	MyPilot->nextDBConf ();
+    MyPilot->buzzer_Beep();
+
+}
+
 bool HMIArq::Change_instParam (s_instParam instParam) {
 	return MyPilot->Change_instParam (instParam);
     MyPilot->buzzer_Beep();

@@ -51,8 +51,9 @@ enum e_BT_push_button {
 		, BT_SAVE_PID_RECOM = 21
 		, BT_RESTORE_PID = 22
 		, BT_STOP_AUTOTUNE = 23
+		, BT_SET_DBCONF = 24
 
-		, MAX_BT = BT_STOP_AUTOTUNE +1
+		, MAX_BT = BT_SET_DBCONF +1
 	};
 
 

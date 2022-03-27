@@ -24,7 +24,7 @@
 //#define VALUE_MINDB 5
 //#define VALUE_MAXTRIM 15
 
-typedef enum type_DBConfig {MAXDB, MINDB, AUTODB} type_DBConfig;
+typedef enum type_DBConfig {MAXDB, MINDB, AUTODB, ENDLOOP} type_DBConfig;
 typedef enum type_trimConfig {TRIM_OFF, TRIM_AUTO} type_trimConfig;
 
 class DeadbandTrim {
@@ -34,6 +34,7 @@ public:
 
 	void setTrim (type_trimConfig status);
 	void setDBConf (type_DBConfig status);
+	type_DBConfig nextDBConf (void);
 	type_DBConfig getDBConf (void) const {return _DBConfig;}
 
 	void StartSampling();

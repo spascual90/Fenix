@@ -180,6 +180,10 @@ void BT::triggerAction () {
     	Apply_PIDrecom();
     	break;
 
+    case BT_SET_DBCONF:
+    	nextDBConf();
+    	break;
+
  // IMU CALIBRATION PANEL
     case BT_START_IMU_CAL:
 		if (currentMode==STAND_BY) Start_Cal();

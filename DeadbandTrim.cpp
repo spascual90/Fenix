@@ -23,7 +23,14 @@ void DeadbandTrim::setTrim (type_trimConfig status) {
 	_trimConfig=status;
 }
 void DeadbandTrim::setDBConf (type_DBConfig status){
+	if (status == ENDLOOP) status = MAXDB; // This value is not valid
 	_DBConfig= status;
+}
+
+type_DBConfig DeadbandTrim::nextDBConf (void){
+	_DBConfig=_DBConfig+1;
+	if (_DBConfig == ENDLOOP) _DBConfig=0;
+	return _DBConfig;
 }
 
 bool DeadbandTrim::getDeadband(int angle) {
