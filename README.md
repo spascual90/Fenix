@@ -21,6 +21,12 @@ Fenix Autopilot is an open-source DIY tiller pilot for small boats based on Ardu
 - v.3.1.B1 Fix IMU recalibration in ALL operational modes: Fixes lost of autopilot operation when IMU recalibrates
 - v.3.1.B1 Improved IMU validity data management. After 2 recalibrations w/o suceeding set STAND_BY
 - v.3.1.B1 For developers: All config parameters into one file: Fenix_config.h
+- v.3.2.B1 Autotune mode, proposes PID values based on boat performance test
+- v.3.2.B1 Change of deadband min/MAX values: min: 1deg, max 5deg
+- v.3.2.B1 Deadband mode button: select autodeadband mode (min, MAX, auto) from Virtuino for Fenix App.4.2
+
+
+
 
 Release documentation:
 https://github.com/spascual90/Fenix/blob/master/RELEASE.md
