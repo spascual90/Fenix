@@ -1,5 +1,5 @@
 # RELEASE
-## Version: 2.6
+## Version: 3.1
 ## System requirements implemented
 | Req.ID# | Description | Criticity | Implemented |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----------- |
@@ -16,6 +16,7 @@
 | AP-4 | Closed | Internal compass tilt compensated | High |
 | AP-6 | Closed | Calibration procedure for internal compass before installation supported by Autopilot without additional OEM SW. | High |
 | AP-7 | Closed | Compensation of permanent deviation of installed compass with reference to the bow. | High |
+| AP-15 | Closed | Capability to record required parameters to analyze AP performance for different external conditions for testing purposes.     | High           |
 | AP-18 | Closed | USB electrical interface. | High |
 | AP-19 | Closed | Alternative NMEA 0183 version 2.x or | High | er electrical interface (RS422). | Nice to have
 | AP-20 | Closed | NMEA 0183 data protocol at least versions 2.x to 4.x (4800 baud, w/o parity, 8 bits,1 bit stop) | High
@@ -56,7 +57,6 @@ AP-37 | Closed | Tack in Wind mode. AP will turn to head the same Real Wind Angl
 | AP-9    | Closed | Mounting at starboard or portboard | High           |
 | AP-12   | Closed | Autogain for different SOW (speed over water).  | Low            |
 | AP-13   | Closed | If SOW is not available, user configurable speed shall be used. | AP.-14  | Closed | User configurable gain for testing purposes.    | High           |
-| AP-15   | Closed | Capability to record required parameters to analyze AP performance for different external conditions for testing purposes.     | High           |
 AP-23 | Closed | Reception of SOW information from nautical slide. In Km or nautical miles. | Low |
   | AP-32 | Closed | Nav mode. If not available from external source, the required course will be BTW. | Nice to have |
 

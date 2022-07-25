@@ -14,9 +14,13 @@ Fenix Autopilot is an open-source DIY tiller pilot for small boats based on Ardu
 - v.2.6.B1 implementation of capability to receive relative wind direction through VWR messages reception
 - v.2.6.B2 IMU Calibration blocked in operational modes: IMU recalibration in ALL operational modes (not only STAND_BY)
 - v.2.6.B2 IMU is not providing any value, keep previous value as the best approach
-- v.2.6.B1 implementation of Wind Mode
-- v.2.6.B1 Compatible with Virtuino for Fenix V3.0
-
+- v.2.6.B2 implementation of Wind Mode
+- v.2.6.B2 Compatible with Virtuino for Fenix V3.0
+- v.3.1.B1 Compatibility with Virtuino for Fenix App.4.1 (download Virtuino 6 App in Google Play Store) and retrocompatibility with Virtuino for Fenix App.3.0 (download Virtuino 5 App in Google Play Store)
+- v.3.1.B1 Fix internal IMU issue in 2.6.B1 ( Internal IMU not working, external IMU ok)
+- v.3.1.B1 Fix IMU recalibration in ALL operational modes: Fixes lost of autopilot operation when IMU recalibrates
+- v.3.1.B1 Improved IMU validity data management. After 2 recalibrations w/o suceeding set STAND_BY
+- v.3.1.B1 For developers: All config parameters into one file: Fenix_config.h
 
 Release documentation:
 https://github.com/spascual90/Fenix/blob/master/RELEASE.md
