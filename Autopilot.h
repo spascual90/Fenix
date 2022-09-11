@@ -429,7 +429,7 @@ public:
     void SetTunings(double, double,       // * While most users will set the tunings once in the
                     double);         	  //   constructor, this function gives the user the option
                                           //   of changing tunings during runtime for Adaptive control
-    void setHeadingDev(float headingDev = 0);
+    bool setHeadingDev(float headingDev = 0);
 	void setDBConf (type_DBConfig status);
 	type_DBConfig nextDBConf (void);
 

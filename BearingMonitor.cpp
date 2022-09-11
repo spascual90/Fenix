@@ -24,6 +24,9 @@ e_IMU_status Bearing_Monitor::setup(void){
 		_internalIMU_status= INT_NOT_DETECTED;
 
 #else
+	//No calibration when IMU is in external mode.
+	if (_IMU_status==EXTERNAL_IMU) return _IMU_status;
+
 	_bno = Adafruit_BNO055(55);
 	if(_bno.begin(Adafruit_BNO055::OPERATION_MODE_NDOF)) {
 		_internalIMU_status= INT_DETECTED;
@@ -66,6 +69,10 @@ bool Bearing_Monitor::compute_Cal_IMU(bool completeCal) {
 //	sprintf(DEBUG_buffer,"in_IMU,CAL,CHECK: %i,%i,%i\n",_IMU_status,_IMU_cal_status,_IMU_check);
 //	DEBUG_print(DEBUG_buffer);
 //	DEBUG_PORT.flush();
+
+	//No calibration when IMU is in external mode.
+	if (_IMU_status==EXTERNAL_IMU) return false;
+
 
 	switch (_IMU_cal_status) {
 	case CAL_NOT_STARTED:
@@ -125,7 +132,7 @@ bool Bearing_Monitor::compute_Cal_IMU(bool completeCal) {
 
 
 	if (ret == false and _IMU_status != OPERATIONAL) {
-		DEBUG_print("***Finished calib\n");
+		//DEBUG_print("***Finished calib\n");
 		_IMU_status = OPERATIONAL;
 		_IMU_cal_status = CAL_NOT_STARTED;
 		_IMU_check = CHECK_NOT_STARTED;
@@ -303,34 +310,42 @@ void Bearing_Monitor::refreshCalStatus(void)
 
 }
 
-e_IMU_status Bearing_Monitor::updateHeading(bool fixedSource, bool validExternal, float HDMExternal){
+e_IMU_status Bearing_Monitor::updateHeading(bool changeSourceEnabled, bool validExternal, float HDMExternal){
 #ifdef SHIP_SIM
 	_heading = _SIMheading;
 	_heading_isValid = true;
 	_heading_isFrozen = false;
 	return SIMULATED;
 #else
-	//decide if changing IMU status
-	if (!fixedSource and _IMU_status!=CAL_MODE) {
+	//decide if changing IMU status and source
+	if (changeSourceEnabled and _IMU_status!=CAL_MODE) {
 		if (validExternal) {
 			_IMU_status = EXTERNAL_IMU;
+			//DEBUG_print("***change to EXTERNA_IMU\n");
 		} else {
 			if (_internalIMU_status == INT_DETECTED) {
 				_IMU_status = OPERATIONAL;
+				//DEBUG_print("***change to OPERATIONAL\n");
 			} else {
 				_IMU_status = NOT_DETECTED;
+				//DEBUG_print("***change to NOT_DETECTED\n");
 			}
 		}
 	}
+
 
 	//update heading based on IMU status
 	switch (_IMU_status) {
 	case OPERATIONAL:
 	case CAL_MODE:
 		updateHeading();
+		//DEBUG_print("***OP&CAL_MODE updateHeading\n");
+
 		break;
 	case EXTERNAL_IMU:
 		updateHeading(validExternal, HDMExternal);
+		//DEBUG_print("***EXTERNAL_IMU updateHeading\n");
+
 		break;
 	case NOT_DETECTED:
 		break;
@@ -353,23 +368,30 @@ e_IMU_status Bearing_Monitor::updateHeading(){
 	//int l=8, d=2;
 	//char c4[l+3];
 
+	if (_IMU_status == EXTERNAL_IMU) return _IMU_status;
+
 	// heading is valid only when a good reference is obtained from calibration status
 	// heading is invalid at the begining of the execution and after 2 loops of bad quality data
-	if (getCalibrationStatus()) _heading_isValid = true;
+	if (getCalibrationStatus()) {
+		_heading_isValid = true;
+		_heading_isFrozen = false;
+		 valid_data = true;
+	} else {
+		 valid_data = false;
+
+	}
 
 	// - VECTOR_EULER         - degrees
 	imu::Vector<3> euler = _bno.getVector(Adafruit_BNO055::VECTOR_EULER);
 	float read_heading = euler.x();
 
-	if (_heading_isValid) {
+	//Only updates if heading is not frozen
+	if ((_heading_isValid==true) and (_heading_isFrozen==false)) {
 		//sprintf(DEBUG_buffer, "Heading=%s\n", dtostrf(read_heading,l,d,c4));
 		//DEBUG_print();
-
-		 valid_data = true;
 		_heading = read_heading;
-		_heading_isFrozen = false;
-	} else {
-		valid_data = false;
+		//DEBUG_print("update heading\n");
+
 	}
 
 	if (!valid_data) {
@@ -377,12 +399,13 @@ e_IMU_status Bearing_Monitor::updateHeading(){
 
 		if (low_quality_data>MAX_LOW_QDATA) {
 			if (_heading_isFrozen==false) {
-			// Low quality data and last data was not frozen. This is the first time to get low quality data for a while after last calibration reset.
-			// Freeze Heading (last value still valid) until valid data is received from IMU.
-			//IMU calibration reset in ALL operational modes (not only STAND_BY)
-			reset_calibration(); // Reset calibration in all operational modes
-			low_quality_data=0;
-			_heading_isFrozen = true;} else {
+				// Low quality data and last data was not frozen. This is the first time to get low quality data for a while after last calibration reset.
+				// Freeze Heading (last value still valid) until valid data is received from IMU.
+				//IMU calibration reset in ALL operational modes (not only STAND_BY)
+				reset_calibration(); // Reset calibration in all operational modes. Except when external IMU is in use.
+				low_quality_data=0;
+				_heading_isFrozen = true;
+			} else {
 				//Low quality data for two times in a row. Heading is not valid any more
 				_heading_isValid = false;
 			}
@@ -394,7 +417,7 @@ e_IMU_status Bearing_Monitor::updateHeading(){
 
 e_IMU_status Bearing_Monitor::updateHeading(bool valid, float HDM){
 	_heading_isValid = valid;
-	_heading_isFrozen = valid; //in external mode, there is no info of heading quality
+	_heading_isFrozen = false; //in external mode, there is no info of heading quality
 	if (valid) _heading = HDM;
 	return _IMU_status;
 }
@@ -414,6 +437,11 @@ bool Bearing_Monitor::getCalibrationStatus(void) {
 bool Bearing_Monitor::getCalibrationStatus(uint8_t &system) {
 	uint8_t gyro, accel, mag = 0;
 	_bno.getCalibration(&system, &gyro, &accel, &mag);
+
+	//sprintf(DEBUG_buffer, "gyro=%i; mag=%i\n", gyro, mag);
+	//DEBUG_print();
+
+
 	return (gyro>1 and mag>1);// (gyro==3 and mag==3); (system==3 and gyro==3 and mag==3);
 }
 

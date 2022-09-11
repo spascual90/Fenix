@@ -80,7 +80,9 @@ public:
 	bool getCheckSGAM(uint8_t &S, uint8_t &G, uint8_t &A, uint8_t &M);
 
 	float getCurrentHeading() {
-		return reduce360(_heading + _headingDev);
+		//In EXTERNAL_IMU mode, Heading deviation is not managed by Autopilot but by external device
+		return (_IMU_status==EXTERNAL_IMU?reduce360(_heading):reduce360(_heading + _headingDev));
+
 	}
 
 	float getHeadingDev() const {

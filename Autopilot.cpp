@@ -394,8 +394,14 @@ void Autopilot::setNextCourse(float nextCourse) {
 	_nextCourse = nextCourse;
 }
 
-void Autopilot::setHeadingDev(float headingDev) {
-	if (getCurrentMode() == STAND_BY) Bearing_Monitor::setHeadingDev(headingDev);
+bool Autopilot::setHeadingDev(float headingDev) {
+	// Heading Deviation is only applicable to internal IMU. When receiving external IMU information this function is not operative
+	if (getCurrentMode() == STAND_BY and  getIMUstatus()!=EXTERNAL_IMU ) {
+		Bearing_Monitor::setHeadingDev(headingDev);
+	} else {
+		return false;
+	}
+	return true;
 }
 
 // CALIBRATION MODE
@@ -607,6 +613,8 @@ void Autopilot::computeLongLoop_heading(void) {
 	//if HDM messages are received within MAX_HDM_TIME seconds, external compass is valid.
 	//only changes compass source (internal/ external) in STAND_BY
 	updateHeading(_currentMode == STAND_BY, isValid_HDM(), _extHeading.HDM.HDM.float_00());
+
+	if (isHeadingFrozen()) setWarning(IMU_LOW);
 
 	//If heading value is not valid in operational mode set STAND BY mode
 	if (!isHeadingValid() and !isCalMode() and getCurrentMode()!=STAND_BY) {
@@ -1041,14 +1049,14 @@ bool Autopilot::EEsave_PIDgain(bool HC){
 	}
     EEPROM.put(eeAddress, PIDgain);
 
-    //BORRAME
-    sprintf(DEBUG_buffer,"pid Saved at %i\n", eeAddress );
-	DEBUG_print();
-	bool Loaded = PIDgain.isValid &&
-			PIDgain.flag.DBConfig &&
-			PIDgain.flag.sTime &&
-			PIDgain.flag.gain.Kp && PIDgain.flag.gain.Ki && PIDgain.flag.gain.Kd;
-    if (!Loaded) DEBUG_print("!Flags not true\n" );
+//    //BORRAME
+//    sprintf(DEBUG_buffer,"PID Saved at %i\n", eeAddress );
+//	DEBUG_print();
+//	bool Loaded = PIDgain.isValid &&
+//			PIDgain.flag.DBConfig &&
+//			PIDgain.flag.sTime &&
+//			PIDgain.flag.gain.Kp && PIDgain.flag.gain.Ki && PIDgain.flag.gain.Kd;
+//    if (!Loaded) DEBUG_print("!Flags not true\n" );
     //BORRAME
 
     DataStored = true;
