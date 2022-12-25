@@ -41,8 +41,8 @@ public:
 
 	//emcNMEA I/F implementation
 	float getDm() {	return MyPilot->getDm();}
-    float getMagnetic(float value) {return MyPilot->ChangeRef(value, Bearing_Monitor::TRUEtoMAGNETIC);}
-    float getTrue(float value) {return MyPilot->ChangeRef(value, Bearing_Monitor::MAGNETICtoTRUE);}
+    float getMagnetic(float value) {return MyPilot->ChangeRef(value, Bearing_MonitorArq::TRUEtoMAGNETIC);}
+    float getTrue(float value) {return MyPilot->ChangeRef(value, Bearing_MonitorArq::MAGNETICtoTRUE);}
 	int getRudder(){return MyPilot->getCurrentRudder();}
 	float getHeading() {return MyPilot->getCurrentHeading();}
 	void printPEMC_03(Stream * outStream);

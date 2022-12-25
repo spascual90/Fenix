@@ -1,7 +1,7 @@
 #ifndef FENIX_CONFIG_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.3.1.B1"
+#define ARDUINO_VERSION "v.3.3.B1"
 
 // RELEASE v.2.0.B1
 // RELEASE v.2.1.B1
@@ -26,6 +26,7 @@
 //v.3.2.B2 Fixed auto-calibration management
 //v.3.2.B2 Deleted some debugging messages
 // RELEASE v.3.2.B2
+//v.3.3B1 IMU Library rebuilt. RTIMU open-source Library used instead
 
 //DEBUG
 // Defined for Release version
@@ -78,6 +79,8 @@
 #define SPEED_CRUISE 255
 
 // *** BearingMonitor.h ***
+//Comment for external BNO055 fusion OR OTHER IMU TYPES!!!
+#define BNO055_INTERNAL_FUSION //Sensor fusion performed internally by BNO055.
 
 #define MAX_ITER 100000 // Max number of iterations to consider calibration procedure has failed
 #define CAL_CHECK_LOOP 7000//20000 // Number of iterations to check IMU Calibration results

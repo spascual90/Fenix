@@ -9,7 +9,7 @@
 
 Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
  : ActuatorManager(gain.Kp.float_00(), gain.Ki.float_00(), gain.Kd.float_00(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback) //maxRudder is the min/max value for PID as well.
- , Bearing_Monitor ( ip.headAlign.float_00() )
+ , Bearing_MonitorIMU ( ip.headAlign.float_00() )
 {
 	//SET HARDCODED INSTALATION PARAMETERS
 	// Installation side IS
@@ -74,7 +74,7 @@ e_setup_status Autopilot::setup() {
 
 	// Setup IMU
 
-	switch (Bearing_Monitor::setup()) {
+	switch (IMU_setup(EE_address.IMU)) {
 	case NOT_DETECTED:
 		// There was a problem detecting the IMU ... check your connections */
 		DEBUG_print("!WARNING: IMU Not detected. Check your wiring or I2C ADDR\n");
@@ -97,24 +97,18 @@ e_setup_status Autopilot::setup() {
 		// Launch calibration
 		setCurrentMode (CAL_IMU_COMPLETE);
 		return SETUP_OK;
-		//if (BNO_GetCal(true)==RECALIBRATED) { // Calibrates and checks results
-		//	DEBUG_print("!Calibration succeed!\n");
-		//	return SETUP_OK;
-		//}
 	  }
 
-	 //  Get and restore BNO Calibration offsets
+	 //  Get and restore IMU Calibration offsets
 	 if (EEload_Calib()==CAL_RESULT_NOT_CALIBRATED) {
 		// There was a problem reading IMU calibration values
-		//EEsave_ReqCal(true); // Set flag to enabled to enter into Calibration mode next time system is reset
 		DEBUG_print("!Please enter into Calibration Mode\n"); // System is not reset automatically to avoid recurrent writing EEPROM
 		setWarning(EE_IMU_NOTFOUND);
 		return SETUP_OK;
 	 }
 	// Ensures calibration is valid by recalibrating (without check feature)
-	refreshCalStatus();
-	reset_calibration();
-
+	//refreshCalStatus();
+	//reset_calibration();
 
 	setInformation(NO_MESSAGE);
 	return SETUP_OK;
@@ -169,7 +163,7 @@ e_working_status Autopilot::Compute() {
 }
 
 e_working_status Autopilot::compute_Cal_IMU(bool completeCal){
-	if (!Bearing_Monitor::compute_Cal_IMU(completeCal)) {
+	if (!Bearing_MonitorArq::compute_Cal_IMU(completeCal)) {
 		if (_currentMode==CAL_IMU_COMPLETE) setCurrentMode(STAND_BY);
 	}
 
@@ -187,7 +181,7 @@ e_working_status Autopilot::compute_Stand_By(){
 }
 
 e_working_status Autopilot::compute_OperationalMode(void){
-	float PIDerrorPrima = delta180(getTargetBearing(), Bearing_Monitor::getCurrentHeading());
+	float PIDerrorPrima = delta180(getTargetBearing(), Bearing_MonitorArq::getCurrentHeading());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	if (ActuatorManager::Compute(PIDerrorPrima)!=1) return RUNNING_ERROR;
 	compute_OCA (PIDerrorPrima);
@@ -195,7 +189,7 @@ e_working_status Autopilot::compute_OperationalMode(void){
 }
 
 e_working_status Autopilot::compute_Autotune(void){
-	float PIDerrorPrima = delta180(getTargetBearing(), Bearing_Monitor::getCurrentHeading());
+	float PIDerrorPrima = delta180(getTargetBearing(), Bearing_MonitorArq::getCurrentHeading());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	if (ActuatorManager::Compute_Autotune(PIDerrorPrima)!=1) return RUNNING_ERROR;
 	return RUNNING_OK;
@@ -397,7 +391,7 @@ void Autopilot::setNextCourse(float nextCourse) {
 bool Autopilot::setHeadingDev(float headingDev) {
 	// Heading Deviation is only applicable to internal IMU. When receiving external IMU information this function is not operative
 	if (getCurrentMode() == STAND_BY and  getIMUstatus()!=EXTERNAL_IMU ) {
-		Bearing_Monitor::setHeadingDev(headingDev);
+		Bearing_MonitorArq::setHeadingDev(headingDev);
 	} else {
 		return false;
 	}
@@ -612,7 +606,7 @@ void Autopilot::VWRreceived(s_VWR VWR) {
 void Autopilot::computeLongLoop_heading(void) {
 	//if HDM messages are received within MAX_HDM_TIME seconds, external compass is valid.
 	//only changes compass source (internal/ external) in STAND_BY
-	updateHeading(_currentMode == STAND_BY, isValid_HDM(), _extHeading.HDM.HDM.float_00());
+	Bearing_MonitorArq::updateHeading(_currentMode == STAND_BY, isValid_HDM(), _extHeading.HDM.HDM.float_00());
 
 	if (isHeadingFrozen()) setWarning(IMU_LOW);
 
@@ -919,59 +913,14 @@ bool Autopilot::EEload_ReqCal (void)
 	return false;
 }
 
+
 bool Autopilot::EEsave_Calib(){
-	bool DataStored = false;
-	long eeAddress = EE_address.IMU;
- 	//DATA TO SAVE
-	long bnoID;
-	adafruit_bno055_offsets_t Calib;
-
-	DEBUG_print("!Saving Calibration...");
-
-	//bnoID
-    bnoID = getSensorId();
-    EEPROM.put(eeAddress, bnoID);
-    eeAddress += sizeof(bnoID);
-
-    //Calib
-	Calib = getSensorOffsets();
-    EEPROM.put(eeAddress, Calib);
-
-    DataStored = true;
-
-	DEBUG_print("Ok\n");
-    return DataStored;
-}  //  end EEsave_Calib
-
-e_IMU_cal_status Autopilot::EEload_Calib(){
-	//  Get and restore BNO Calibration offsets
-	long EE_bnoID, bnoID;
-	adafruit_bno055_offsets_t calibrationData;
-	int eeAddress = EE_address.IMU;
-
-	//  Look for the sensor's unique ID in EEPROM.
-	EEPROM.get(eeAddress, EE_bnoID);
-	// Look for unique ID reported by IMU
-	bnoID = getSensorId();
-	sprintf(DEBUG_buffer,"IMU Sensor ID: %i\n",bnoID);
-	DEBUG_print(DEBUG_buffer);
-
-	if (EE_bnoID != bnoID) {
-		DEBUG_print("!WARNING: No Calibration Data for this sensor found!\n");
-		sprintf(DEBUG_buffer,"ID found: %i\n",EE_bnoID);
-		DEBUG_print(DEBUG_buffer);
-
-		return CAL_RESULT_NOT_CALIBRATED;
-	}
-	DEBUG_print("!Found Calibration data...\n");
-	eeAddress += sizeof(long);
-	EEPROM.get(eeAddress, calibrationData);
-	setIniCalib(calibrationData);
-	displaySensorOffsets();
-
-	return CAL_RESULT_RECALIBRATED;
+	return Bearing_MonitorArq::EEsave_Calib(EE_address.IMU);
 }
 
+e_IMU_cal_status Autopilot::EEload_Calib(){
+	return Bearing_MonitorArq::EEload_Calib(EE_address.IMU);
+}
 
 bool Autopilot::EEsave_HCParam(){
 	bool inst_OK, PID_OK;
