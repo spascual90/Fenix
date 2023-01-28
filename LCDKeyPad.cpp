@@ -266,7 +266,7 @@ void LCDKeyPad::changeMenu(int* MenuItem, int Delta){
 
 void LCDKeyPad::printCalibrationStatus() {
 	setCursor(15,0);
-	print ((MyPilot->Bearing_MonitorArq::getCalibrationStatus()?3:0));
+	print ((MyPilot->BearingMonitor::getCalibrationStatus()?3:0));
 }
 
 void LCDKeyPad::printRudderStatus() {

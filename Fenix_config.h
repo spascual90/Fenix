@@ -40,7 +40,7 @@
 //#define DEBUG
 
 //Other libraries necessary for printing to serial monitor
-//#include "GPSport.h" // Some libraries requires to uncomment this line to print debug messages to serial monitor
+#include "GPSport.h" // Some libraries requires to uncomment this line to print debug messages to serial monitor
 //#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
 
@@ -79,17 +79,13 @@
 #define SPEED_CRUISE 255
 
 // *** BearingMonitor.h ***
-//Comment for external BNO055 fusion OR OTHER IMU TYPES!!!
-#define BNO055_INTERNAL_FUSION //Sensor fusion performed internally by BNO055.
-
-#define MAX_ITER 100000 // Max number of iterations to consider calibration procedure has failed
-#define CAL_CHECK_LOOP 7000//20000 // Number of iterations to check IMU Calibration results
-#define MAX_LOW_QDATA 100 // Maximum iterations with low quality data from IMU
+#define MINIMU9V5
+//#define BNO055_EXTERNAL_FUSION
+//#define BNO055_INTERNAL_FUSION//Sensor fusion performed internally by BNO055.
 
 // emcNMEA.h
 # define DELAY_TX_TIME 1000 // period of NMEA transmission in millisecs (1000 = 1sec)
 # define DELAY_TX1_TIME 5000 // period of PEMC transmission in millisecs (5000 = 3sec)
-
 
 // autotune
 # define ATUNE_NOISE 5 // magnetic degrees (input signal noise). Maximum bandwith value recommended

@@ -3,13 +3,13 @@
  *
  *  Created on: 16 abr. 2017
  *      Author: Sergio
- */
+*/
 
 #include "Autopilot.h"
 
 Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
  : ActuatorManager(gain.Kp.float_00(), gain.Ki.float_00(), gain.Kd.float_00(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback) //maxRudder is the min/max value for PID as well.
- , Bearing_MonitorIMU ( ip.headAlign.float_00() )
+ , BearingMonitor ( ip.headAlign.float_00() )
 {
 	//SET HARDCODED INSTALATION PARAMETERS
 	// Installation side IS
@@ -154,16 +154,16 @@ e_working_status Autopilot::Compute() {
 		ws = compute_Autotune();
 		break;
 	}
-
+	//Dynamic calibration
 	// update IMU calibration except in CAL_IMU_COMPLETE
-	if (_currentMode!=CAL_IMU_COMPLETE) ws = compute_Cal_IMU(false);
+	//if (_currentMode!=CAL_IMU_COMPLETE) ws = compute_Cal_IMU(false);
 
 
 	return ws;
 }
 
 e_working_status Autopilot::compute_Cal_IMU(bool completeCal){
-	if (!Bearing_MonitorArq::compute_Cal_IMU(completeCal)) {
+	if (!BearingMonitor::compute_Cal_IMU(completeCal)) {
 		if (_currentMode==CAL_IMU_COMPLETE) setCurrentMode(STAND_BY);
 	}
 
@@ -181,7 +181,7 @@ e_working_status Autopilot::compute_Stand_By(){
 }
 
 e_working_status Autopilot::compute_OperationalMode(void){
-	float PIDerrorPrima = delta180(getTargetBearing(), Bearing_MonitorArq::getCurrentHeading());
+	float PIDerrorPrima = delta180(getTargetBearing(), BearingMonitor::getCurrentHeading());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	if (ActuatorManager::Compute(PIDerrorPrima)!=1) return RUNNING_ERROR;
 	compute_OCA (PIDerrorPrima);
@@ -189,7 +189,7 @@ e_working_status Autopilot::compute_OperationalMode(void){
 }
 
 e_working_status Autopilot::compute_Autotune(void){
-	float PIDerrorPrima = delta180(getTargetBearing(), Bearing_MonitorArq::getCurrentHeading());
+	float PIDerrorPrima = delta180(getTargetBearing(), BearingMonitor::getCurrentHeading());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	if (ActuatorManager::Compute_Autotune(PIDerrorPrima)!=1) return RUNNING_ERROR;
 	return RUNNING_OK;
@@ -391,7 +391,7 @@ void Autopilot::setNextCourse(float nextCourse) {
 bool Autopilot::setHeadingDev(float headingDev) {
 	// Heading Deviation is only applicable to internal IMU. When receiving external IMU information this function is not operative
 	if (getCurrentMode() == STAND_BY and  getIMUstatus()!=EXTERNAL_IMU ) {
-		Bearing_MonitorArq::setHeadingDev(headingDev);
+		BearingMonitor::setHeadingDev(headingDev);
 	} else {
 		return false;
 	}
@@ -606,7 +606,7 @@ void Autopilot::VWRreceived(s_VWR VWR) {
 void Autopilot::computeLongLoop_heading(void) {
 	//if HDM messages are received within MAX_HDM_TIME seconds, external compass is valid.
 	//only changes compass source (internal/ external) in STAND_BY
-	Bearing_MonitorArq::updateHeading(_currentMode == STAND_BY, isValid_HDM(), _extHeading.HDM.HDM.float_00());
+	BearingMonitor::updateHeading(_currentMode == STAND_BY, isValid_HDM(), _extHeading.HDM.HDM.float_00());
 
 	if (isHeadingFrozen()) setWarning(IMU_LOW);
 
@@ -915,11 +915,11 @@ bool Autopilot::EEload_ReqCal (void)
 
 
 bool Autopilot::EEsave_Calib(){
-	return Bearing_MonitorArq::EEsave_Calib(EE_address.IMU);
+	return BearingMonitor::EEsave_Calib(EE_address.IMU);
 }
 
 e_IMU_cal_status Autopilot::EEload_Calib(){
-	return Bearing_MonitorArq::EEload_Calib(EE_address.IMU);
+	return BearingMonitor::EEload_Calib(EE_address.IMU);
 }
 
 bool Autopilot::EEsave_HCParam(){

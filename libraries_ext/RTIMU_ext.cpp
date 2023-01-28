@@ -24,11 +24,6 @@
 #include "RTIMU_ext.h"
 #include "Arduino.h"
 
-//SPM 12/11/2022 Additional headers for Fenix Autopilot
-//#include <Arduino.h>
-//#include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
-//#include "Fenix_config.h"
-
 RTIMU_ext::RTIMU_ext(RTIMUSettings *settings)
 :RTIMU(settings)
 {

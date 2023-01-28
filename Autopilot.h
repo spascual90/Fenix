@@ -37,7 +37,7 @@
 //#define LONG_LOOP_TIME 100 // Loops to update current course and target bearing
 
 #include "ActuatorManager.h"
-#include "BearingMonitorIMU.h"
+#include "BearingMonitor.h"
 #include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 
 // setup status
@@ -373,7 +373,7 @@ enum e_info {
 
 enum e_start_stop {CURRENT_HEADING, CURRENT_TARGET};
 
-class Autopilot: public ActuatorManager, public Bearing_MonitorIMU {
+class Autopilot: public ActuatorManager, public BearingMonitor {
 
 public:
 	Autopilot(s_gain gain=HC_GAIN, int ControllerDirection=REVERSE, s_instParam ip= HC_INSTPARAM);

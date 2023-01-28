@@ -5,26 +5,64 @@
  *      Author: Sergio
  */
 
-#include "BearingMonitorArq.h"
+#include "BearingMonitor.h"
 
-#include "GPSport.h" // Include this library to output to DEBUG_PORT
+//#include "GPSport.h" // Include this library to output to DEBUG_PORT
 
-Bearing_MonitorArq::Bearing_MonitorArq(float headingDev = 0) {
+#ifdef BNO055_INTERNAL_FUSION
+	#include "DevBNO055Int.h"
+#endif
+#ifdef BNO055_EXTERNAL_FUSION
+	#include "DevBNO055Ext.h"
+#endif
+#ifdef MINIMU9V5
+	#include "DevMinIMU9V5.h"
+#endif
+
+BearingMonitor::BearingMonitor(float headingDev = 0) {
 	setHeadingDev( headingDev);
 }
 
-Bearing_MonitorArq::~Bearing_MonitorArq() {
+BearingMonitor::~BearingMonitor() {
 	// TODO Auto-generated destructor stub
 	_IMU_status = NOT_DETECTED;
 }
 
-void Bearing_MonitorArq::IBIT(){
+e_IMU_status BearingMonitor::IMU_setup(long EE_address){
 
-	//DEBUG_print("IMU int... Started\n");
-	DEBUG_print("!Compilation without IMU. Only external IMU\n");
-	DEBUG_print(DEBUG_buffer);
-	DEBUG_PORT.flush();
-	//TODO: include routine to wait until bearing data is available (except calib IMU mode) While Sys<3 loop if not in x secs-->ask for calibration.
+#ifdef SHIP_SIM
+		_IMU_status = SIMULATED;
+		_internalIMU_status= INT_NOT_DETECTED;
+
+		return _IMU_status;
+#endif
+
+	#ifdef BNO055_INTERNAL_FUSION
+	_imuDevice= (DevBNO055Int *) IMUDevice::createIMUDevice();    // create the imu_device object
+#endif
+#ifdef BNO055_EXTERNAL_FUSION
+	_imuDevice= (DevBNO055Ext *) IMUDevice::createIMUDevice();    // create the imu_device object
+#endif
+#ifdef MINIMU9V5
+	_imuDevice= (DevMinIMU9V5 *) IMUDevice::createIMUDevice();    // create the imu_device object
+#endif
+
+	if (_imuDevice->IMU_setup(EE_address)) {
+		_internalIMU_status= INT_DETECTED;
+		_IMU_status = CAL_MODE;
+		_IMU_cal_status = CAL_START;
+	}else {
+		_IMU_status = NOT_DETECTED;
+		_internalIMU_status= INT_NOT_DETECTED;
+	}
+
+	IBIT();
+	return _IMU_status;
+}
+
+void BearingMonitor::IBIT(){
+
+	_imuDevice->IBIT();
 }
 
 
@@ -35,32 +73,18 @@ void Bearing_MonitorArq::IBIT(){
 //return false-->process finished / IMU in operational mode again
 
 
-e_IMU_status Bearing_MonitorArq::IMU_setup(long EE_address){
-
-	#ifdef SHIP_SIM
-		_IMU_status = SIMULATED;
-		_internalIMU_status= INT_NOT_DETECTED;
-
-#else
-	IMU_setup_specific(EE_address);
-#endif
-	return _IMU_status;
+e_IMU_cal_status BearingMonitor::EEload_Calib(long int &eeaddress){
+	return (_imuDevice->EEload_Calib(eeaddress)?CAL_RESULT_RECALIBRATED:CAL_RESULT_NOT_CALIBRATED);
 }
 
-
-e_IMU_cal_status Bearing_MonitorArq::EEload_Calib(long int &eeaddress){
-	return EEload_Calib_specific(eeaddress);
-}
-bool Bearing_MonitorArq::EEsave_Calib( long int &eeaddress){
-	return EEsave_Calib_specific(eeaddress);
-
+bool BearingMonitor::EEsave_Calib( long int &eeaddress){
+	return (_imuDevice->EEsave_Calib(eeaddress));
 }
 
-bool Bearing_MonitorArq::compute_Cal_IMU(bool completeCal) {
+bool BearingMonitor::compute_Cal_IMU(bool completeCal) {
 	bool ret=false;
 	//No calibration when IMU is in external mode.
 	if (_IMU_status==EXTERNAL_IMU) return false;
-
 
 	switch (_IMU_cal_status) {
 	case CAL_NOT_STARTED:
@@ -79,7 +103,6 @@ bool Bearing_MonitorArq::compute_Cal_IMU(bool completeCal) {
 
 	switch (_IMU_cal_status) {
 	case CAL_RESULT_NOT_CALIBRATED:
-		displaySensorOffsets();
 		DEBUG_print("\nCalibration time out!\n");
 		DEBUG_print("WARNING: Calibration failed. Bearing values might be inaccurate.\n");
 		ret=false;
@@ -89,6 +112,7 @@ bool Bearing_MonitorArq::compute_Cal_IMU(bool completeCal) {
 		// completeCal=true performs complete initial calibration + check (system==3 required)
 		// completeCal=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
 		if (_IMU_check == CHECK_NOT_STARTED) {
+			_imuDevice->displaySensorOffsets();
 			DEBUG_print("\nCalibrated! Ok\n");
 			// Heading value is not received until a slight movement is detected by IMU
 			// Practically speaking this is not an issue, but some info is provided to user
@@ -120,15 +144,14 @@ bool Bearing_MonitorArq::compute_Cal_IMU(bool completeCal) {
 
 //return true-->process ongoing
 //return false-->process finished
-bool Bearing_MonitorArq::compute_check_IMU(void) {
+bool BearingMonitor::compute_check_IMU(void) {
 
 	switch (_IMU_check) {
 	case CHECK_NOT_STARTED:
 		//start check
-		return IMU_startCalCheck(CAL_CHECK_LOOP);
+		return IMU_startCalCheck();
 		break;
 	case CHECK_ONGOING:
-		//return Bearing_MonitorArq::IMU_CalCheck_Loop();
 		return IMU_CalCheck_Loop();
 		break;
 	case CHECK_FINISHED:
@@ -140,16 +163,16 @@ bool Bearing_MonitorArq::compute_check_IMU(void) {
 }
 
 
-bool Bearing_MonitorArq::IMU_startCalibration(bool completeCal) {
-	_cal_iter = 0;
+bool BearingMonitor::IMU_startCalibration(bool completeCal) {
+	//_cal_iter = 0;
 	_IMU_cal_status = CAL_INPROGRESS;
 
 	//First iteration only
 	DEBUG_print("Start IMU Calibration...\n");
-	return IMU_startCalibration_specific(completeCal);
+	return _imuDevice->IMU_startCalibration(completeCal);
 }
 
-void Bearing_MonitorArq::reset_calibration () {
+void BearingMonitor::reset_calibration () {
 	//DEBUG_print("***reset calib\n");
 	//IMU_setup();
 	//resetSensorOffsets();
@@ -157,7 +180,7 @@ void Bearing_MonitorArq::reset_calibration () {
 }
 
 
-bool Bearing_MonitorArq::getCheckXYZ (uint16_t &x, int8_t &y, uint8_t &z) {
+bool BearingMonitor::getCheckXYZ (uint16_t &x, int8_t &y, uint8_t &z) {
 
 	if (_IMU_check == CHECK_ONGOING) {
 		x= _x;
@@ -174,7 +197,7 @@ bool Bearing_MonitorArq::getCheckXYZ (uint16_t &x, int8_t &y, uint8_t &z) {
 	return false;
 }
 
-bool Bearing_MonitorArq::getCheckSGAM(uint8_t &S, uint8_t &G, uint8_t &A, uint8_t &M){
+bool BearingMonitor::getCheckSGAM(uint8_t &S, uint8_t &G, uint8_t &A, uint8_t &M){
 
 	//if (_IMU_status != CAL_INPROGRESS) return false; //fn only return valid values when check is ongoing.
 	S=_calSys;
@@ -185,7 +208,7 @@ bool Bearing_MonitorArq::getCheckSGAM(uint8_t &S, uint8_t &G, uint8_t &A, uint8_
 	return true;
 }
 
-void Bearing_MonitorArq::displayCalStatus(void)
+void BearingMonitor::displayCalStatus(void)
 {
     DEBUG_print("\t");
     if (!_calSys)
@@ -199,7 +222,7 @@ void Bearing_MonitorArq::displayCalStatus(void)
 	DEBUG_PORT.flush();
 }
 
-e_IMU_status Bearing_MonitorArq::updateHeading(bool changeSourceEnabled, bool validExternal, float HDMExternal){
+e_IMU_status BearingMonitor::updateHeading(bool changeSourceEnabled, bool validExternal, float HDMExternal){
 #ifdef SHIP_SIM
 	_heading = _SIMheading;
 	_heading_isValid = true;
@@ -245,21 +268,67 @@ e_IMU_status Bearing_MonitorArq::updateHeading(bool changeSourceEnabled, bool va
 #endif
 }
 
-e_IMU_status Bearing_MonitorArq::updateHeading(bool valid, float HDM){
+
+void BearingMonitor::updateHeading(void){
+	if (_IMU_status == EXTERNAL_IMU) return;
+
+	_heading_isFrozen=false;
+	_heading_isValid=true;
+	_heading = _imuDevice->updateHeading();
+}
+
+e_IMU_status BearingMonitor::updateHeading(bool valid, float HDM){
 	_heading_isValid = valid;
 	_heading_isFrozen = false; //in external mode, there is no info of heading quality
 	if (valid) _heading = HDM;
 	return _IMU_status;
 }
 
-// fn available if system status value is not required
-bool Bearing_MonitorArq::getCalibrationStatus(void) {
-	uint8_t system;
-	return getCalibrationStatus(system);
+bool BearingMonitor::IMU_Cal_Loop(bool completeCal){
+
+	// Exit if calibration is not in progress
+	if (_IMU_cal_status != CAL_INPROGRESS) return false;
+	bool ret = _imuDevice->IMU_Cal_Loop(completeCal);
+	if (ret==false) _IMU_cal_status=CAL_RESULT_RECALIBRATED ;
+
+	return ret;
+}
+
+bool BearingMonitor::IMU_startCalCheck(void) {
+	//_cal_iter = max_loop;
+	_IMU_check = CHECK_ONGOING;
+	return true;
+}
+
+bool BearingMonitor::IMU_CalCheck_Loop(void){
+	//Check funcionality not implemented
+	_IMU_check = CHECK_FINISHED;
+	return false;
+}
+
+void BearingMonitor::refreshCalStatus(void)
+{
+//    /* Get the four calibration values (0..3) */
+//    /* Any sensor data reporting 0 should be ignored, */
+//    /* 3 means 'fully calibrated" */
+    uint8_t system, gyro, accel, mag;
+    system = gyro = accel = mag = 0;
+    _imuDevice->getCalibrationStatus(system, gyro, accel, mag);
+
+    _calSys = system;
+    _calGyro = gyro;
+    _calAccel = accel;
+    _calMagn = mag;
+}
+
+bool BearingMonitor::getCalibrationStatus(void) {
+	refreshCalStatus();
+	return (_calGyro>1 and _calMagn>1);// (gyro==3 and mag==3); (system==3 and gyro==3 and mag==3);
+	return true;
 }
 
 //FUNCTIONAL MODULE:SHIP SIMULATOR
-void Bearing_MonitorArq::SIM_updateShip(int tillerAngle) {
+void BearingMonitor::SIM_updateShip(int tillerAngle) {
 	static unsigned long DelayCalcStart = millis();
 
 	if ((millis() -DelayCalcStart) < deltaT) return;
