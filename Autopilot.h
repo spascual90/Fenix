@@ -510,24 +510,31 @@ public:
 		return _warning;
 	}
 
-	void setWarning(e_warning warning = NO_WARNING) {
+	void setWarning(e_warning warning = NO_WARNING, bool instant = false) {
 
-		_warning = warning;
-		sprintf(DEBUG_buffer,"!WARNING Code: %i\n", _warning);
-		DEBUG_print();
-		if (warning!=NO_WARNING) buzzer_Warning();
+		if (_warning != warning) {
+
+			//if there are Warnings pending to be displayed, these will be lost!
+			if (_pending_W == true) _lost_W =true;
+
+			_warning = warning;
+			_pending_W = true;
+		}
+		if (instant) printWarning(instant);
 	}
+
+	void printWarning(bool instant = false);
 
 	e_info getInformation() const {
 		return _information;
 	}
 
+
 	void setInformation(e_info information = NO_MESSAGE) {
-		if (information!=_information) buzzer_Information();
 		_information = information;
 		sprintf(DEBUG_buffer,"!INFORMATION Code: %i\n", _information);
 		DEBUG_print();
-
+		buzzer_Information();
 	}
 
 private:
@@ -609,10 +616,12 @@ private:
 		_offCourseAlarm = offCourseAlarm;
 	}
 
-	// FUNCTIONAL MODULE: ERROR HANDLING
+	// FUNCTIONAL MODULE: ERROR, WARNING AND INFORMATION DISPLAY
 	e_info _information = NO_MESSAGE;
 	e_warning _warning = NO_WARNING;
 	e_error _error = NO_ERROR;
+	bool _pending_W = false;
+	bool _lost_W = false;
 
 	void LongLoopReset() {
 		_DelayLongLoopStart = millis();

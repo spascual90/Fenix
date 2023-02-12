@@ -62,7 +62,7 @@ e_setup_status Autopilot::setup() {
 	switch (f_status) {
 	case ERROR_TOO_BIG:
 		DEBUG_print("!WARNING: Check your linear actuator is powered-on and connected!\n");
-		setWarning(FBK_ERROR_HIGH);
+		setWarning(FBK_ERROR_HIGH, true);
 		//return FEEDBACK_ERROR; Not considered an error
 		break;
 	case OK_VIRTUAL:
@@ -78,7 +78,7 @@ e_setup_status Autopilot::setup() {
 	case NOT_DETECTED:
 		// There was a problem detecting the IMU ... check your connections */
 		DEBUG_print("!WARNING: IMU Not detected. Check your wiring or I2C ADDR\n");
-		setWarning(IMU_NOTFOUND);
+		setWarning(IMU_NOTFOUND, true);
 		//return IMU_ERROR; Lack of IMU is not an error anymore. External IMU can be used instead
 		return SETUP_OK;
 		break;
@@ -103,7 +103,7 @@ e_setup_status Autopilot::setup() {
 	 if (EEload_Calib()==CAL_RESULT_NOT_CALIBRATED) {
 		// There was a problem reading IMU calibration values
 		DEBUG_print("!Please enter into Calibration Mode\n"); // System is not reset automatically to avoid recurrent writing EEPROM
-		setWarning(EE_IMU_NOTFOUND);
+		setWarning(EE_IMU_NOTFOUND, true);
 		return SETUP_OK;
 	 }
 	// Ensures calibration is valid by recalibrating (without check feature)
@@ -124,6 +124,8 @@ e_working_status Autopilot::Compute() {
 	// Once each XXX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	computeLongLoop();
 
+	// Display new warnings
+	printWarning();
 
 	// Play buzzer if required
 	buzzer_play();
@@ -853,13 +855,13 @@ void Autopilot::EEPROM_setup() {
 	DEBUG_print();
 	if (!EEload_instParam()) {
 		DEBUG_print("!WARNING: Could not load Installation parameters: Restoring default.\n");
-		setWarning (EE_INSTPARAM_NOTFOUND);
+		setWarning (EE_INSTPARAM_NOTFOUND, true);
 		//Restore HARDCODED parameters but don't save!
 		Change_instParam (HC_INSTPARAM);
 	}
 
 	if (!EEload_PIDgain()) {
-		DEBUG_print("!WARNING: Could not load PID parameters: Restoring default.\n");
+		DEBUG_print("!INFORMATION: Could not load PID parameters: Restoring default.\n");
 		setInformation (EE_PID_DEFAULT);
 		//Restore HARDCODED parameters but don't save!
 		SetTunings(HC_GAIN.Kp.float_00(), HC_GAIN.Ki.float_00(), HC_GAIN.Kd.float_00());
@@ -907,8 +909,8 @@ bool Autopilot::EEload_ReqCal (void)
 	uint8_t value = 0;
 
 	EEPROM.get(EE_address.Flag, value); // true Require Calibration Flag to force calibration
-	sprintf(DEBUG_buffer,"ReqCal: %i\n",value);
-	DEBUG_print(DEBUG_buffer);
+	//sprintf(DEBUG_buffer,"ReqCal: %i\n",value);
+	//DEBUG_print(DEBUG_buffer);
 	if (value == CHECKvalue) return true;
 	return false;
 }
@@ -1040,24 +1042,28 @@ bool Autopilot::EEload_PIDgain (void){
 	return Loaded;
 }
 
-////CRC-8 - based on the CRC8 formulas by Dallas/Maxim
-////code released under the therms of the GNU GPL 3.0 license
-//byte Autopilot::CRC8(const byte *data, size_t dataLength)
-//{
-//  byte crc = 0x00;
-//  while (dataLength--)
-//  {
-//    byte extract = *data++;
-//    for (byte tempI = 8; tempI; tempI--)
-//   {
-//      byte sum = (crc ^ extract) & 0x01;
-//      crc >>= 1;
-//      if (sum)
-//     {
-//        crc ^= 0x8C;
-//      }
-//      extract >>= 1;
-//    }
-//  }
-//  return crc;
-//}
+void Autopilot::printWarning(bool instant) {
+	static e_warning prev_warning = NO_WARNING;
+	static unsigned long lastWprint = 0;
+
+	if (_lost_W) {
+		DEBUG_print("!Warning not displayed\n");
+		buzzer_Warning();
+		_lost_W = false;
+	}
+
+	if ( (instant == true) or (millis() - lastWprint) > W_DISPLAY_TIME ) {
+
+		if (_warning!=NO_WARNING and prev_warning!=_warning) {
+			sprintf(DEBUG_buffer,"!WARNING Code: %i\n", _warning);
+			DEBUG_print();
+			buzzer_Warning();
+			prev_warning = _warning;
+			_pending_W = false;
+		}
+
+		// reset counter
+		lastWprint = millis();
+	}
+	return;
+}

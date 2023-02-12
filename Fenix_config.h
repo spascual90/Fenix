@@ -26,7 +26,8 @@
 //v.3.2.B2 Fixed auto-calibration management
 //v.3.2.B2 Deleted some debugging messages
 // RELEASE v.3.2.B2
-//v.3.3B1 IMU Library rebuilt. RTIMU open-source Library used instead
+//v.3.3B1 BNO055 IMU Library rebuilt. RTIMU open-source Library. 2 operational modes: internal or external fusion
+//v.3.3B1 Additional IMU device available: Pololu MinIMU9V5
 
 //DEBUG
 // Defined for Release version
@@ -59,13 +60,27 @@
 #define PIN_SCL 21
 
 
+
+// *** BearingMonitor.h ***
+//Only one IMU driver shall be defined at a time
+#define MINIMU9V5
+//#define BNO055_EXTERNAL_FUSION
+//#define BNO055_INTERNAL_FUSION //Sensor fusion performed internally by BNO055.
+
+//Define IMU axis orientation
+# define IMU_ORIENTATION 0
+// Valid values of IMU_ORIENTATION:
+// IMU Device components on top 0 // Valid for MinIMU9V5
+// IMU Device components on bottom 1 // Valid for MinIMU9V5
+
 // *** Autopilot.h ***
 
 #define DELAY_BUZZBEAT_TIME 50 // Buzzer beat time in msec.
 #define MAX_APB_TIME 10000 // Maximum time of APB data validity
 #define MAX_HDM_TIME 10000 // Maximum time of HDM data validity
 #define MAX_VWR_TIME 10000 // Maximum time of VWR data validity
-#define LONG_LOOP_TIME 100 // Loops to update current course and target bearing
+#define LONG_LOOP_TIME 100 // Loops to update current course, target bearing and calibration status
+#define W_DISPLAY_TIME 2000 // Loops to display Warnings
 
 // *** ActuatorController.h ***
 
@@ -77,11 +92,6 @@
 
 // ACTUATOR PARAMETERS
 #define SPEED_CRUISE 255
-
-// *** BearingMonitor.h ***
-#define MINIMU9V5
-//#define BNO055_EXTERNAL_FUSION
-//#define BNO055_INTERNAL_FUSION//Sensor fusion performed internally by BNO055.
 
 // emcNMEA.h
 # define DELAY_TX_TIME 1000 // period of NMEA transmission in millisecs (1000 = 1sec)

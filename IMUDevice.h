@@ -18,6 +18,16 @@
 
 float inline reduce360 (float value) {if (value<0) value+= 360;return fmod (value, 360.0);}
 
+#if defined (BNO055_INTERNAL_FUSION) or defined(BNO055_EXTERNAL_FUSION)
+	#define IMUDEVICE_ID 1
+	#define IMUDEVICE_NAME "BNO055"
+#endif
+
+#ifdef MINIMU9V5
+	#define IMUDEVICE_ID 2
+	#define IMUDEVICE_NAME "MiniIMU9v5"
+#endif
+
 class IMUDevice
 {
 public:
@@ -48,7 +58,9 @@ public:
     int get_PIN_SCL() {return PIN_SCL;}
 
     //Device ID
-    virtual const int get_IMUdeviceID(void);
+     const int get_IMUdeviceID(void) {return IMUDEVICE_ID;};
+     const char *IMUName() { return IMUDEVICE_NAME; }
+
 
 };
 

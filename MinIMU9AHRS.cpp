@@ -31,32 +31,16 @@ with MinIMU-9-Arduino-AHRS. If not, see <http://www.gnu.org/licenses/>.
 // Uncomment the following line to use a MinIMU-9 v5 or AltIMU-10 v5. Leave commented for older IMUs (up through v4).
 #define IMU_V5
 
+# define COMPONENTS_ON_TOP true
+# define COMPONENTS_BOTTOM false
+#define MAX_ERROR 15
 
-// By default, the Arduino code treats the positive X axis of the MinIMU-9 as forward and the negative Z axis as up
-// (so that the components are on the bottom of the board and the silkscreen is on top).
-// If you want the positive Z axis to be up instead (so that the components are on top), find the definition of SENSOR_SIGN[9]
-// and uncomment the appropriate line (after commenting the original).
-
-// Uncomment the below line to use this axis definition:
-   // X axis pointing forward
-   // Y axis pointing to the right
-   // and Z axis pointing down.
-// Positive pitch : nose up
-// Positive roll : right wing down
-// Positive yaw : clockwise
-//int SENSOR_SIGN[9] = {1,1,1,-1,-1,-1,1,1,1}; //Correct directions x,y,z - gyro, accelerometer, magnetometer
-// Uncomment the below line to use this axis definition:
-   // X axis pointing forward
-   // Y axis pointing to the left
-   // and Z axis pointing up.
-// Positive pitch : nose down
-// Positive roll : right wing down
-// Positive yaw : counterclockwise
-int SENSOR_SIGN[9] = {1,-1,-1,-1,1,1,1,-1,-1}; //Correct directions x,y,z - gyro, accelerometer, magnetometer
+int SENSOR_SIGN[9];
 
 // tested with Arduino Uno with ATmega328 and Arduino Duemilanove with ATMega168
 
 #include <Wire.h>
+#include "GPSport.h" // uncomment this line to print debug messages to serial monitor
 
 // accelerometer: 8 g sensitivity
 // 3.9 mg/digit; 1 g = 256
@@ -230,10 +214,6 @@ LSM303 compass;
 
 // LSM303/LIS3MDL magnetometer calibration constants; use the Calibrate example from
 // the Pololu LSM303 or LIS3MDL library to find the right values for your board
-
-extern bool ext_cal_status_gyro = false;
-extern bool ext_cal_status_accel = false;
-extern bool ext_cal_status_mag = false;
 
 LIS3MDL::vector<int16_t> m_min = {-1000, -1000, -1000};
 LIS3MDL::vector<int16_t> m_max = {1000, 1000, 1000};
@@ -518,46 +498,100 @@ void Euler_angles(void)
   yaw = atan2(DCM_Matrix[1][0],DCM_Matrix[0][0]);
 }
 
-extern void MinIMU9AHRS_setup()
+// return true - Calibrated ok
+// return false - Not calibrated
+extern bool MinIMU9AHRS_ag_calibration_loop(void) {
+	static bool repeatCal = true;
+	static int AN_OFFSET_ERROR[6];
+	static int AN_PREV[6];
+
+		//reset variables
+		repeatCal = false;
+		for(int y=0; y<6; y++) {
+			AN_OFFSET[y]=0;
+			AN_OFFSET_ERROR[y]=0;
+		}
+		for(int i=0;i<32;i++) {   // We take some readings...
+			Read_Gyro();
+			Read_Accel();
+			for(int y=0; y<6; y++) {
+				// Cumulate values
+				AN_OFFSET[y] += AN[y];
+				if (i>0) {
+					// Cumulate error
+					AN_OFFSET_ERROR[y] += abs(AN[y]-AN_PREV[y]);
+				}
+				AN_PREV[y]=AN[y];
+			}
+		delay(20);
+		}
+
+		for(int y=0; y<6; y++) {
+			AN_OFFSET_ERROR[y]=AN_OFFSET_ERROR[y]/31;
+			if (abs(AN_OFFSET_ERROR[y])>MAX_ERROR) {
+				return false; // no calibrado
+			}
+		}
+
+	for(int y=0; y<6; y++)
+	  AN_OFFSET[y] = AN_OFFSET[y]/32;
+
+	AN_OFFSET[5]-=GRAVITY*SENSOR_SIGN[5];
+
+	DEBUG_print("Ok\n");
+
+	return true; // calibrado correctamente
+}
+
+extern void MinIMU9AHRS_setup(bool orientation = COMPONENTS_ON_TOP)
 {
-  //Serial.begin(115200);
-  //pinMode (STATUS_LED,OUTPUT);  // Status LED
+
+	if (orientation ==COMPONENTS_BOTTOM) {
+	   // X axis pointing forward
+	   // Y axis pointing to the right
+	   // and Z axis pointing down.
+	// Positive pitch : nose up
+	// Positive roll : right wing down
+	// Positive yaw : clockwise
+	//SENSOR_SIGN[9] = {1,1,1,-1,-1,-1,1,1,1}; //Correct directions x,y,z - gyro, accelerometer, magnetometer
+	SENSOR_SIGN[0] = 1;
+	SENSOR_SIGN[1] = 1;
+	SENSOR_SIGN[2] = 1;
+	SENSOR_SIGN[3] = -1;
+	SENSOR_SIGN[4] = -1;
+	SENSOR_SIGN[5] = -1;
+	SENSOR_SIGN[6] = 1;
+	SENSOR_SIGN[7] = 1;
+	SENSOR_SIGN[8] = 1;
+	} else { //COMPONENTS_ON_TOP
+	   // X axis pointing forward
+	   // Y axis pointing to the left
+	   // and Z axis pointing up.
+	// Positive pitch : nose down
+	// Positive roll : right wing down
+	// Positive yaw : counterclockwise
+	//SENSOR_SIGN[9] = {1,-1,-1,-1,1,1,1,-1,-1}; //Correct directions x,y,z - gyro, accelerometer, magnetometer
+		SENSOR_SIGN[0] = 1;
+		SENSOR_SIGN[1] = -1;
+		SENSOR_SIGN[2] = -1;
+		SENSOR_SIGN[3] = -1;
+		SENSOR_SIGN[4] = 1;
+		SENSOR_SIGN[5] = 1;
+		SENSOR_SIGN[6] = 1;
+		SENSOR_SIGN[7] = -1;
+		SENSOR_SIGN[8] = -1;
+
+	}
 
   I2C_Init();
 
-  //Serial.println("Pololu MinIMU-9 + Arduino AHRS");
-
-  //digitalWrite(STATUS_LED,LOW);
   delay(1500);
 
   Accel_Init();
   Compass_Init();
   Gyro_Init();
 
-  delay(20);
-
-  for(int i=0;i<32;i++)    // We take some readings...
-    {
-    Read_Gyro();
-    Read_Accel();
-    for(int y=0; y<6; y++)   // Cumulate values
-      AN_OFFSET[y] += AN[y];
-    delay(20);
-    }
-
-  for(int y=0; y<6; y++)
-    AN_OFFSET[y] = AN_OFFSET[y]/32;
-
-  AN_OFFSET[5]-=GRAVITY*SENSOR_SIGN[5];
-
-  ext_cal_status_gyro=true;
-  ext_cal_status_accel=true;
-  //Serial.println("Offset:");
-  //for(int y=0; y<6; y++)
-    //Serial.println(AN_OFFSET[y]);
-
-  //delay(2000);
-  //digitalWrite(STATUS_LED,HIGH);
+  delay(100);//(20) to allow accel. to stabilize
 
   timer=millis();
   delay(20);
@@ -649,23 +683,41 @@ extern bool MinIMU9AHRS_calibration_loop(void)
   return changed;
 }
 
+
+
+
+
 struct s_offset {int16_t x, y, z;};
-extern bool MinIMU9AHRS_getOffsets(s_offset &am_min, s_offset &am_max){
+extern bool MinIMU9AHRS_getOffsets(s_offset &am_min, s_offset &am_max, s_offset &ag_offset, s_offset &aa_offset){
 	am_min.x = m_min.x;
 	am_min.y = m_min.y;
 	am_min.z = m_min.z;
 	am_max.x = m_max.x;
 	am_max.y = m_max.y;
 	am_max.z = m_max.z;
+	ag_offset.x = AN_OFFSET[0];
+	ag_offset.y = AN_OFFSET[1];
+	ag_offset.z = AN_OFFSET[2];
+	aa_offset.x = AN_OFFSET[3];
+	aa_offset.y = AN_OFFSET[4];
+	aa_offset.z = AN_OFFSET[5];
+
 	return true;
 }
-extern bool MinIMU9AHRS_setOffsets(s_offset &am_min, s_offset &am_max){
+extern bool MinIMU9AHRS_setOffsets(s_offset &am_min, s_offset &am_max, s_offset &ag_offset, s_offset &aa_offset){
 	m_min.x = am_min.x;
 	m_min.y = am_min.y;
 	m_min.z = am_min.z;
 	m_max.x = am_max.x;
 	m_max.y = am_max.y;
 	m_max.z = am_max.z;
+	AN_OFFSET[0] = ag_offset.x;
+	AN_OFFSET[1] = ag_offset.y;
+	AN_OFFSET[2] = ag_offset.z;
+	AN_OFFSET[3] = aa_offset.x;
+	AN_OFFSET[4] = aa_offset.y;
+	AN_OFFSET[5] = aa_offset.z;
 	return true;
 }
+
 

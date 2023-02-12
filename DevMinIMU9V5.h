@@ -18,20 +18,16 @@
 
 #include "IMUDevice.h"
 
-#define IMUDEVICE_ID 1
-
 //External variables and functions implemented in MinIMU9AHRS.cpp
-void MinIMU9AHRS_setup(void);
+void MinIMU9AHRS_setup(bool orientation = true); // true: COMPONENTS ON TOP false: COMPONENTS BOTTOM
 float MinIMU9AHRS_loop(void); //Main Loop
 bool MinIMU9AHRS_calibration_setup(void);
 bool MinIMU9AHRS_calibration_loop(void);
-struct s_offset {int16_t x, y, z;};
-bool MinIMU9AHRS_getOffsets(s_offset &m_min, s_offset &m_max);
-bool MinIMU9AHRS_setOffsets(s_offset &m_min, s_offset &m_max);
+bool MinIMU9AHRS_ag_calibration_loop(void);
 
-extern bool ext_cal_status_gyro;
-extern bool ext_cal_status_accel;
-extern bool ext_cal_status_mag;
+struct s_offset {int16_t x, y, z;};
+bool MinIMU9AHRS_getOffsets(s_offset &m_min, s_offset &m_max, s_offset &ag_offset, s_offset &aa_offset);
+bool MinIMU9AHRS_setOffsets(s_offset &m_min, s_offset &m_max, s_offset &ag_offset, s_offset &aa_offset);
 
 class DevMinIMU9V5 : public IMUDevice {
 public:
@@ -50,15 +46,11 @@ public:
     bool getCalibrationStatus(uint8_t &system, uint8_t &gyro, uint8_t &accel, uint8_t &mag);
     bool IMU_Cal_stopRequest(void);
 
-    //Device ID
-    const int get_IMUdeviceID(void) {return IMUDEVICE_ID;};
-
-protected:
-    const char *IMUName() { return "MiniIMU9v5"; }
-
 private:
+    //Magnetometer calibration variables
 	long _start_cal_time = 0;
-    const long _max_iter=5000; //Max. milliseconds after last calibration change
+    const long _max_iter=10000; //Max. milliseconds after last calibration change
+    uint8_t _mag=0, _gyro=0, _accel=0;
 
 
 };

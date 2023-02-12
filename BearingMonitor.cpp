@@ -323,8 +323,7 @@ void BearingMonitor::refreshCalStatus(void)
 
 bool BearingMonitor::getCalibrationStatus(void) {
 	refreshCalStatus();
-	return (_calGyro>1 and _calMagn>1);// (gyro==3 and mag==3); (system==3 and gyro==3 and mag==3);
-	return true;
+	return (_calSys==3);
 }
 
 //FUNCTIONAL MODULE:SHIP SIMULATOR

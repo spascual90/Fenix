@@ -45,12 +45,6 @@ public:
     bool getCalibrationStatus(uint8_t &system, uint8_t &gyro, uint8_t &accel, uint8_t &mag);
     bool IMU_Cal_stopRequest(void);
 
-
-
-
-
-protected:
-
 private:
 	RTIMUBNO055 *_imu;
 	RTIMUSettings _settings;                               // the settings object
