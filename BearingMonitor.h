@@ -99,14 +99,13 @@ protected:
 	e_IMU_cal_status EEload_Calib(long int &eeaddress);
 	bool EEsave_Calib(long int &eeaddress);
 
+	//FUNCTIONAL MODULE:SHIP SIMULATOR
+	void SIM_updateShip(int tillerAngle);
+
 private:
 	IMUDevice *_imuDevice;
 
     void reset_calibration (void);
-
-
-	//FUNCTIONAL MODULE:SHIP SIMULATOR
-	void SIM_updateShip(int tillerAngle);
 
 	float _roll=0;
 	float _pitch=0;
@@ -146,7 +145,7 @@ private:
 
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
 	float _SIMheading =0;
-	int unstat0= 10;//200;//	ddeg
+	int unstat0= 0;//200;//	ddeg
 	float alfaMax = 0.012;//	deg/mseg
 	unsigned long deltaT=100;//	mseg
 	float softFactor =10000;

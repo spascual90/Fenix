@@ -306,7 +306,9 @@ void Autopilot::computeLongLoop() {
 	// Once each XX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	if (IsLongLooptime ()) {
 
+#ifndef SHIP_SIM
 		refreshCalStatus();
+#endif
 
 		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU(true);
 		if (_currentMode == CAL_AUTOTUNE) computeLongLoop_heading();

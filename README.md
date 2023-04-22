@@ -27,7 +27,13 @@ Fenix Autopilot is an open-source DIY tiller pilot for small boats based on Ardu
 - v.3.2.B2 Heading deviation function is not applicable to External IMU
 - v.3.2.B2 Fixed auto-calibration management
 - v.3.2.B2 Deleted some debugging messages
-
+- v.3.3B1 BNO055 IMU Library rebuilt. RTIMU open-source Library. 2 operational modes: internal or external fusion
+- v.3.3B1 Additional IMU device available: Pololu MinIMU9V5
+- v.3.3B1 VIRTUAL_ACTUATOR simulate rudder turn
+- v.3.3B1 Fixed bug in NMEA DEC_COURSE_10 function
+- v.3.3B1 Known limitations: 
+- v.3.3B1 Known limitations: IMU must be installed: When IMU is not installed/found autopilot stops. It should raise a Warning and continue waiting for external compass information
+- v.3.3B1 Known limitations: NMEA I/F: Centered Tiller Position and Heading alignment set parameter to 0 is not accepted
 
 Release documentation:
 https://github.com/spascual90/Fenix/blob/master/RELEASE.md
@@ -63,8 +69,12 @@ You can find in SCHEMATICS folder,
 ## Users: How to start?
 ### Uploading SW to Arduino
 You can find in HEX folder,
-- HEX Arduino file
 - Xloader, an application to upload HEX to Arduino
+- HEX Arduino file: which HEX should I use?
+FenixVxxMinIMU9V5.hex: If you are using IMU Pololu MinIMU9V5. Installed with components on top
+FenixVxxBNO055_Ext.hex: If you are using IMU BNO055. This HEX uses external algorith for tilt compass and is recommended
+FenixVxxBNO055_Int.hex: If you are using IMU BNO055. This HEX uses INTERNAL algorith for tilt compass and is NOT recommended
+SIMULATOR.hex: Simulates ship bearing and rudder. No IMU or linear actuator is required. For demo, development and testing purposes only
 
 ### Installing Virtuino App
 You can find in repository Virtuino-for-Fenix all elements required

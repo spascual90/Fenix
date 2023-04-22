@@ -28,6 +28,11 @@
 // RELEASE v.3.2.B2
 //v.3.3B1 BNO055 IMU Library rebuilt. RTIMU open-source Library. 2 operational modes: internal or external fusion
 //v.3.3B1 Additional IMU device available: Pololu MinIMU9V5
+//v.3.3B1 VIRTUAL_ACTUATOR simulate rudder turn
+//v.3.3B1 Fixed bug in NMEA DEC_COURSE_10 function
+// Known limitations
+// IMU must be installed: When IMU is not installed/found autopilot stops. It should raise a Warning and continue waiting for external compass information
+// NMEA I/F: Centered Tiller Position and Heading alignment set parameter to 0 is not accepted
 
 //DEBUG
 // Defined for Release version
@@ -36,7 +41,7 @@
 
 // Commented for Release version
 //#define SHIP_SIM // Uncomment to simulate boat to tune PID
-//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder at bow. Useful when linear actuator is not available
+//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
 
@@ -62,16 +67,22 @@
 
 
 // *** BearingMonitor.h ***
-//Only one IMU driver shall be defined at a time
+//Only one IMU driver shall be defined at a time.
+// Uncomment #define as applicable
 #define MINIMU9V5
 //#define BNO055_EXTERNAL_FUSION
 //#define BNO055_INTERNAL_FUSION //Sensor fusion performed internally by BNO055.
 
-//Define IMU axis orientation
-# define IMU_ORIENTATION 0
+//Define IMU axis orientation (MinIMU9V5 only)
+//TODO: Integrate BNO055 IMU axis orientation options
+# define IMU_ORIENTATION 0 // IMU Device components on top
 // Valid values of IMU_ORIENTATION:
-// IMU Device components on top 0 // Valid for MinIMU9V5
-// IMU Device components on bottom 1 // Valid for MinIMU9V5
+// IMU Device components on top 0 // Valid for MinIMU9V5 only
+// IMU Device components on bottom 1 // Valid for MinIMU9V5 only
+
+// For BNO055: Uncomment #define in RTIMULibDefs.h as applicable
+//	RTIMU_XNORTH_YEAST--> BNO055 Device components on the bottom
+//	RTIMU_XWEST_YNORTH--> BNO055 Device components on the top
 
 // *** Autopilot.h ***
 

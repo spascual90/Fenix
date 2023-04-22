@@ -137,7 +137,7 @@ void IF_NMEA::refresh_INorder() {
 				Dec_Course_1();
 			break;
 		case DEC_COURSE_10:
-				Inc_Course_10();
+				Dec_Course_10();
 			break;
 		case REQ_INST: //$PEMC,08,I*5A received
 			if (!MyPilot->isCalMode()) printPEMC_03(& gpsPort);
@@ -215,7 +215,10 @@ void IF_NMEA::refresh_INorder() {
 
 			break;
 		case SAVE_INST:
-			if (currentMode==STAND_BY) Save_instParam();
+			if (currentMode==STAND_BY) {
+				Save_instParam();
+				//printPEMC_03(& gpsPort);
+			}
 			break;
 
 		case SAVE_CAL:

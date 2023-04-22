@@ -90,10 +90,10 @@ float DevBNO055Ext::updateHeading(void){
     		continue;
         _fusion.newIMUData(_imu->getGyro(), _imu->getAccel(), _imu->getCompass(), _imu->getTimestamp());
 
-        if (_imu->IMUGyroBiasValid())
-        	DEBUG_print("Gyro bias valid\n");
-        else
-        	DEBUG_print("...calculating gyro bias\n");
+//        if (_imu->IMUGyroBiasValid())
+//        	DEBUG_print("Gyro bias valid\n");
+//        else
+//        	DEBUG_print("...calculating gyro bias\n");
 
         return reduce360(((RTVector3&)_fusion.getFusionPose()).z() * RTMATH_RAD_TO_DEGREE);
     }

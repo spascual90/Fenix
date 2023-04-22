@@ -308,6 +308,7 @@ bool BearingMonitor::IMU_CalCheck_Loop(void){
 
 void BearingMonitor::refreshCalStatus(void)
 {
+//	DEBUG_print("refreshCalStatus\n");
 //    /* Get the four calibration values (0..3) */
 //    /* Any sensor data reporting 0 should be ignored, */
 //    /* 3 means 'fully calibrated" */
