@@ -46,7 +46,7 @@ void RTIMU_ext::setCalibrationData(void)
 	DEBUG_PORT.flush();
 
 
-    if (calLibRead(_eeAddress, &calData)) {
+    if (calLibRead(_eeAddress, calData)) {
         if (calData.magValid != 1) {
             return;
         }

@@ -19,6 +19,10 @@
 	#include "DevMinIMU9V5.h"
 #endif
 
+#ifdef ICM20948
+	#include "DevICM20948.h"
+#endif
+
 BearingMonitor::BearingMonitor(float headingDev = 0) {
 	setHeadingDev( headingDev);
 }
@@ -40,11 +44,17 @@ e_IMU_status BearingMonitor::IMU_setup(long EE_address){
 	#ifdef BNO055_INTERNAL_FUSION
 	_imuDevice= (DevBNO055Int *) IMUDevice::createIMUDevice();    // create the imu_device object
 #endif
+
 #ifdef BNO055_EXTERNAL_FUSION
 	_imuDevice= (DevBNO055Ext *) IMUDevice::createIMUDevice();    // create the imu_device object
 #endif
+
 #ifdef MINIMU9V5
 	_imuDevice= (DevMinIMU9V5 *) IMUDevice::createIMUDevice();    // create the imu_device object
+#endif
+
+#ifdef ICM20948
+	_imuDevice= (DevICM20948 *) IMUDevice::createIMUDevice();    // create the imu_device object
 #endif
 
 	if (_imuDevice->IMU_setup(EE_address)) {
@@ -335,6 +345,7 @@ void BearingMonitor::SIM_updateShip(int tillerAngle) {
 
 	float unstat= random(unstat0)-unstat0/2;
 	float alfa = (tillerAngle-unstat)*alfaMax/(sqrt(sq(float(tillerAngle-unstat))+softFactor));
+	//_SIMheading = (tillerAngle<40? _SIMheading : _SIMheading *intertia + (1-intertia)*(_SIMheading + deltaT * alfa));
 	_SIMheading = _SIMheading *intertia + (1-intertia)*(_SIMheading + deltaT * alfa);
 	_SIMheading = reduce360(_SIMheading);
 

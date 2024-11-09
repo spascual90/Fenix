@@ -18,6 +18,7 @@ class PID_ext : public PID {
     void SetTunings(double Kp, double Ki, double Kd);
     //MODIFIED SPM
     unsigned long GetSampleTime();
+    double getSetpoint();
     //END SPM MODIF
 										  
 										  

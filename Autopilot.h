@@ -34,7 +34,7 @@
 //#define MAX_APB_TIME 10000 // Maximum time of APB data validity
 //#define MAX_HDM_TIME 10000 // Maximum time of HDM data validity
 //#define MAX_VWR_TIME 10000 // Maximum time of VWR data validity
-//#define LONG_LOOP_TIME 100 // Loops to update current course and target bearing
+//#define LONG_LOOP_TIME 100 // 1000=1Hz; 100 10Hz; Loops to update current course and target bearing
 
 #include "ActuatorManager.h"
 #include "BearingMonitor.h"
@@ -393,10 +393,9 @@ public:
 	float getTargetBearing() const {
 		return _targetBearing;
 	}
-	void setTargetBearing(float targetBearing) {
-		if (targetBearing<0) {targetBearing+= 360;}
-		_targetBearing = fmod (targetBearing, double(360));
-	}
+
+	void setTargetBearing(float targetBearing);
+
 
 	bool isExtHeading() const {
 		return _extHeading.HDM.isValid;
@@ -537,11 +536,29 @@ public:
 		buzzer_Information();
 	}
 
+	void print_PIDFrontend (void);
+
 private:
 	e_APmode _currentMode= STAND_BY; // current working mode
 	float _targetBearing= 0; // target vessel bearing
 	float _nextCourse= 0; // Next course in STDBY/ AUTO Mode
 	String _status[5] = { "STAND BY", "FOLLOW BEARING", "CALIBRATING" };
+
+	char* deblank(char* input)
+	{
+	    int i,j;
+	    char *output=input;
+	    for (i = 0, j = 0; i<strlen(input); i++,j++)
+	    {
+	        if (input[i]!=' ')
+	            output[j]=input[i];
+	        else
+	            j--;
+	    }
+	    output[j]=0;
+	    return output;
+	}
+
 
 	// FUNCTIONAL MODULE: WORKING MODES
 	bool before_changeMode(e_APmode newMode, e_APmode currentMode);
@@ -604,6 +621,8 @@ private:
 
 	// FUNCTIONAL MODULE: OFF COURSE ALARM
 	uint8_t _offCourseAlarm; // off course alarm angle
+	bool _offCourseAlarmIDLE = false; // Alarm is not working until ship is within OCA angle since user changed target bearing.
+	// This is to avoid alarm too soon when making high turns that takes its time (eg. tacking +100 degrees).
 	double const _offCourseMaxTime = 15000; // max off course time before alarm starts
 	bool _offCourseAlarmActive=false;
 	bool compute_OCA (float delta);
@@ -638,5 +657,6 @@ private:
 	unsigned long _DelayLongLoopStart = millis();
 
 };
+
 
 #endif /* AUTOPILOT_H_ */

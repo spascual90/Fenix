@@ -175,8 +175,10 @@ void BT::triggerAction () {
     case BT_RESET_PID:
     	ResetPID();
     	break;
-
-    case BT_SAVE_PID_RECOM:
+    case BT_SAVE_PID:
+    	Save_PIDgain();
+    	break;
+    case BT_APPLY_AUTOTUNE_PID:
     	Apply_PIDrecom();
     	break;
 
@@ -222,19 +224,8 @@ void BT::triggerAction () {
     	}
     	break;
 
-// Deprecated functions
-//    case BT_K_MUL2:
-//    	Change_PID_rel (_k_change, OP_MULT, 2 );
-//    	break;
-//    case BT_K_DIV2:
-//    	Change_PID_rel (_k_change, OP_DIV, 2 );
-//    	break;
-//    case BT_K_MUL10:
-//    	Change_PID_rel (_k_change, OP_MULT, 10 );
-//    	break;
-//    case BT_K_DIV10:
-//    	Change_PID_rel (_k_change, OP_DIV, 10 );
-//    	break;
+
+
     default: //Other values not managed
     	break;
 	}
@@ -253,7 +244,6 @@ void BT::updateBT(){
 	_V[AI_ITERM] = float (MyPilot->getITerm());
 	_V[AI_KDCONTRIB] = float(MyPilot->getKdContrib());
 	_V[AI_PIDOUT] = float(MyPilot->getOutput());
-
 	_V[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
 	_V[AI_DEADBAND_VALUE] = MyPilot->dbt.getDeadband();
 	_V[AI_TRIM_VALUE] = MyPilot->dbt.getTrim();
@@ -289,7 +279,7 @@ void BT::updateBT(){
 	_V[AI_RECOM_KD] = MyPilot->PID_ATune::GetKd();
 
 	_V[AI_AUTOTUNE_CYCLE] = MyPilot->getPeakCount();
-	_V[AI_AUTOTUNE_INPUT] = MyPilot->PID_ATune::getInput();
+	//_V[AI_AUTOTUNE_INPUT] = MyPilot->PID_ATune::getInput();
 
 	_V[AV_LED_DBACTIVE] = MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0;
 
@@ -354,4 +344,39 @@ void BT::updateSpecialBT() {
 	}
 
 
+	// Manual change of PID parameters
+	s_PIDgain_flag change;
+	s_gain gain;
+	float valueKp = _V[VD_USER_KP];
+	float valueKi = _V[VD_USER_KI];
+	float valueKd = _V[VD_USER_KD];
+
+	change = {valueKp!=0, valueKi!=0, valueKd!=0};
+	if ( change.Kp or change.Ki or change.Kd) {
+
+//		if  (change.Kp) DEBUG_print( "Change Kp\n");
+//		if  (change.Ki) DEBUG_print( "Change Ki\n");
+//		if  (change.Kd) DEBUG_print( "Change Kd\n");
+//
+//		int l=8, d=4;
+//		char c3[l+3];
+//		sprintf(DEBUG_buffer,"!change Kp: %s\n", dtostrf(valueKp,l,d,c3));
+//		DEBUG_print();
+//		sprintf(DEBUG_buffer,"!change Ki: %s\n", dtostrf(valueKi,l,d,c3));
+//		DEBUG_print();
+//		sprintf(DEBUG_buffer,"!change Kd: %s\n", dtostrf(valueKd,l,d,c3));
+//		DEBUG_print();
+//		DEBUG_PORT.flush();
+
+		gain.Kp.Towf_00(valueKp);
+		gain.Ki.Towf_00(valueKi);
+		gain.Kd.Towf_00(valueKd);
+		// Change PID parameters
+		Change_PID(change, gain);
+
+		// Reset values in App.
+		if (change.Kp) _V[VD_USER_KP]= 0;
+		if (change.Ki) _V[VD_USER_KI]= 0;
+		if (change.Kd) _V[VD_USER_KD]= 0;
+	}
 }

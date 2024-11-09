@@ -19,7 +19,7 @@
 #include "IMUDevice.h"
 
 //RTIMU Lib headers
-#include "RTIMU.h"
+#include "RTIMUBNO055.h"
 #include "RTIMUSettings.h"
 #include "RTFusionRTQF.h"
 #include "CalLib.h"
@@ -44,7 +44,7 @@ public:
 protected:
 
 private:
-    RTIMU *_imu;                                           // the IMU object
+    RTIMUBNO055 *_imu;                                           // the IMU object
     RTFusionRTQF _fusion;                                  // the fusion object
     RTIMUSettings _settings;                               // the settings object
 };

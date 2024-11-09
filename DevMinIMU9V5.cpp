@@ -20,8 +20,7 @@ bool DevMinIMU9V5::IMU_setup(long EE_address){
 	bool orientation;
 	if (IMU_ORIENTATION==0) orientation = true; //Components on top 0 //true: COMPONENTS ON TOP
 	if (IMU_ORIENTATION==1) orientation = false;
-	MinIMU9AHRS_setup(orientation);
-	return true;
+	return MinIMU9AHRS_setup(orientation);
 }
 
 void DevMinIMU9V5::IBIT(void){
@@ -57,12 +56,32 @@ bool DevMinIMU9V5::EEload_Calib(long int &eeAddress)
 
 	if (EE_ID != ID) {
 		DEBUG_print("!WARNING: No Calibration Data for this sensor found!\n");
+		DEBUG_print("!WARNING: Using default values!\n");
 		sprintf(DEBUG_buffer,"ID found: %i\n",EE_ID);
 		DEBUG_print(DEBUG_buffer);
+		m_min.x = -10000;
+		m_min.y = -10000;
+		m_min.z = -10000;
+		m_max.x =10000;
+		m_max.y =10000;
+		m_max.z =10000;
+		offset_g.x = 0;
+		offset_g.y = 0;
+		offset_g.z = 0;
+		offset_a.x = 0;
+		offset_a.y = 0;
+		offset_a.z = 0;
+		_gyro=0;
+		_accel=0;
+		_mag=0;
 
-		return false;
-	}
-	DEBUG_print("!Found Calibration data...\n");
+//		return false;
+	} else {
+		DEBUG_print("!Found Calibration data...\n");
+		_gyro=3;
+		_accel=3;
+		_mag=3;
+
 	eeAddress += sizeof(ID);
 	EEPROM.get(eeAddress, m_min);
 	eeAddress += sizeof(m_min);
@@ -71,13 +90,24 @@ bool DevMinIMU9V5::EEload_Calib(long int &eeAddress)
 	EEPROM.get(eeAddress, offset_g);
 	eeAddress += sizeof(offset_g);
 	EEPROM.get(eeAddress, offset_a);
+	}
+	// SPM: Force hardcoded calibration values
+//	m_min.x = -3918;
+//	m_min.y = -3760;
+//	m_min.z = -4319;
+//	m_max.x =2968;
+//	m_max.y =2922;
+//	m_max.z =2443;
+//	offset_g.x = 17;
+//	offset_g.y = -33;
+//	offset_g.z = -61;
+//	offset_a.x = -35;
+//	offset_a.y = 5;
+//	offset_a.z = 2;
 
 	MinIMU9AHRS_setOffsets(m_min, m_max, offset_g, offset_a);
 
 	displaySensorOffsets();
-	_gyro=3;
-	_accel=3;
-	_mag=3;
 
 	return true;
 
@@ -186,4 +216,6 @@ bool DevMinIMU9V5::IMU_Cal_stopRequest(void) {
 	//_iter = _max_iter;
 	return true;
 }
+
+
 

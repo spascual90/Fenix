@@ -66,3 +66,8 @@ bool PID_ext::Compute()
     unsigned long PID_ext::GetSampleTime() {
     	return PID::SampleTime;
     }
+
+	double PID_ext::getSetpoint() {
+		return *mySetpoint;
+	}
+

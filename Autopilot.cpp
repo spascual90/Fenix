@@ -123,7 +123,7 @@ e_working_status Autopilot::Compute() {
 
 	// Once each XXX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	computeLongLoop();
-
+	//computeLongLoop_heading();
 	// Display new warnings
 	printWarning();
 
@@ -133,7 +133,6 @@ e_working_status Autopilot::Compute() {
 	#ifdef VIRTUAL_ACTUATOR
 	ActuatorManager::compute_VA();
 	#endif
-
 	// Updates current rudder just once each loop. Stores value for later use.
 	if (updateCurrentRudder()<0) return RUNNING_ERROR;
 
@@ -142,6 +141,7 @@ e_working_status Autopilot::Compute() {
 	case TRACK_MODE:
 	case WIND_MODE:
 		ws = compute_OperationalMode();
+		//print_PIDFrontend();
 		break;
 	case STAND_BY:
 		ws = compute_Stand_By();
@@ -305,6 +305,7 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 void Autopilot::computeLongLoop() {
 	// Once each XX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	if (IsLongLooptime ()) {
+		//DEBUG_print("1.\n");
 
 #ifndef SHIP_SIM
 		refreshCalStatus();
@@ -356,6 +357,9 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 		if (getWarning()==WP_INVALID) setWarning (NO_WARNING);
 	}
 
+	_offCourseAlarmIDLE = false; // OCA Alarm deactivated until ship heading gets into OCA angle
+	DEBUG_print ("OCA Alarm: Deactivated\n");
+
 	switch (currentMode) {
 	case AUTO_MODE:
 		// Same behavior as Track mode
@@ -378,6 +382,17 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 	return true;
 }
 
+void Autopilot::setTargetBearing(float targetBearing) {
+		if (targetBearing<0) {targetBearing+= 360;}
+		// If next course represents a big change in course
+		if (abs (delta180(_targetBearing, targetBearing)) > getOffCourseAlarm()) {
+			_offCourseAlarmIDLE = false;
+			DEBUG_print ("OCA Alarm: Deactivated\n");
+		}
+		// then OCA Alarm is deactivated until ship heading gets into OCA angle
+		_targetBearing = fmod (targetBearing, double(360));
+	}
+
 float Autopilot::getNextCourse() {
 	if (_WPnext.APB.isValid) {
 		return _WPnext.APB.CTS.float_00();
@@ -390,6 +405,7 @@ void Autopilot::setNextCourse(float nextCourse) {
 	if (nextCourse<0) {nextCourse+= 360;}
 	nextCourse = fmod (nextCourse, double(360));
 	_nextCourse = nextCourse;
+
 }
 
 bool Autopilot::setHeadingDev(float headingDev) {
@@ -822,8 +838,12 @@ bool Autopilot::compute_OCA (float delta) {
 	static bool sb_offCourse =false;
 	bool l_offCourse;
 
-	//detect if we are in-course-->stop alarm (if active)
+	//Detect if we are in-course-->stop alarm (if active)
 	if (abs(delta) < _offCourseAlarm) {
+		if (!_offCourseAlarmIDLE) {
+			_offCourseAlarmIDLE = true; // Alarm in Stand By
+			DEBUG_print ("OCA Alarm: Stand by\n");
+		}
 		if (sb_offCourse ==true) {
 			// reset static values
 			sb_offCourse=false; // in course, stop counting
@@ -832,14 +852,19 @@ bool Autopilot::compute_OCA (float delta) {
 			setWarning();
 		}
 		return _offCourseAlarmActive;
+
 	} else l_offCourse = true;// else-->we are out of course
 
-	if (l_offCourse == true and sb_offCourse == false) {// change detected-->start counting
+	// change detected and alarm in Stand by-->start counting
+	if (_offCourseAlarmIDLE == true and l_offCourse == true and sb_offCourse == false) {
 		sb_offCourse = true;
 		sd_offCourseStartTime = millis();
 	}
 
-	if (_offCourseAlarmActive == false and (millis()-sd_offCourseStartTime)>_offCourseMaxTime) {
+	if (_offCourseAlarmIDLE == true and
+		_offCourseAlarmActive == false and
+		(millis()-sd_offCourseStartTime)>_offCourseMaxTime) {
+
 		_offCourseAlarmActive = true;
 		setWarning(OUT_OF_COURSE);
 		buzzer_tone_start (1000, 1023);
@@ -1069,3 +1094,41 @@ void Autopilot::printWarning(bool instant) {
 	}
 	return;
 }
+
+void Autopilot::print_PIDFrontend() {
+	static unsigned long lastPIDprint = 0;
+
+	int l=6, d=2;
+	char c3[l+3];
+	if ( (millis() - lastPIDprint) > 1000 ) {
+	DEBUG_print("PID ");
+	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID_ext::getSetpoint(),l,d,c3)));
+	  DEBUG_print();
+	  DEBUG_print(" ");
+	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(this->getInput(),l,d,c3)));
+	  DEBUG_print();
+	  DEBUG_print(" ");
+	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(this->getOutput(),l,d,c3)));
+	  DEBUG_print();
+	  DEBUG_print(" ");
+	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID::GetKp(),l,d,c3)));
+	  DEBUG_print();
+	  DEBUG_print(" ");
+	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID::GetKi(),l,d,c3)));
+	  DEBUG_print();
+	  DEBUG_print(" ");
+	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID::GetKd(),l,d,c3)));
+	  DEBUG_print();
+	  DEBUG_print(" ");
+	  if(PID::GetMode()==AUTOMATIC) DEBUG_print("Automatic");
+	  else DEBUG_print("Manual");
+	  DEBUG_print(" ");
+	  DEBUG_print("Direct\n");
+
+		// reset counter
+		lastPIDprint = millis();
+	}
+
+}
+
+

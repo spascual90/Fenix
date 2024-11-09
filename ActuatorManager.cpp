@@ -128,6 +128,8 @@ int ActuatorManager::compute_VA() {
 	#ifdef VIRTUAL_ACTUATOR
 	float distance = ActuatorController::compute_VA();
 	int new_analog = getVAanalogRead() + int(distance * 1024.0);
+	if (new_analog>getLimitMaxFeedback()) new_analog = getLimitMaxFeedback();
+	if (new_analog<getLimitMinFeedback()) new_analog = getLimitMinFeedback();
 
 	setVAanalogRead(new_analog);
 	#endif
@@ -150,6 +152,8 @@ int ActuatorManager::controlActuator(int target_rudder, boolean deadband, int tr
 	bool out_min = feedback < getLimitMinFeedback();
 	bool out_max = feedback > getLimitMaxFeedback();
 
+	//if (out_min) DEBUG_print("Out of LimitMinFeedback. Recalibrate linear actuator\n");
+	//if (out_max) DEBUG_print("Out of LimitMaxFeedback. Recalibrate linear actuator\n");
 	#ifdef DEBUG
 	static bool point=false;
 	#endif

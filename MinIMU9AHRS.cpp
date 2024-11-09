@@ -41,6 +41,7 @@ int SENSOR_SIGN[9];
 
 #include <Wire.h>
 #include "GPSport.h" // uncomment this line to print debug messages to serial monitor
+//#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
 // accelerometer: 8 g sensitivity
 // 3.9 mg/digit; 1 g = 256
@@ -76,8 +77,8 @@ int SENSOR_SIGN[9];
 
 float G_Dt=0.02;    // Integration time (DCM algorithm)  We will run the integration loop at 50Hz if possible
 
-long timer=0;   //general purpose timer
-long timer_old;
+unsigned long timer=1;   //general purpose timer
+unsigned long timer_old;
 long timer24=0; //Second timer used to print values
 int AN[6]; //array that stores the gyro and accelerometer data
 int AN_OFFSET[6]={0,0,0,0,0,0}; //Array that stores the Offset of the sensors
@@ -266,14 +267,15 @@ void Read_Gyro()
   gyro_z = SENSOR_SIGN[2] * (AN[2] - AN_OFFSET[2]);
 }
 
-void Accel_Init()
+bool Accel_Init()
 {
+	bool Ok;
 #ifdef IMU_V5
-  gyro_acc.init();
+  Ok = gyro_acc.init();
   gyro_acc.enableDefault();
   gyro_acc.writeReg(LSM6::CTRL1_XL, 0x3C); // 52 Hz, 8 g full scale
 #else
-  compass.init();
+  Ok = compass.init();
   compass.enableDefault();
   switch (compass.getDeviceType())
   {
@@ -287,6 +289,7 @@ void Accel_Init()
       compass.writeReg(LSM303::CTRL_REG4_A, 0x30); // 8 g full scale: FS = 11
   }
 #endif
+  return Ok;
 }
 
 // Reads x,y and z accelerometer registers
@@ -328,6 +331,7 @@ void Read_Compass()
   magnetom_x = SENSOR_SIGN[6] * mag.m.x;
   magnetom_y = SENSOR_SIGN[7] * mag.m.y;
   magnetom_z = SENSOR_SIGN[8] * mag.m.z;
+
 #else
   compass.readMag();
 
@@ -543,7 +547,7 @@ extern bool MinIMU9AHRS_ag_calibration_loop(void) {
 	return true; // calibrado correctamente
 }
 
-extern void MinIMU9AHRS_setup(bool orientation = COMPONENTS_ON_TOP)
+extern bool MinIMU9AHRS_setup(bool orientation = COMPONENTS_ON_TOP)
 {
 
 	if (orientation ==COMPONENTS_BOTTOM) {
@@ -587,7 +591,7 @@ extern void MinIMU9AHRS_setup(bool orientation = COMPONENTS_ON_TOP)
 
   delay(1500);
 
-  Accel_Init();
+  if (!Accel_Init()) return false;
   Compass_Init();
   Gyro_Init();
 
@@ -596,23 +600,30 @@ extern void MinIMU9AHRS_setup(bool orientation = COMPONENTS_ON_TOP)
   timer=millis();
   delay(20);
   counter=0;
+  return true;
 }
 
 extern float MinIMU9AHRS_loop() //Main Loop
 {
-  if((millis()-timer)>=20)  // Main loop runs at 50Hz
+  unsigned long period = millis()-timer;
+  //Integration times between 20ms and 200ms (50Hz - 5Hz)
+
+  if(period>=20)// 20ms (0.02 Seg) 50Hz   // Main loop runs at 50Hz
   {
     counter++;
     timer_old = timer;
     timer=millis();
-    if (timer>timer_old)
-    {
+    if (timer>timer_old) {
       G_Dt = (timer-timer_old)/1000.0;    // Real time of loop run. We use this on the DCM algorithm (gyro integration time)
-      if (G_Dt > 0.2)
-        G_Dt = 0; // ignore integration times over 200 ms
+
+      if (G_Dt > 0.2) {//200 ms 0.2 seg
+        G_Dt = 0; // ignore integration times over 200 ms ( < 5 Hz)
+		DEBUG_print("!IMU Time out\n");
+      }
     }
-    else
+    else {
       G_Dt = 0;
+    }
 
 
 
@@ -621,12 +632,21 @@ extern float MinIMU9AHRS_loop() //Main Loop
     Read_Gyro();   // This read gyro data
     Read_Accel();     // Read I2C accelerometer
 
-    if (counter > 5)  // Read compass data at 10Hz... (5 loop runs)
+    if (counter > 5)  // Read compass data at 10Hz... (each 5 of 50 Hz loop runs)
     {
+
       counter=0;
       Read_Compass();    // Read I2C magnetometer
-      Compass_Heading(); // Calculate magnetic heading
+      Compass_Heading(); // Calculate magnetic heading. Use Euler angles calculated in previous iterations
     }
+    //plot3(NeoSerial, accel_x, accel_y, accel_z);
+    //plot3(NeoSerial, gyro_x, gyro_y, gyro_z);
+
+	//sprintf(DEBUG_buffer,"accel: %i\t%i\t%i\t\n", accel_x, accel_y, accel_z );
+	//sprintf(DEBUG_buffer,"gyro: %i\t%i\t%i\t\n", gyro_x, gyro_y, gyro_z );
+	//sprintf(DEBUG_buffer,"magnet: %i\t%i\t%i\t\n", magnetom_x, magnetom_y, magnetom_z );
+    //DEBUG_print(DEBUG_buffer);
+	//DEBUG_PORT.flush();
 
     // Calculations...
     Matrix_update();
@@ -634,6 +654,7 @@ extern float MinIMU9AHRS_loop() //Main Loop
     Drift_correction();
     Euler_angles();
     // ***
+    //plot6(NeoSerial, int(ToDeg(yaw)), -180, -90, 0, 90, 180);
 
     return ToDeg(yaw);
   }

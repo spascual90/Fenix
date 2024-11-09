@@ -10,9 +10,11 @@
 //Virtuino App V6 - Virtual memory button offset (c_BTN_V)
 
 // Emulator arduino board reserved PINS
-//M4	Selected panel index
 //M2 	Number of failed connections
 //M3 	Enable/ disable BT server
+//M4	Selected panel index
+//M5    Virtuino App MAIN-version
+//M6    Virtuino App SUB-version
 
 //DV0
 
@@ -48,12 +50,13 @@ enum e_BT_push_button {
 		, BT_SAVE_FBK_CAL=18
 		, BT_SET_VWR = 19
 		, BT_START_AUTOTUNE = 20
-		, BT_SAVE_PID_RECOM = 21
+		, BT_APPLY_AUTOTUNE_PID = 21
 		, BT_RESTORE_PID = 22
 		, BT_STOP_AUTOTUNE = 23
 		, BT_SET_DBCONF = 24
+		, BT_SAVE_PID = 25
 
-		, MAX_BT = BT_SET_DBCONF +1
+		, MAX_BT = BT_SAVE_PID +1
 	};
 
 
@@ -98,10 +101,14 @@ enum e_BT_AI_PIN {
 , AI_RECOM_KI = 34
 , AI_RECOM_KD = 35
 , AI_AUTOTUNE_CYCLE = 36
-, AI_AUTOTUNE_INFO = 37
-, AI_AUTOTUNE_INPUT = 38
-, MAX_AI = AI_AUTOTUNE_INPUT +1
+, VD_USER_KP = 37
+, VD_USER_KI = 38
+, VD_USER_KD = 39
+//, AI_AUTOTUNE_INFO = 37
+//, AI_AUTOTUNE_INPUT = 38
 
+
+, MAX_AI = VD_USER_KD +1
 };
 
 const uint8_t c_max_V = MAX_AI;

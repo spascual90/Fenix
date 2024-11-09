@@ -28,6 +28,16 @@ float inline reduce360 (float value) {if (value<0) value+= 360;return fmod (valu
 	#define IMUDEVICE_NAME "MiniIMU9v5"
 #endif
 
+#ifdef ICM20948
+	#define IMUDEVICE_ID 4
+	#define IMUDEVICE_NAME "ICM20948"
+#endif
+
+#ifdef MPU9250
+	#define IMUDEVICE_ID 3
+	#define IMUDEVICE_NAME "MPU9250"
+#endif
+
 class IMUDevice
 {
 public:

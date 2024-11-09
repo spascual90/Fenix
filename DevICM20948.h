@@ -1,12 +1,12 @@
 /*
- * DevMinIMU9V5.h
+ * DevICM20948.h
  *
  *  Created on: 23 ene. 2023
  *      Author: Carmen
  */
 
-#ifndef DEVMINIMU9V5_H_
-#define DEVMINIMU9V5_H_
+#ifndef DEVICM20948_H_
+#define DEVICM20948_H_
 
 #include <utility/imumaths.h>
 #include <EEPROM.h>
@@ -18,22 +18,21 @@
 
 #include "IMUDevice.h"
 
-//External variables and functions implemented in MinIMU9AHRS.cpp
-bool MinIMU9AHRS_setup(bool orientation = true); // true: COMPONENTS ON TOP false: COMPONENTS BOTTOM
-float MinIMU9AHRS_loop(void); //Main Loop
-bool MinIMU9AHRS_calibration_setup(void);
-bool MinIMU9AHRS_calibration_loop(void);
-bool MinIMU9AHRS_ag_calibration_loop(void);
+//External variables and functions implemented in ICM20948AHRS.cpp and ICM20948Calibrate.cpp
+bool ICM20948AHRS_setup(bool orientation = true); // true: COMPONENTS ON TOP false: COMPONENTS BOTTOM
+float ICM20948AHRS_loop(void); //Main Loop
+bool ICM20948AHRS_calibration_setup(void);
+bool ICM20948AHRS_calibration_loop(void);
 
 struct s_offset {int16_t x, y, z;};
-bool MinIMU9AHRS_getOffsets(s_offset &m_min, s_offset &m_max, s_offset &ag_offset, s_offset &aa_offset);
-bool MinIMU9AHRS_setOffsets(s_offset &m_min, s_offset &m_max, s_offset &ag_offset, s_offset &aa_offset);
+bool ICM20948AHRS_getOffsets(float aG_offset[3], float aA_B[3], float aA_Ainv[3][3], float aM_B[3], float aM_Ainv[3][3]);
+bool ICM20948AHRS_setOffsets(float aG_offset[3], float aA_B[3], float aA_Ainv[3][3], float aM_B[3], float aM_Ainv[3][3]);
 
-class DevMinIMU9V5 : public IMUDevice {
+class DevICM20948 : public IMUDevice {
 public:
 
-	DevMinIMU9V5();
-	~DevMinIMU9V5();
+	DevICM20948();
+	~DevICM20948();
 
     void IBIT(void);
     bool IMU_setup(long EE_address);
@@ -57,4 +56,4 @@ private:
 
 };
 
-#endif /* DEVMINIMU9V5_H_ */
+#endif /* DEVICM20948_H_ */

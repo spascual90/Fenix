@@ -1,7 +1,7 @@
 #ifndef FENIX_CONFIG_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.3.3.B1"
+#define ARDUINO_VERSION "v.3.4.B1"
 
 // RELEASE v.2.0.B1
 // RELEASE v.2.1.B1
@@ -21,11 +21,11 @@
 //v.3.2.B1 Change of deadband min/MAX values: min: 1deg, max 5deg
 //v.3.2.B1 Deadband mode button: select autodeadband mode (min, MAX, auto) from Virtuino for Fenix App.4.2
 //v.3.2.B1 Requires Virtuino App:
-// RELEASE v.3.2.B1
+// RELEASE v.3.2.B2
 //v.3.2.B2 Heading deviation function is not applicable to External IMU
 //v.3.2.B2 Fixed auto-calibration management
 //v.3.2.B2 Deleted some debugging messages
-// RELEASE v.3.2.B2
+// RELEASE v.3.3.B1
 //v.3.3B1 BNO055 IMU Library rebuilt. RTIMU open-source Library. 2 operational modes: internal or external fusion
 //v.3.3B1 Additional IMU device available: Pololu MinIMU9V5
 //v.3.3B1 VIRTUAL_ACTUATOR simulate rudder turn
@@ -33,6 +33,7 @@
 // Known limitations
 // IMU must be installed: When IMU is not installed/found autopilot stops. It should raise a Warning and continue waiting for external compass information
 // NMEA I/F: Centered Tiller Position and Heading alignment set parameter to 0 is not accepted
+// RELEASE v.3.4.B1
 
 //DEBUG
 // Defined for Release version
@@ -41,13 +42,13 @@
 
 // Commented for Release version
 //#define SHIP_SIM // Uncomment to simulate boat to tune PID
-//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
+#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
 
 //Other libraries necessary for printing to serial monitor
 #include "GPSport.h" // Some libraries requires to uncomment this line to print debug messages to serial monitor
-//#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
+#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
 
 // PIN Configuration
@@ -69,12 +70,20 @@
 // *** BearingMonitor.h ***
 //Only one IMU driver shall be defined at a time.
 // Uncomment #define as applicable
-#define MINIMU9V5
+//#define MINIMU9V5
+#define ICM20948
 //#define BNO055_EXTERNAL_FUSION
 //#define BNO055_INTERNAL_FUSION //Sensor fusion performed internally by BNO055.
 
-//Define IMU axis orientation (MinIMU9V5 only)
+// For MPU9250 and BNO055: additional configuration required in RTIMULibDefs.h
+//  IMU enable defs - only one should be enabled, the rest commented out
+// BNO055_INTERNAL_FUSION or BNO055_EXTERNAL_FUSION: #define BNO055_28
+
+
 //TODO: Integrate BNO055 IMU axis orientation options
+
+
+//Define IMU axis orientation (MinIMU9V5 only)
 # define IMU_ORIENTATION 0 // IMU Device components on top
 // Valid values of IMU_ORIENTATION:
 // IMU Device components on top 0 // Valid for MinIMU9V5 only
