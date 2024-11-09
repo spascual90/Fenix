@@ -51,8 +51,8 @@ The goals of Fenix project are,
 - to develop and test a prototype of open-source DIY navigation system for mini-cruisers.  
 - to gather individual efforts to a joint solution.
 - get users to adopt the system into their own boats with minimum technical knowledge.
-All information in Fenix Project can be found here... Ups, Wiki in Fandom.com is not working any more. Lessons learnt: Don't use free services.
-https://fenix-autopilot.com
+All information in Fenix Project can be found here
+https://fenix-autopilot.com/
 
 ## How to start with Fenix Autopilot?
 First of all integrate your hardware.
@@ -60,21 +60,23 @@ If you are a user, upload the SW to Arduino, the App to mobile and configure you
 
 If you are a developer, additionally you will have to setup a development environment.
 ## HW integration
-You can find in SCHEMATICS folder,
+- Guide on how to integrate the components and build your Fenix autopilot
 - Build of materials: the basic shop list to build Fenix autopilot
-- Fritzing file
-- Guide on how to integrate the components
-<img alt="README-e8ba2418.jpg" src="assets/README-e8ba2418.jpg" width="" height="" >
+- You can find all information in the web page:
+https://fenix-autopilot.com/start-to-build-from-here
+- Fritzing file for PCB production is available in Fenix PCB repository:
+https://github.com/spascual90/PCB-for-Fenix/releases/latest
 
 ## Users: How to start?
 ### Uploading SW to Arduino
-You can find in HEX folder,
-- Xloader, an application to upload HEX to Arduino
-- HEX Arduino file: which HEX should I use?
-FenixVxxMinIMU9V5.hex: If you are using IMU Pololu MinIMU9V5. Installed with components on top
-FenixVxxBNO055_Ext.hex: If you are using IMU BNO055. This HEX uses external algorith for tilt compass and is recommended
-FenixVxxBNO055_Int.hex: If you are using IMU BNO055. This HEX uses INTERNAL algorith for tilt compass and is NOT recommended
-SIMULATOR.hex: Simulates ship bearing and rudder. No IMU or linear actuator is required. For demo, development and testing purposes only
+You can find in HEX folder Xloader executable file, an application to upload HEX to Arduino.
+
+You can find as part of this release HEX Arduino file.
+Which HEX should I use?
+- FenixVxxMinIMU9V5.hex: If you are using IMU Pololu MinIMU9V5. Installed with components on top
+- FenixVxxBNO055_Ext.hex: If you are using IMU BNO055. This HEX uses external algorith for tilt compass and is recommended
+- FenixVxxBNO055_Int.hex: If you are using IMU BNO055. This HEX uses INTERNAL algorith for tilt compass and is NOT recommended
+- SIMULATOR.hex: Simulates ship bearing and rudder. No IMU or linear actuator is required. For demo, development and testing purposes only
 
 ### Installing Virtuino App
 You can find in repository Virtuino-for-Fenix all elements required
