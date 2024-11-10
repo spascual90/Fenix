@@ -33,7 +33,6 @@ void DevICM20948::IBIT(void){
 }
 
 float DevICM20948::updateHeading(void){
-	//return reduce360(ICM20948AHRS_loop());
 	return ICM20948AHRS_loop();
 }
 

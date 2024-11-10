@@ -1165,6 +1165,11 @@ char* emcNMEA::string2char(String command){
 void emcNMEA::TXReset() {
 	_TX=true;
 	_DelayTXStart = millis();
+	_TXorder = 0;
+}
+
+void emcNMEA::TXNext() {
+	_TXorder++;
 }
 
 bool emcNMEA::IsTXtime () {
@@ -1178,7 +1183,13 @@ bool emcNMEA::IsTXtime () {
 void emcNMEA::TX1Reset() {
 	_TX1=true;
 	_DelayTX1Start = millis();
+	_TX1order = 0;
 }
+
+void emcNMEA::TX1Next() {
+	_TX1order++;
+}
+
 
 bool emcNMEA::IsTX1time () {
 	// returns false if timer is ON and still RUNNING

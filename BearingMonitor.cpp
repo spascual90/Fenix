@@ -284,7 +284,18 @@ void BearingMonitor::updateHeading(void){
 
 	_heading_isFrozen=false;
 	_heading_isValid=true;
-	_heading = _imuDevice->updateHeading();
+	float yaw = _heading;
+	float raw = _imuDevice->updateHeading();
+	//delta entre ángulos (-180, 180)
+	float delta_yaw_raw = raw-yaw;
+	if (delta_yaw_raw<-180) delta_yaw_raw+=360;
+	if (delta_yaw_raw>180) delta_yaw_raw-=360;
+	// Apply low pass filter to the IMU results
+	yaw = reduce360 (yaw*_heading_alfa + (yaw+delta_yaw_raw)* (1-_heading_alfa));
+//	sprintf(DEBUG_buffer,"raw (yaw) Delta: %i (%i) %i\n", int (raw), int(yaw), int(delta_yaw_raw));
+//	DEBUG_print(DEBUG_buffer);
+//	DEBUG_PORT.flush();
+	_heading = yaw;
 }
 
 e_IMU_status BearingMonitor::updateHeading(bool valid, float HDM){

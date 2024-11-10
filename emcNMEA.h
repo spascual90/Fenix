@@ -71,6 +71,13 @@ public:
     bool parseIntAuto( int16_t &val, uint8_t chr, bool & field_informed);
     bool parseIntAuto( uint8_t &val, uint8_t chr, bool & field_informed);
 
+	int getTxorder() const {
+		return _TXorder;
+	}
+	int getTx1order() const {
+		return _TX1order;
+	}
+
 protected:
 
     void sentenceOk() ;
@@ -98,9 +105,11 @@ protected:
     //Timer
     void TXReset(void);
     bool IsTXtime (void);
+    void TXNext(void);
     //Timer#1
     void TX1Reset(void);
     bool IsTX1time (void);
+    void TX1Next(void);
 
     enum EXT_msg_t {
     	PEMC_00 = NMEA_LAST_MSG+1, // SWITCH_MODE
@@ -189,10 +198,14 @@ private:
     //TIMER
 	bool _TX=false;
 	unsigned long _DelayTXStart = millis();
+	//ORDER OF NMEA Transmition per loop
+	int _TXorder = 0;
 
     //TIMER#1
 	bool _TX1=false;
 	unsigned long _DelayTX1Start = millis();
+	//ORDER OF NMEA Transmition per loop
+	int _TX1order = 0;
 
 } ;
 

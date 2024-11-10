@@ -123,7 +123,7 @@ e_working_status Autopilot::Compute() {
 
 	// Once each XXX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	computeLongLoop();
-	//computeLongLoop_heading();
+
 	// Display new warnings
 	printWarning();
 
@@ -141,7 +141,6 @@ e_working_status Autopilot::Compute() {
 	case TRACK_MODE:
 	case WIND_MODE:
 		ws = compute_OperationalMode();
-		//print_PIDFrontend();
 		break;
 	case STAND_BY:
 		ws = compute_Stand_By();
@@ -156,10 +155,6 @@ e_working_status Autopilot::Compute() {
 		ws = compute_Autotune();
 		break;
 	}
-	//Dynamic calibration
-	// update IMU calibration except in CAL_IMU_COMPLETE
-	//if (_currentMode!=CAL_IMU_COMPLETE) ws = compute_Cal_IMU(false);
-
 
 	return ws;
 }
@@ -303,9 +298,6 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 }
 
 void Autopilot::computeLongLoop() {
-	// Once each XX loops: Update current course and target bearing (in track mode). Stores value for later use.
-	if (IsLongLooptime ()) {
-		//DEBUG_print("1.\n");
 
 #ifndef SHIP_SIM
 		refreshCalStatus();
@@ -317,12 +309,14 @@ void Autopilot::computeLongLoop() {
 		if (isCalMode()) return;
 
 		computeLongLoop_heading();
-		computeLongLoop_WP();
-		computeLongLoop_TrackMode();
-		computeLongLoop_WindDir();
-		LongLoopReset();
-	}
 
+		// Once each XX loops: Update target bearing (in track mode). Stores value for later use.
+		if (IsLongLooptime ()) {
+			computeLongLoop_WP();
+			computeLongLoop_TrackMode();
+			computeLongLoop_WindDir();
+			LongLoopReset();
+		}
 }
 
 

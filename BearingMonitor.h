@@ -51,8 +51,7 @@ public:
 	}
 
 	void setHeadingDev(float headingDev = 0) {
-		reduce360(headingDev);
-		_headingDev = headingDev;
+		_headingDev = reduce360(headingDev);
 	}
 
 	float getDm() const {
@@ -116,6 +115,7 @@ private:
 
 	bool _heading_isValid = false;
 	bool _heading_isFrozen = true;
+	float _heading_alfa = 0.99; //Higher: more stable but slower
 
 
 	//Calibration settings

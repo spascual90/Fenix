@@ -25,6 +25,7 @@
 */
 #include "ICM_20948.h" // Click here to get the library: http://librarymanager/All#SparkFun_ICM_20948_IMU
 #include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
+#include "GPSport.h"
 
 //////////////////////////
 // ICM_20948 Library Init //
@@ -99,16 +100,14 @@ extern bool ICM20948AHRS_setup(bool orientation = false)
 float ICM20948AHRS_loop()
 {
 
-  static int loop_counter = 0; //sample & update loop counter
   static float GAxyz[3], AAxyz[3], MAxyz[3]; //centered and scaled gyro/accel/mag data
   static float ACxyz[3], MCxyz[3]; //centered and scaled accel/mag data
-
+  static float deltat_avg=1;
+  float alfa = 0.7;
   // Update the sensor values whenever new data is available
   if ( imu.dataReady() ) {
 
     imu.getAGMT();
-
-    loop_counter++;
 
     get_scaled_IMU(GAxyz, AAxyz, MAxyz);
 
@@ -117,14 +116,24 @@ float ICM20948AHRS_loop()
     MAxyz[1] = -MAxyz[1]; //reflect Y and Z
     MAxyz[2] = -MAxyz[2]; //must be done after offsets & scales applied to raw data
 
-    now = micros();
+    now = micros(); // TODO: Overflow after a few hours
     deltat = (now - last) * 1.0e-6; //seconds since last update
     last = now;
+
+    deltat_avg = deltat_avg*alfa + deltat*(1-alfa);
+    //sprintf(DEBUG_buffer,"deltat(avg): %i(%i). Var:%i\n", int(deltat*1000), int(deltat_avg*1000), int((deltat-deltat_avg)*1000));
+    //DEBUG_print();
 
     MahonyQuaternionUpdate(AAxyz[0], AAxyz[1], AAxyz[2], GAxyz[0], GAxyz[1], GAxyz[2],
                            MAxyz[0], MAxyz[1], MAxyz[2], deltat);
 
-    if (millis() - lastPrint > PRINT_SPEED) {
+
+    if ((deltat-deltat_avg) > 0.03) {
+    	DEBUG_print("!ICM20948: Time overflow\n");
+    	return yaw;
+    }
+
+
 
       // Define Tait-Bryan angles. Strictly valid only for approximately level movement
 
@@ -159,14 +168,6 @@ float ICM20948AHRS_loop()
       if (yaw < 0) yaw += 360.0;
       if (yaw >= 360.0) yaw -= 360.0;
 
-      //plot5(Serial,0, 90, 180, 270,int(yaw));// int(MAG_Heading),
-
-      //Serial.print("\nAHMS:");
-      //Serial.print(yaw, 0);
-      loop_counter = 0;
-      //Serial.println();
-      lastPrint = millis(); // Update lastPrint time
-    }
   }
   return yaw;
 }

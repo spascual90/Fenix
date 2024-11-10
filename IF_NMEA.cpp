@@ -66,26 +66,56 @@ void IF_NMEA::refresh(){
 			printPEMC_13(& gpsPort);
 			break;
 		default:
-			// Only transmits HDM/HDG when no valid HDM message has been received.
-			if (MyPilot->isHeadingValid() and !MyPilot->isExtHeading()) {
-				printHDG(& gpsPort);
-				printHDM(& gpsPort);
+			switch (getTxorder()) {
+			case 0:
+				printRSA(& gpsPort);
+				TXNext();
+				break;
+			case 1:
+				// Only transmits HDM/HDG when no valid HDM message has been received.
+				if (MyPilot->isHeadingValid() and !MyPilot->isExtHeading()) printHDG(& gpsPort);
+				TXNext();
+				break;
+			case 2:
+				// Only transmits HDM/HDG when no valid HDM message has been received.
+				if (MyPilot->isHeadingValid() and !MyPilot->isExtHeading()) printHDM(& gpsPort);
+				TXNext();
+				break;
+			default:
+				TXReset();
+				break;
 			}
-			printRSA(& gpsPort);
+			break;
 		}
-
 		fl= true;
-		TXReset();
+
 	}
 
 	if (IsTX1time() and !MyPilot->isCalMode()) {
-		printPEMC_03(& gpsPort);
-		printPEMC_05(& gpsPort);
-		printPEMC_07(& gpsPort);
-		printPEMC_12(& gpsPort);
-
+		//One message per loop
+		switch (getTx1order()) {
+		case 0:
+			printPEMC_03(& gpsPort);
+			TX1Next();
+			break;
+		case 1:
+			printPEMC_05(& gpsPort);
+			TX1Next();
+			break;
+		case 2:
+			printPEMC_07(& gpsPort);
+			TX1Next();
+			break;
+		case 3:
+			printPEMC_12(& gpsPort);
+			TX1Next();
+			break;
+		default:
+			TX1Reset();
+			break;
+		}
 		fl= true;
-		TX1Reset();
+
 	}
 
 	if (fl) gpsPort.flush();
