@@ -92,6 +92,7 @@ public:
 		return _IMU_cal_status;
 	}
 
+    void reset_calibration (long &eeaddress);
 
 protected:
    e_IMU_status updateHeading(bool fixedSource, bool valid, float HDM);
@@ -103,8 +104,6 @@ protected:
 
 private:
 	IMUDevice *_imuDevice;
-
-    void reset_calibration (void);
 
 	float _roll=0;
 	float _pitch=0;

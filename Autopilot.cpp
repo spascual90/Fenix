@@ -72,8 +72,9 @@ e_setup_status Autopilot::setup() {
 		break;
 	}
 
-	// Setup IMU
+	//reset_calibration(EE_address.IMU);
 
+	// Setup IMU
 	switch (IMU_setup(EE_address.IMU)) {
 	case NOT_DETECTED:
 		// There was a problem detecting the IMU ... check your connections */

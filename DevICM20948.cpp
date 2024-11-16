@@ -64,36 +64,34 @@ bool DevICM20948::EEload_Calib(long int &eeAddress)
 		DEBUG_print("!WARNING: Using default values!\n");
 		sprintf(DEBUG_buffer,"ID found: %i\n",EE_ID);
 		DEBUG_print(DEBUG_buffer);
-//		m_min.x = -10000;
-//		m_min.y = -10000;
-//		m_min.z = -10000;
-//		m_max.x =10000;
-//		m_max.y =10000;
-//		m_max.z =10000;
-//		offset_g.x = 0;
-//		offset_g.y = 0;
-//		offset_g.z = 0;
-//		offset_a.x = 0;
-//		offset_a.y = 0;
-//		offset_a.z = 0;
-//		_gyro=0;
-//		_accel=0;
-//		_mag=0;
 
 		//Gyro default scale 250 dps. Convert to radians/sec subtract offsets
 		float lG_offset[3] = {240.7, 227.7, -4.8};
 		//Accel scale: divide by 16604.0 to normalize
-		float lA_B[3] = { 470.7 , -83.03 , 300.65 };
+//		float lA_B[3] = { 470.7 , -83.03 , 300.65 };
+//		float lA_Ainv[3][3] = {
+//		{ 0.06232 , -0.00413 , -0.00479 },
+//		{ -0.00413 , 0.0632 , -0.0017 },
+//		{ -0.00479 , -0.0017 , 0.0589 }};
+		float lA_B[3] = { -121.55 , -7.98 , 26.18 };
 		float lA_Ainv[3][3] = {
-		{ 0.06232 , -0.00413 , -0.00479 },
-		{ -0.00413 , 0.0632 , -0.0017 },
-		{ -0.00479 , -0.0017 , 0.0589 }};
+		{ 3.21418 , -0.0725 , 0.016 },
+		{ -0.0725 , 3.18079 , -0.01859 },
+		{ 0.016 , -0.01859 , 3.16865 }};
+
 		//Mag scale divide by 369.4 to normalize
-		float lM_B[3] = { -80.39 , -35.59 , 18.54 };
+//		float lM_B[3] = { -80.39 , -35.59 , 18.54 };
+//		float lM_Ainv[3][3] = {
+//		{ 4.47829 , -0.06586 , 0.02004 },
+//		{ -0.06586 , 4.53222 , 0.00443 },
+//		{ 0.02004 , 0.00443 , 4.46886 }};
+		float lM_B[3] = { -117.42 , 7.33 , 34.17 };
+
+
 		float lM_Ainv[3][3] = {
-		{ 4.47829 , -0.06586 , 0.02004 },
-		{ -0.06586 , 4.53222 , 0.00443 },
-		{ 0.02004 , 0.00443 , 4.46886 }};
+		{ 3.18336 , -0.04678 , -0.0167 },
+		{ -0.04678 , 3.18373 , -0.03753 },
+		{ -0.0167 , -0.03753 , 3.13766 }};
 		//ICM20948: mandar valores de variables calibración
 		ICM20948AHRS_setOffsets(lG_offset, lA_B, lA_Ainv,  lM_B, lM_Ainv);
 		displaySensorOffsets();
@@ -104,9 +102,7 @@ bool DevICM20948::EEload_Calib(long int &eeAddress)
 		_gyro=3;
 		_accel=3;
 		_mag=3;
-//ICM20948: Cargar valores de variables calibración
-
-
+	//ICM20948: Cargar valores de variables calibración
 	eeAddress += sizeof(ID);
 	EEPROM.get(eeAddress, G_offset);
 	eeAddress += sizeof(G_offset);
@@ -118,7 +114,6 @@ bool DevICM20948::EEload_Calib(long int &eeAddress)
 	eeAddress += sizeof(M_B);
 	EEPROM.get(eeAddress, M_Ainv);
 	}
-	// SPM: Force hardcoded calibration values here
 
 	//ICM20948: mandar valores de variables calibración
 	ICM20948AHRS_setOffsets(G_offset, A_B, A_Ainv,  M_B, M_Ainv);
@@ -211,41 +206,49 @@ void DevICM20948::displaySensorOffsets(void){
 	DEBUG_PORT.flush();
 }
 
+// CALIBRATION FUNCTIONS
+
 bool DevICM20948::IMU_startCalibration(bool completeCal) {
 	_gyro = 1;
 	_accel = 1;
-	// Accelerometer and gyroscope calibration
-	DEBUG_print("Gyro and Accel calibration. Keep device stable...");
-	_gyro = 3;
-	_accel = 3;
-	DEBUG_print("Magnetic calibration. Make a figure eight pattern...\n");
-	// Magnetic calibration
-	_start_cal_time = millis();
-	// Calibration just started
 	_mag = 1;
-	return ICM20948AHRS_calibration_setup();
+	// Accelerometer and gyroscope calibration
+	DEBUG_print("Gyro calibration. Keep device stable...\n");
+	gyro=ICM20948AHRS_calibration_setup();
+	displayRaw_gyroOffsets(gyro);
+
+
+	DEBUG_print("Accel Magnetic calibration. Make a figure eight pattern...\n");
+	DEBUG_print("Raw accelerometer data:\n");
+	// Magnetic calibration
+	//Restart counter
+	_acc_mag_count = ACC_MAG_LOOPS;
+	_sensor = SENSOR_ACCEL;
+	return true;
 }
 
 
 // return false when calibration is finished
 // true, calibration ongoing
 bool DevICM20948::IMU_Cal_Loop(bool completeCal){
-	bool ret = ICM20948AHRS_calibration_loop();
-	long current_loop = millis();
-	if (ret) {
-		_start_cal_time = current_loop;
-		DEBUG_print("!Offsets Changed\n");
-		// Calibration ongoing, new min/MAX values detected
-		_mag = 1;
-	} else {
-		// No new min/MAX value detected
-		_mag = 2;
+	bool ret= true;
+    int16_t* acc_mag;
+	static int cal_loop_temp =0;
+	if (cal_loop_temp++ <100) return true;
+	cal_loop_temp =0;
+	acc_mag = ICM20948AHRS_calibration_loop(_sensor);
+	displayRaw_acc_magOffsets(acc_mag);
+	_acc_mag_count--;
+	if (_acc_mag_count==0) {
+		if (_sensor == SENSOR_ACCEL) {
+			DEBUG_print("Raw magnetic data:\n");
+			_sensor=SENSOR_MAGNET;
+			_acc_mag_count=ACC_MAG_LOOPS;
+		} else {
+			DEBUG_print("Finished.\n");
+			ret = false;
+		}
 	}
-
-	// Long period without new min/MAX values?
-	ret = ((current_loop-_start_cal_time)  < _max_iter);
-	// Yes: Magnetometer if fully calibrated!
-	if (!ret) _mag = 3;
 
 	return ret;
 }
@@ -262,5 +265,31 @@ bool DevICM20948::IMU_Cal_stopRequest(void) {
 	return true;
 }
 
+void DevICM20948::displayRaw_gyroOffsets(int16_t *gyro) {
+	sprintf(DEBUG_buffer,"Gyro offsets: %i \t %i \t %i\n", gyro[0],gyro[1],gyro[2]);
+	DEBUG_print(DEBUG_buffer);
+	DEBUG_PORT.flush();
+  }
 
+void DevICM20948::displayRaw_acc_magOffsets(int16_t *acc_mag) {
+	sprintf(DEBUG_buffer,"%i,%i,%i\n",acc_mag[0],acc_mag[1],acc_mag[2]);
+	DEBUG_print(DEBUG_buffer);
+	DEBUG_PORT.flush();
+  }
 
+void DevICM20948::displayRaw_SumOffsets(int16_t **acc_mag) {
+	int i=0;
+	DEBUG_print("Accelerometer raw data:\n");
+	for (i=0; i<ACC_MAG_LOOPS; i++){
+		sprintf(DEBUG_buffer,"%i,%i,%i\n",acc_mag[i][0],acc_mag[i][1],acc_mag[i][2]);
+		DEBUG_print(DEBUG_buffer);
+		DEBUG_PORT.flush();
+	}
+
+	DEBUG_print("Magnet raw data:\n");
+	for (i=0; i<ACC_MAG_LOOPS; i++){
+		sprintf(DEBUG_buffer,"%i,%i,%i\n",acc_mag[i][3],acc_mag[i][4],acc_mag[i][5]);
+		DEBUG_print(DEBUG_buffer);
+		DEBUG_PORT.flush();
+	}
+  }

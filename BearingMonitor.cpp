@@ -182,13 +182,12 @@ bool BearingMonitor::IMU_startCalibration(bool completeCal) {
 	return _imuDevice->IMU_startCalibration(completeCal);
 }
 
-void BearingMonitor::reset_calibration () {
-	//DEBUG_print("***reset calib\n");
-	//IMU_setup();
-	//resetSensorOffsets();
-	//displaySensorOffsets();
+void BearingMonitor::reset_calibration (long &eeAddress) {
+	DEBUG_print("***reset calib\n");
+		//ID
+	    long ID =0;
+	    EEPROM.put(eeAddress, ID);
 }
-
 
 bool BearingMonitor::getCheckXYZ (uint16_t &x, int8_t &y, uint8_t &z) {
 
@@ -292,9 +291,7 @@ void BearingMonitor::updateHeading(void){
 	if (delta_yaw_raw>180) delta_yaw_raw-=360;
 	// Apply low pass filter to the IMU results
 	yaw = reduce360 (yaw*_heading_alfa + (yaw+delta_yaw_raw)* (1-_heading_alfa));
-//	sprintf(DEBUG_buffer,"raw (yaw) Delta: %i (%i) %i\n", int (raw), int(yaw), int(delta_yaw_raw));
-//	DEBUG_print(DEBUG_buffer);
-//	DEBUG_PORT.flush();
+
 	_heading = yaw;
 }
 

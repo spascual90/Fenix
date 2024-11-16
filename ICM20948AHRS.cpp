@@ -24,7 +24,7 @@
 
 */
 #include "ICM_20948.h" // Click here to get the library: http://librarymanager/All#SparkFun_ICM_20948_IMU
-#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
+//#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 #include "GPSport.h"
 
 //////////////////////////
@@ -84,6 +84,13 @@ void vector_cross(float a[3], float b[3], float out[3]);
 void vector_normalize(float a[3]);
 float vector_dot(float a[3], float b[3]);
 
+// Calibration variables
+#define SENSOR_ACCEL false
+#define SENSOR_MAGNET true
+
+//void ICM20948AHRS_printRawAGMT(ICM_20948_AGMT_t agmt);
+
+
 extern bool ICM20948AHRS_setup(bool orientation = false)
 {
   //Orientation not implemented
@@ -91,7 +98,7 @@ extern bool ICM20948AHRS_setup(bool orientation = false)
   WIRE_PORT.setClock(400000);
   imu.begin(WIRE_PORT, AD0_VAL);
   if (imu.status != ICM_20948_Stat_Ok) {
-    //Serial.println(F("ICM_90248 not detected"));
+	  DEBUG_print("ICM_90248 not detected\n");
     while (1);
   }
   return true;
@@ -121,8 +128,6 @@ float ICM20948AHRS_loop()
     last = now;
 
     deltat_avg = deltat_avg*alfa + deltat*(1-alfa);
-    //sprintf(DEBUG_buffer,"deltat(avg): %i(%i). Var:%i\n", int(deltat*1000), int(deltat_avg*1000), int((deltat-deltat_avg)*1000));
-    //DEBUG_print();
 
     MahonyQuaternionUpdate(AAxyz[0], AAxyz[1], AAxyz[2], GAxyz[0], GAxyz[1], GAxyz[2],
                            MAxyz[0], MAxyz[1], MAxyz[2], deltat);
@@ -407,5 +412,55 @@ extern bool ICM20948AHRS_setOffsets(float aG_offset[3], float aA_B[3], float aA_
         }
     }
 	return true;
+}
+/////////////////////////////////////////////////////
+// CALIBRATION FUNCTIONS
+/////////////////////////////////////////////////////
+
+extern int16_t* ICM20948AHRS_calibration_setup()
+{
+  // gyro offset values for calibration
+  static int16_t gyro[3] = {0};
+  int offset_count = 500; //average this many values for gyro
+  int i;
+  // reset
+  for (i = 0; i < 3; i++) {gyro[i]=0;}
+
+  for (i = 0; i < offset_count; i++) {
+    if (imu.dataReady())
+    {
+      imu.getAGMT();         // The values are only updated when you call 'getAGMT'
+      gyro[0] += imu.agmt.gyr.axes.x;
+      gyro[1] += imu.agmt.gyr.axes.y;
+      gyro[2] += imu.agmt.gyr.axes.z;
+    }
+  }
+
+  for (i = 0; i < 3; i++) {
+	  gyro[i] = gyro[i] / offset_count;
+  }
+
+return gyro;
+}
+
+extern int16_t* ICM20948AHRS_calibration_loop(bool sensor) {
+	static int16_t acc_mag[3] = {0};
+
+//  // get values for calibration of acc/mag
+    if (imu.dataReady()) {
+      imu.getAGMT();         // The values are only updated when you call 'getAGMT'
+      if (sensor = SENSOR_ACCEL) {
+      acc_mag[0] = imu.agmt.acc.axes.x;
+      acc_mag[1] = imu.agmt.acc.axes.y;
+      acc_mag[2] = imu.agmt.acc.axes.z;
+      } else {
+      // SENSOR_MAGNET
+      acc_mag[0] = imu.agmt.mag.axes.x;
+      acc_mag[1] = imu.agmt.mag.axes.y;
+      acc_mag[2] = imu.agmt.mag.axes.z;
+      }
+
+    }
+    return acc_mag;
 }
 
