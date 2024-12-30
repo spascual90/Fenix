@@ -19,10 +19,9 @@
 //  along with NeoGPS.  If not, see <http://www.gnu.org/licenses/>.
 
 //
-
 // SPM INI
 #define SERIAL_IF_AVAILABLE // Comment this line to avoid SERIAL IF compilation: NMEA and debugging will not be available
-
+#include <PString.h> /// http://arduiniana.org/libraries/pstring/
 #ifdef SERIAL_IF_AVAILABLE
 // SPM FIN
              #include <NeoHWSerial.h>
@@ -54,6 +53,22 @@ static char DEBUG_buffer[80];
 static void DEBUG_print (const char str[]=DEBUG_buffer){
 	#ifdef DEBUG_PORT
 	DEBUG_PORT.print(str);
+	#endif
+}
+
+static void DEBUG_print (const __FlashStringHelper *t)
+{
+	#ifdef DEBUG_PORT
+	char buf[30] ;
+	PString s(buf, 30) ;
+	s.print(t) ;
+	DEBUG_print(buf) ;
+	#endif
+}
+
+static void DEBUG_flush (void){
+	#ifdef DEBUG_PORT
+	DEBUG_PORT.flush();
 	#endif
 }
 

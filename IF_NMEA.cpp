@@ -42,7 +42,7 @@ void IF_NMEA::setup(){
 #else
 	DEBUG_print ( "NMEA int... Not defined\n" );
 #endif
-	DEBUG_PORT.flush();
+	DEBUG_flush();
 }
 
 
@@ -68,6 +68,9 @@ void IF_NMEA::refresh(){
 		default:
 			switch (getTxorder()) {
 			case 0:
+				#ifdef PRINT_FREE_MEM
+					printMemory(& gpsPort);
+				#endif
 				printRSA(& gpsPort);
 				TXNext();
 				break;
@@ -138,8 +141,9 @@ void IF_NMEA::refresh_INorder() {
 
 	// Launch action accordingly to action received and current mode
 	e_APmode currentMode = MyPilot->getCurrentMode();
-
 	if (this->INorder.isValid){
+//		sprintf(DEBUG_buffer, "Order:%i\n", this->INorder.get_order());
+//		DEBUG_print();
 		switch (this->INorder.get_order()){
 		case START_STOP:
 			if (!MyPilot->isCalMode()) Start_Stop();
@@ -208,26 +212,25 @@ void IF_NMEA::refresh_INorder() {
 			if (!MyPilot->isCalMode()) {
 				received_VWR(INorder.VWR);
 			}
-			//DEBUG_print("!VWR\n");
 
 			break;
 
-		case START_CAL:
-			switch (currentMode) {
-			case STAND_BY:
-				delay(500);//TODO: delay necessary?
-				Start_Cal();
-				break;
-			//case CAL_IMU_COMPLETE:
-			//case CAL_IMU_MINIMUM:
-				//TODO: Implement cancel method
-				//delay(500);
-				//Cancel_Cal();
-			//	break;
-			default:
-				break;
-			}
-			break;
+//		case START_CAL:
+//			switch (currentMode) {
+//			case STAND_BY:
+//				delay(500);//TODO: delay necessary?
+//				Start_Cal();
+//				break;
+//			//case CAL_IMU_COMPLETE:
+//			//case CAL_IMU_MINIMUM:
+//				//TODO: Implement cancel method
+//				//delay(500);
+//				//Cancel_Cal();
+//			//	break;
+//			default:
+//				break;
+//			}
+//			break;
 
 		case EE_FBK_CAL:
 			switch (currentMode) {
@@ -259,10 +262,30 @@ void IF_NMEA::refresh_INorder() {
 			if (currentMode==STAND_BY) Save_HCParam();
 			break;
 
+		case CAL_GYRO:
+			if (currentMode==STAND_BY) Start_Cal('G');
+			if (currentMode==CAL_IMU_COMPLETE) Cal_NextSensor();
+			break;
+		case CAL_ACCEL:
+			if (currentMode==STAND_BY) Start_Cal('A');
+			if (currentMode==CAL_IMU_COMPLETE) Cal_NextSensor();
+			break;
+		case CAL_MAGNET:
+			if (currentMode==STAND_BY) Start_Cal('M');
+			if (currentMode==CAL_IMU_COMPLETE) Cal_NextSensor();
+			break;
+		case CAL_ALL:
+			if (currentMode==STAND_BY) Start_Cal();
+			if (currentMode==CAL_IMU_COMPLETE) Cal_NextSensor();
+			break;
+		case LOAD_calibrate_py:
+			//Instruction only valid for IMU ICM20948
+			Load_calibrate_py(INorder.calibrate_py);
+			break;
+
 		default:
 	    	 break;
 		}
-
 		this->INorder.reset();
 	}
 }

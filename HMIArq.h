@@ -85,12 +85,14 @@ protected:
 	void received_HDM( s_HDM HDM);
 	void received_VWR( s_VWR VWR);
 
-	void Start_Cal();
+	void Start_Cal(char sensor = '-');
+	void Cal_NextSensor (void);
 	void Cancel_Cal();
 	void Save_Cal();
 	void Save_instParam();
 	void Save_PIDgain();
 	void Save_HCParam(); // Saves GAIN and Inst.Param HARDCODED values
+	void Load_calibrate_py(s_calibrate_py calibrate_py); // Load ICM20948 calibration parameters from calibrate.py programme
 
 	bool check_userRequest(void);
 	static e_requestStatus userRequest (void);

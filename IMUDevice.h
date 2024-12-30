@@ -54,14 +54,17 @@ public:
     //  These functions must be provided by sub classes
     virtual void IBIT(void);
     virtual bool IMU_setup(long EE_address);
-    virtual bool IMU_startCalibration(bool completeCal);
+    virtual bool IMU_startCalibration(char sensor);
+    virtual void Cal_NextSensor(void);
     virtual bool EEload_Calib(long int &eeaddress);
     virtual bool EEsave_Calib(long int &eeaddress);
     virtual void displaySensorOffsets(void);
     virtual float updateHeading();
-    virtual bool IMU_Cal_Loop(bool completeCal);
+    virtual bool IMU_Cal_Loop(void);
     virtual bool getCalibrationStatus(uint8_t &system, uint8_t &gyro, uint8_t &accel, uint8_t &mag);
     virtual bool IMU_Cal_stopRequest(void);
+    virtual bool set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor);
+
 
     //I2C Configuration
     int get_PIN_SDA() {return PIN_SDA;}

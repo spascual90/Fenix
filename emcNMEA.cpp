@@ -19,7 +19,7 @@
 // DATA OVERRUN: took too long to print NMEA data! --> TIP: Autopilot might be receiving messages without TAG
 
 #include "emcNMEA.h"
-
+#include <MemoryFree.h>
 
 emcNMEA::emcNMEA ()
 :NMEAGPS()
@@ -51,9 +51,9 @@ void emcNMEA::sentenceInvalid()
 {
 
   // All the values are suspect.  Start over.
+  //DEBUG_print("sentenceInvalid\n");
   INorder.reset();
   nmeaMessage = NMEA_UNKNOWN;
-
   reset();
 }
 
@@ -69,9 +69,9 @@ emcNMEA::decode_t emcNMEA::decode( char c )
 		case DECODE_CHR_OK:
 			break;
 		case DECODE_CHR_INVALID:
+			//TIP if sentence: Remove CR, NL or CR/NL options from Serial Terminal
 			sentenceInvalid(); break;
 		case DECODE_COMPLETED:
-
 			sentenceOk(); break;
 	}
   return res;
@@ -84,7 +84,8 @@ emcNMEA::decode_t emcNMEA::decode( char c )
 bool emcNMEA::parseField(char chr)
 {
   if (nmeaMessage >= (nmea_msg_t) EXT_FIRST_MSG) {
-
+//		sprintf(DEBUG_buffer, "parseField:%i\n", nmeaMessage);
+//		DEBUG_print();
     switch (nmeaMessage) {
       //Initial entry point for all PEMC messages.
       //Parse messages without parameters (eg.00, 09, 10)
@@ -110,7 +111,9 @@ bool emcNMEA::parseField(char chr)
     	  INorder.set_order(GET_APINFO);
     	  return parsePEMC_07( chr ); //Get AP Information
       case PEMC_08: return parsePEMC_08( chr ); //Request Information
+      case PEMC_09: return parsePEMC_09( chr ); //Start IMU Calibration
       case PEMC_11: return parsePEMC_11( chr ); //Save
+      case PEMC_14: return parsePEMC_14( chr ); //IMC20948 calibration values
       default: 
         break;
     }
@@ -220,7 +223,8 @@ bool emcNMEA::classifyPEMC( char chr )
 							case '6': nmeaMessage = (nmea_msg_t) PEMC_06; break;
 							case '7': nmeaMessage = (nmea_msg_t) PEMC_07; break;
 							case '8': nmeaMessage = (nmea_msg_t) PEMC_08; break;
-							case '9': nmeaMessage = (nmea_msg_t) PEMC_09; INorder.set_order(START_CAL);	break;
+							case '9': nmeaMessage = (nmea_msg_t) PEMC_09; break;
+								//INorder.set_order(START_CAL);	break;
 							default : ok = false;
 				}// end switch chr
 			} else {// case true: // Message is PEMC,1#,...
@@ -229,6 +233,9 @@ bool emcNMEA::classifyPEMC( char chr )
 							case '0': nmeaMessage = (nmea_msg_t) PEMC_10; INorder.set_order(EE_FBK_CAL); break;
 							// $PEMC,11
 							case '1': nmeaMessage = (nmea_msg_t) PEMC_11; break;
+							// $PEMC,14
+							case '4': nmeaMessage = (nmea_msg_t) PEMC_14; break;
+
 							default : ok = false;
 				} // end switch chr
 		} // end Switch (EMC1x)
@@ -411,6 +418,40 @@ bool emcNMEA::parsePEMC_08( char chr )
     }
   return true;
 }
+bool emcNMEA::parsePEMC_09( char chr )
+{
+    switch (fieldIndex) {
+        case 2:
+            switch (chrCount) {
+              case 0:
+                if (chr != ',') {
+                  	  switch (chr) {
+                  	  case 'G':
+                  		  INorder.set_order(CAL_GYRO);
+                  		  INorder.isRequest= true;
+                  		  break;
+                  	  case 'A':
+                  		  INorder.set_order(CAL_ACCEL);
+                  		  INorder.isRequest= true;
+                  		  break;
+                  	  case 'M':
+						  INorder.set_order(CAL_MAGNET);
+						  INorder.isRequest= true;
+						  break;
+                  	  case '-':
+						  INorder.set_order(CAL_ALL);
+						  INorder.isRequest= true;
+						  break;
+                  	  }
+
+
+                  	  }
+                break;
+            }
+
+    }
+  return true;
+}
 
 bool emcNMEA::parsePEMC_11( char chr )
 {
@@ -446,7 +487,44 @@ bool emcNMEA::parsePEMC_11( char chr )
     }
   return true;
 }
+//$PEMC,14,-120.03,3.26,31.86,3.33673,-0.09850,0.04508,-0.09850,3.21739,-0.02705,0.04508,-0.02705,3.25455,M*79
+//$PEMC,14,288.12,249.14,-37.53,0.00000,0.00000,0.00000,0.00000,0.00000,0.00000,0.00000,0.00000,0.00000,G*7D
+bool emcNMEA::parsePEMC_14( char chr )
+{
 
+    switch (fieldIndex) {
+
+    	case 2: parseFloat( INorder.calibrate_py.GAM_B.x , chr, 2 ); break;
+    	case 3: parseFloat( INorder.calibrate_py.GAM_B.y , chr, 2 ); break;
+    	case 4: parseFloat( INorder.calibrate_py.GAM_B.z , chr, 2 ); break;
+    	case 5:	parseFloat( INorder.calibrate_py.GAM_Ainv.m11, chr, 5); break;
+    	case 6:	parseFloat( INorder.calibrate_py.GAM_Ainv.m12, chr, 5); break;
+    	case 7:	parseFloat( INorder.calibrate_py.GAM_Ainv.m13, chr, 5); break;
+    	case 8:	parseFloat( INorder.calibrate_py.GAM_Ainv.m21, chr, 5); break;
+    	case 9: parseFloat( INorder.calibrate_py.GAM_Ainv.m22, chr, 5); break;
+    	case 10: parseFloat( INorder.calibrate_py.GAM_Ainv.m23, chr, 5); break;
+    	case 11: parseFloat( INorder.calibrate_py.GAM_Ainv.m31, chr, 5); break;
+    	case 12: parseFloat( INorder.calibrate_py.GAM_Ainv.m32, chr, 5); break;
+    	case 13: parseFloat( INorder.calibrate_py.GAM_Ainv.m33, chr, 5); break;
+    	case 14:
+        	  switch (chr) {
+        	  case 'G':
+        		  INorder.calibrate_py.sensor='G';
+        		  break;
+        	  case 'A':
+        		  INorder.calibrate_py.sensor='A';
+        		  break;
+        	  case 'M':
+        		  INorder.calibrate_py.sensor='M';
+        		  break;
+        	  }
+    		  INorder.calibrate_py.isValid=YES;
+    		  INorder.set_order(LOAD_calibrate_py);
+    		  break;
+    }
+
+  return true;
+}
 //---------------------------------------------
 bool emcNMEA::parseFix( char chr )
 {
@@ -838,6 +916,52 @@ bool emcNMEA::parseFloat ( whole_frac & val, char chr, uint8_t max_decimal) {
 
 } // parseFloat
 
+bool emcNMEA::parseFloat ( whole_frac32 & val, char chr, uint8_t max_decimal, bool & field_informed ) {
+	bool done = parseFloat ( val,  chr,  max_decimal);
+
+    // End of field, make sure it is informed
+    if (done and (chrCount > 0)) field_informed = true;
+
+	return done;
+}
+bool emcNMEA::parseFloat ( whole_frac32 & val, char chr, uint8_t max_decimal) {
+  bool done = false;
+
+  if (chrCount == 0) {
+    val.init();
+    comma_needed( true );
+    decimal      = 0;
+    negative     = (chr == '-');
+    if (negative) return done;
+  }
+
+  if (chr == ',') {
+    // End of field, make sure it's scaled up
+    if (!decimal)
+      decimal = 1;
+    if (val.frac)
+      while (decimal++ <= max_decimal)
+        val.frac *= 10;
+    if (negative) {
+      val.frac  = -val.frac;
+      val.whole = -val.whole;
+    }
+    done = true;
+  } else if (chr == '.') {
+    decimal = 1;
+  } else if (validateChars() && !isdigit(chr)) {
+    sentenceInvalid();
+  } else if (!decimal) {
+    val.whole = val.whole*10 + (chr - '0');
+  } else if (decimal++ <= max_decimal) {
+    val.frac = val.frac*10 + (chr - '0');
+  }
+
+  return done;
+
+} // parseFloat
+
+
 // ---------------------------------------------
 
 void emcNMEA::printPEMC_00(Stream * outStream){
@@ -1135,6 +1259,14 @@ void emcNMEA::printRSA(Stream * outStream) {
 	bufferStream->print ((float)getRudder()/10);
 	bufferStream->print (",A,,");
 
+	send( outStream, string2char(output) );
+	output.remove(0);
+}
+
+void emcNMEA::printMemory(Stream * outStream) {
+	bufferStream->print ("!Memory: ");
+	bufferStream->print (freeMemory(), 1);
+	bufferStream->print (" KB");
 	send( outStream, string2char(output) );
 	output.remove(0);
 }

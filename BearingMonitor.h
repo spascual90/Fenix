@@ -27,9 +27,11 @@ public:
 	virtual ~BearingMonitor();
 	e_IMU_status IMU_setup(long EE_address);
 	void IBIT();
-	bool IMU_startCalibration(bool completeCal);
 
-	bool compute_Cal_IMU(bool completeCal);
+	bool IMU_startCalibration(char sensor);
+	bool compute_Cal_IMU(char sensor);
+	void Cal_NextSensor(void);
+
 	bool compute_check_IMU(void);
 
 	void displayCalStatus(void);
@@ -98,7 +100,7 @@ protected:
    e_IMU_status updateHeading(bool fixedSource, bool valid, float HDM);
 	e_IMU_cal_status EEload_Calib(long int &eeaddress);
 	bool EEsave_Calib(long int &eeaddress);
-
+	bool set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor);
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
 	void SIM_updateShip(int tillerAngle);
 
@@ -131,7 +133,7 @@ private:
 	uint8_t _calSys, _calGyro, _calAccel, _calMagn;
 
 	bool IMU_startCalCheck(void);
-	bool IMU_Cal_Loop(bool completeCal);
+	bool IMU_Cal_Loop(void);
 	bool IMU_CalCheck_Loop(void);
 
 	//virtual

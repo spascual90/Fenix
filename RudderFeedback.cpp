@@ -99,7 +99,7 @@ e_feedback_status RudderFeedback::IBIT(){
 	DEBUG_print();
 	if (feed_error>getErrorFeedback ()) return ERROR_TOO_BIG;
 
-	DEBUG_PORT.flush();
+	DEBUG_flush();
 
 #ifdef VIRTUAL_ACTUATOR
 	return OK_VIRTUAL;
@@ -143,7 +143,7 @@ int RudderFeedback::rudder_IBIT () {
 #else
 	int val, val_min=1024, val_max =0, error;
 	int i = 0;
-	DEBUG_print("Checking feedback error. It may take a few seconds...");
+	DEBUG_print(F("Checking feedback error. It may take a few seconds..."));
 
 	while ( i++ < 500) {
 		val = getFeedback();
@@ -152,7 +152,7 @@ int RudderFeedback::rudder_IBIT () {
 		if (val>val_max) val_max=val;
 	}
 
-	DEBUG_print("Ok.\n");
+	DEBUG_print(F("Ok.\n"));
 
 	error = val_max-val_min;
 	return error;
@@ -161,14 +161,14 @@ int RudderFeedback::rudder_IBIT () {
 
 // FEEDBACK CALIBRATION FUNCTIONS
 void RudderFeedback::start_calFeedback() {
-	DEBUG_print("Feedback Calibration Mode:\n");
+	DEBUG_print(F("Feedback Calibration Mode:\n"));
 	setErrorFeedback(0, false); // REMOVE ERROR PROTECTION
 	setMinFeedback(D_MIN_FEEDBACK, false);
 	setMaxFeedback(D_MAX_FEEDBACK, false);
 	setDeltaCenterOfRudder(0, true); // launches recalculation of dependent variables
 	_cal_minFeedback=D_MAX_FEEDBACK;
 	_cal_maxFeedback=D_MIN_FEEDBACK;
-	DEBUG_print("Extend then retract linear actuator...\n");
+	DEBUG_print(F("Extend then retract linear actuator...\n"));
 }
 
 void RudderFeedback::setLimitMinFeedback(int limitMinFeedback) {

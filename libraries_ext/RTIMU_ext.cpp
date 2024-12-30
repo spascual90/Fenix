@@ -43,7 +43,7 @@ void RTIMU_ext::setCalibrationData(void)
 
 	sprintf(DEBUG_buffer,"Load IMU Calib. Address :%i. Lenght: %i\n",_eeAddress, sizeof(calData) );
 	DEBUG_print(DEBUG_buffer);
-	DEBUG_PORT.flush();
+	DEBUG_flush();
 
 
     if (calLibRead(_eeAddress, calData)) {

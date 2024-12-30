@@ -542,7 +542,7 @@ extern bool MinIMU9AHRS_ag_calibration_loop(void) {
 
 	AN_OFFSET[5]-=GRAVITY*SENSOR_SIGN[5];
 
-	DEBUG_print("Ok\n");
+	DEBUG_print(F("Ok\n"));
 
 	return true; // calibrado correctamente
 }
@@ -618,7 +618,7 @@ extern float MinIMU9AHRS_loop() //Main Loop
 
       if (G_Dt > 0.2) {//200 ms 0.2 seg
         G_Dt = 0; // ignore integration times over 200 ms ( < 5 Hz)
-		DEBUG_print("!IMU Time out\n");
+		DEBUG_print(F("!IMU Time out\n"));
       }
     }
     else {

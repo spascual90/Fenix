@@ -102,6 +102,9 @@ protected:
     bool parseWPID( char * WPID, char chr );//WP ID: Up to 4 characters, rest ignored.
     bool parseFloat ( whole_frac & val, char chr, uint8_t max_decimal );
     bool parseFloat ( whole_frac & val, char chr, uint8_t max_decimal, bool & field_informed );
+    bool parseFloat ( whole_frac32 & val, char chr, uint8_t max_decimal );
+    bool parseFloat ( whole_frac32 & val, char chr, uint8_t max_decimal, bool & field_informed );
+
     //Timer
     void TXReset(void);
     bool IsTXtime (void);
@@ -125,6 +128,8 @@ protected:
 		PEMC_10, //EE_FBK_CALIB
 		PEMC_11, //SAVE
 		PEMC_12, //IMUCal
+		PEMC_13, //FEEDBACK VALUES
+		PEMC_14, //calibrate_py Calib. values
 
         EXT_END
     };
@@ -148,6 +153,7 @@ protected:
     void printHDM(Stream * outStream);
     void printHDT(Stream * outStream);
     void printRSA(Stream * outStream);
+    void printMemory(Stream * outStream);
 
 	void printDm();
 
@@ -178,7 +184,9 @@ protected:
     bool parsePEMC_0506( char chr );
     bool parsePEMC_07( char chr );
     bool parsePEMC_08( char chr );
+    bool parsePEMC_09( char chr );
     bool parsePEMC_11( char chr );
+    bool parsePEMC_14( char chr );
 
     bool parseField( char chr );
     bool parseFix( char chr );

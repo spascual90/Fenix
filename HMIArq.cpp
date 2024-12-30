@@ -255,10 +255,14 @@ void HMIArq::Accept_Next(void) {
 }
 
 //Calibration functions
-void HMIArq::Start_Cal(){
-	MyPilot->Start_Cal();
+void HMIArq::Start_Cal(char sensor){
+	MyPilot->Start_Cal(sensor);
 	  MyPilot->buzzer_Beep();
+}
 
+void HMIArq::Cal_NextSensor(void){
+	MyPilot->Cal_NextSensor();
+	  MyPilot->buzzer_Beep();
 }
 
 void HMIArq::Cancel_Cal(){
@@ -285,6 +289,12 @@ void HMIArq::Save_PIDgain(){
 
 void HMIArq::Save_HCParam(){
 	MyPilot->EEsave_HCParam();
+	  MyPilot->buzzer_Beep();
+
+}
+
+void HMIArq::Load_calibrate_py(s_calibrate_py calibrate_py){
+	MyPilot->Load_calibrate_py(calibrate_py);
 	  MyPilot->buzzer_Beep();
 
 }

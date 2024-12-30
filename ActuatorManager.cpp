@@ -37,12 +37,12 @@ void ActuatorManager::setup(double aTuneNoise, double aTuneStep, double aTuneLoo
 
 	if (out_min) {
 		setDir(EXTEND);
-		DEBUG_print("Warning: Linear actuator below limit\n");
+		DEBUG_print(F("Warning: Linear actuator below limit\n"));
 	}
 
 	if (out_max) {
 		setDir(RETRACT);
-		DEBUG_print("Warning: Linear actuator over limit\n");
+		DEBUG_print(F("Warning: Linear actuator over limit\n"));
 	}
 
 	setupAutoTune(aTuneNoise, aTuneStep, aTuneLookBack);
@@ -152,8 +152,8 @@ int ActuatorManager::controlActuator(int target_rudder, boolean deadband, int tr
 	bool out_min = feedback < getLimitMinFeedback();
 	bool out_max = feedback > getLimitMaxFeedback();
 
-	//if (out_min) DEBUG_print("Out of LimitMinFeedback. Recalibrate linear actuator\n");
-	//if (out_max) DEBUG_print("Out of LimitMaxFeedback. Recalibrate linear actuator\n");
+	//if (out_min) DEBUG_print(F("Out of LimitMinFeedback. Recalibrate linear actuator\n"));
+	//if (out_max) DEBUG_print(F("Out of LimitMaxFeedback. Recalibrate linear actuator\n"));
 	#ifdef DEBUG
 	static bool point=false;
 	#endif
@@ -176,7 +176,7 @@ int ActuatorManager::controlActuator(int target_rudder, boolean deadband, int tr
 				point=false;
 			} else if (!point) {
 				point=true;
-				DEBUG_print(".");
+				DEBUG_print(F("."));
 				delay(10);
 				#endif
 			}
@@ -187,7 +187,7 @@ int ActuatorManager::controlActuator(int target_rudder, boolean deadband, int tr
 	e_dir dir = delta==abs(delta)?EXTEND:RETRACT;
 
 	#ifdef DEBUG
-	DEBUG_print((dir==EXTEND?">":"<"));
+	DEBUG_print((dir==EXTEND?">":"<")));
 	delay(10);
 	point=false;
 	#endif
@@ -240,7 +240,7 @@ void ActuatorManager::startAutoTune(void) {
     //Set the output to the desired starting frequency.
 
     _tuning = true;
-	DEBUG_print("!ATune started\n");
+	DEBUG_print(F("!ATune started\n"));
   }
 }
 
@@ -253,7 +253,7 @@ bool ActuatorManager::evaluateAutoTune(void) {
 	if(_tuning) {
 		  byte val = (Runtime());
 		  if (val!=0) {
-			DEBUG_print("!Autotune finished\n");
+			DEBUG_print(F("!Autotune finished\n"));
 			stopAutoTune();
 
 			sprintf(DEBUG_buffer,"Kp, Ki, Kd: %s, %s, %s\n",dtostrf(PID_ATune::GetKp(),l,d,c3) ,dtostrf(PID_ATune::GetKi(),l,d,c4),dtostrf(PID_ATune::GetKd(),l,d,c5));
@@ -272,7 +272,7 @@ void ActuatorManager::stopAutoTune(void) {
 		_tuning = false;
 		_ATune_Output = 0;
 		_ATune_Input = 0;
-		DEBUG_print("!ATune stopped\n");
+		DEBUG_print(F("!ATune stopped\n"));
 
 	}
 }

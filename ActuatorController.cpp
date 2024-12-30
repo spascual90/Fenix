@@ -27,7 +27,7 @@ void ActuatorController::setup(){
 	IBIT();
 }
 void ActuatorController::IBIT(){
-	DEBUG_print("Linear actuator... Started\n");
+	DEBUG_print(F("Linear actuator... Started\n"));
 	sprintf(DEBUG_buffer,"PWM,DIR=%i,%i\n",get_PIN_PWM(),get_PIN_DIR());
 	DEBUG_print();
 	setSpeed(MAX_SPEED);

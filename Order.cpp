@@ -22,12 +22,6 @@ void SERIALorder::set_order(e_actions order) {
 };
 
 void SERIALorder::reset () {
-
-	//TODO: TO CHECK ALTERNATIVE CODING
-//	APinfo = {};
-//	PIDgain = {};
-//	instParam = {};
-//	APB = {};
 	APinfo.isValid=NO;
 	APinfo.flag = {false, false, false, false, false, false};
 	PIDgain.isValid=NO;
@@ -40,6 +34,7 @@ void SERIALorder::reset () {
 	HDM.flag = {false};
 	VWR.isValid=NO;
 	VWR.flag = {false,false};
+	calibrate_py.isValid=NO;
 
 	isValid=NO;
 	isRequest= false;

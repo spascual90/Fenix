@@ -29,7 +29,7 @@ void DevMinIMU9V5::IBIT(void){
 	sprintf(DEBUG_buffer,"HW: %s\nSDA,SCL=%i,%i\n", IMUName(), get_PIN_SDA(),get_PIN_SCL());
 
 	DEBUG_print(DEBUG_buffer);
-	DEBUG_PORT.flush();
+	DEBUG_flush();
 }
 
 float DevMinIMU9V5::updateHeading(void){
@@ -158,7 +158,7 @@ void DevMinIMU9V5::displaySensorOffsets(void){
 	DEBUG_print();
 	sprintf(DEBUG_buffer,"Accel Offsets: x:%i, y:%i, z:%i\n",offset_a.x,offset_a.y,offset_a.z);
 	DEBUG_print();
-	DEBUG_PORT.flush();
+	DEBUG_flush();
 }
 
 bool DevMinIMU9V5::IMU_startCalibration(bool completeCal) {

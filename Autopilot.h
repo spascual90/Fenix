@@ -49,7 +49,6 @@ enum e_working_status {RUNNING_OK, RUNNING_ERROR, RUN_OUT_OF_TIME};
 // working modes
 enum e_APmode {STAND_BY, CAL_IMU_COMPLETE, XXX_DEPRECATED, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE, WIND_MODE, CAL_AUTOTUNE};
 
-
 // Error codes
 enum e_error {
 	NO_ERROR
@@ -95,8 +94,22 @@ enum e_info {
 		int32_t int32_000() const { return whole * 1000L + frac; };
 		float float_00() const { return ((float)whole) + ((float)frac)*0.01; };
 		float float_000() const { return ((float)whole) + ((float)frac)*0.001; };
+		float float_0000() const { return ((float)whole) + ((float)frac)*0.0001; };
 		whole_frac*  Towf_00(float number) {this->whole=(int)number; this->frac=(int) (number*float(100))-(this->whole*100);return this;};
 		whole_frac*  Towf_000(float number) {this->whole=(int)number; this->frac=(int) (number*1000-this->whole*1000);return this;};
+		whole_frac*  Towf_0000(float number) {this->whole=(int)number; this->frac=(int) (number*10000-this->whole*10000);return this;};
+
+	} ;
+
+	struct whole_frac32 {
+		int32_t whole;
+		int32_t frac;
+		void init() { whole = 0; frac = 0; };
+//		int32_t int32_00() const { return ((int32_t)whole) * 100L + frac; };
+//		int16_t int16_00() const { return whole * 100 + frac; };
+//		int32_t int32_000() const { return whole * 1000L + frac; };
+		float float_00000() const { return ((float)whole) + ((float)frac)*0.00001; };
+		whole_frac32*  Towf_00000(float number) {this->whole=(long)number; this->frac=(long) (number*100000-this->whole*100000);return this;};
 
 	} ;
 
@@ -280,6 +293,18 @@ enum e_info {
 		long t0;
 	} ;
 
+// calibrate.py format
+	struct s_calibrate_py {
+		// Is Valid indicates if data is valid or not
+		bool isValid=false;
+		char sensor;
+		struct {whole_frac x;whole_frac y;whole_frac z;} GAM_B;
+		struct {whole_frac32 m11;whole_frac32 m12;whole_frac32 m13;
+		whole_frac32 m21;whole_frac32 m22;whole_frac32 m23;
+		whole_frac32 m31;whole_frac32 m32;whole_frac32 m33;} GAM_Ainv;
+
+
+	};
 
 	enum e_actions {
 		NO_INSTRUCTION
@@ -304,8 +329,8 @@ enum e_info {
 		, SET_GAIN
 		//Get AP Information
 		, GET_APINFO
-		//Start compass calibration
-		, START_CAL
+//		//Start compass calibration
+//		, START_CAL
 		//Enter/exit feedback calibration
 		, EE_FBK_CAL
 		//Requests
@@ -323,13 +348,19 @@ enum e_info {
 		, SAVE_INST		// Save current instParam to EEPROM
 		, SAVE_GAIN		// Save current PIDgain to EEPROM
 		, SAVE_HC	// Save HARDCODED PIDgain and instParam to EEPROM
+		, CAL_GYRO
+		, CAL_ACCEL
+		, CAL_MAGNET
+		, CAL_ALL
+		//Load calibration parameters
+		, LOAD_calibrate_py // Load external calibration parameters
 	};
 
 	struct  {
 		// ver 1: Fenix v0.1
 		// ver 2: save CHECK value before IMU, InstParam and PID structures
-		int ver =2; // TODO: Version of EEPROM structure is not saved
-		long Flag= 0;
+		int ver=2; // TODO: Version of EEPROM structure is not saved
+		long Flag=0;
 		long IMU=25; //Length 48
 		long InstParam=73;
 		long PIDgain=125;
@@ -382,7 +413,7 @@ public:
 	// FUNCTIONAL MODULE: WORKING MODES
 	e_setup_status setup();
 	e_working_status Compute();
-	bool setCurrentMode(e_APmode = STAND_BY);
+	bool setCurrentMode(e_APmode = STAND_BY, char sensor = '-');
 
 	e_APmode getCurrentMode() const {
 		return _currentMode;
@@ -435,8 +466,8 @@ public:
 	//FUNCTIONAL MODULE: EEPROM
 	void EEPROM_setup();
 	void EEPROM_format();
-	void EEsave_ReqCal (bool reqCalib);
-	bool EEload_ReqCal (void);
+	void EEsave_ReqCal (char sensor = '0');
+	char EEload_ReqCal (void);
 	bool EEsave_Calib();
 	e_IMU_cal_status EEload_Calib();
 	bool EEsave_HCParam(); //Save HARDCODED InstParam and PIDgain
@@ -449,6 +480,7 @@ public:
 	bool EEload_CHECK (long address);
 	void EEsave_CHECK (long address);
 
+	bool Load_calibrate_py (s_calibrate_py calibrate_py);
 
 	// FUNCTIONAL MODULE: BUZZER
 	void buzzer_Error();
@@ -468,11 +500,12 @@ public:
 //	}
 
 	// FUNCTIONAL MODULE: IMU
-	void Start_Cal();
+	void Start_Cal(char sensor = '-');
+	void Cal_NextSensor(void);
 	void Cancel_Cal();
 	void Save_Cal(){
 		EEsave_Calib();
-		EEsave_ReqCal(false); // Update Calibration Flag to disabled
+		EEsave_ReqCal('0'); // Update Calibration Flag to disabled
 	}
 
 	//return delta value (-180, 179)
@@ -543,7 +576,7 @@ private:
 	float _targetBearing= 0; // target vessel bearing
 	float _nextCourse= 0; // Next course in STDBY/ AUTO Mode
 	String _status[5] = { "STAND BY", "FOLLOW BEARING", "CALIBRATING" };
-
+	char _sensor = '-';
 	char* deblank(char* input)
 	{
 	    int i,j;
@@ -561,11 +594,11 @@ private:
 
 
 	// FUNCTIONAL MODULE: WORKING MODES
-	bool before_changeMode(e_APmode newMode, e_APmode currentMode);
+	bool before_changeMode(e_APmode newMode, e_APmode currentMode, char sensor);
 	bool after_changeMode(e_APmode currentMode, e_APmode preMode);
 	e_working_status compute_OperationalMode(void);
 	e_working_status compute_Stand_By(void);
-	e_working_status compute_Cal_IMU(bool completeCal);
+	e_working_status compute_Cal_IMU(void);
 	e_working_status compute_Cal_Feedback(void);
 	e_working_status compute_Autotune(void);
 
@@ -601,7 +634,6 @@ private:
 	// FUNCTIONAL MODULE: EEPROM
 	byte CRC8(const byte *data, size_t dataLength);
 	const uint8_t CHECKvalue = 170; // 170 = 10101010 in binary
-
 
 	// FUNCTIONAL MODULE: BUZZER
 	void buzzer_setup();

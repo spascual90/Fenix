@@ -6,6 +6,7 @@
 */
 
 #include "Autopilot.h"
+#include <MemoryFree.h>
 
 Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
  : ActuatorManager(gain.Kp.float_00(), gain.Ki.float_00(), gain.Kd.float_00(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback) //maxRudder is the min/max value for PID as well.
@@ -30,11 +31,13 @@ Autopilot::~Autopilot() {
 
 e_setup_status Autopilot::setup() {
 
+	sprintf(DEBUG_buffer,"!Free memory: %i\n", freeMemory());
+	DEBUG_print();
 
 	// Autopilot version
-	DEBUG_print("Fenix Autopilot: ");
+	DEBUG_print(F("Fenix Autopilot: "));
 	DEBUG_print(ARDUINO_VERSION);
-	DEBUG_print("\n");
+	DEBUG_print(F("\n"));
 
 #ifdef RESTORE_EEPROM
 	//Format EEPROM
@@ -61,30 +64,31 @@ e_setup_status Autopilot::setup() {
 
 	switch (f_status) {
 	case ERROR_TOO_BIG:
-		DEBUG_print("!WARNING: Check your linear actuator is powered-on and connected!\n");
+		DEBUG_print(F("!W: L.Actuator error too big!\n")); //Check your linear actuator is powered-on and connected
 		setWarning(FBK_ERROR_HIGH, true);
 		//return FEEDBACK_ERROR; Not considered an error
 		break;
 	case OK_VIRTUAL:
-		DEBUG_print("!Debugging: Virtual actuator enabled\n");
+		DEBUG_print(F("!Debug:Virt.actuator\n"));
 		break;
 	case FEEDBACK_OK:
 		break;
 	}
 
+	// For debuging purpose only
 	//reset_calibration(EE_address.IMU);
 
 	// Setup IMU
 	switch (IMU_setup(EE_address.IMU)) {
 	case NOT_DETECTED:
 		// There was a problem detecting the IMU ... check your connections */
-		DEBUG_print("!WARNING: IMU Not detected. Check your wiring or I2C ADDR\n");
+		DEBUG_print(F("!W: IMU Not detected\n")); // Check your wiring or I2C ADDR
 		setWarning(IMU_NOTFOUND, true);
 		//return IMU_ERROR; Lack of IMU is not an error anymore. External IMU can be used instead
 		return SETUP_OK;
 		break;
 	case SIMULATED:
-		DEBUG_print("!Debugging: IMU simulator enabled\n");
+		DEBUG_print(F("!Debug: IMU simulator\n"));
 		return SETUP_OK;
 		break;
 	default:
@@ -92,24 +96,22 @@ e_setup_status Autopilot::setup() {
 	}
 
 	//Enter into calibration mode
-	if (EEload_ReqCal()) {
-		EEsave_ReqCal(false); // Set flag to disabled to avoid entering into Calibration mode each time
-		DEBUG_print("!Calibration mode!\n");
+	char sensor = EEload_ReqCal();
+	if (sensor == 'G' or sensor == 'A' or sensor == 'M' or sensor == '-') {
+		EEsave_ReqCal('0'); // Set flag to disabled to avoid entering into Calibration mode each time
+		DEBUG_print(F("!Calibration mode!\n"));
 		// Launch calibration
-		setCurrentMode (CAL_IMU_COMPLETE);
+		setCurrentMode (CAL_IMU_COMPLETE, sensor);
 		return SETUP_OK;
-	  }
+	}
 
-	 //  Get and restore IMU Calibration offsets
-	 if (EEload_Calib()==CAL_RESULT_NOT_CALIBRATED) {
+	//  Get and restore IMU Calibration offsets
+	if (EEload_Calib()==CAL_RESULT_NOT_CALIBRATED) {
 		// There was a problem reading IMU calibration values
-		DEBUG_print("!Please enter into Calibration Mode\n"); // System is not reset automatically to avoid recurrent writing EEPROM
+		DEBUG_print(F("!Enter Calibration Mode\n")); // System is not reset automatically to avoid recurrent writing EEPROM
 		setWarning(EE_IMU_NOTFOUND, true);
 		return SETUP_OK;
-	 }
-	// Ensures calibration is valid by recalibrating (without check feature)
-	//refreshCalStatus();
-	//reset_calibration();
+	}
 
 	setInformation(NO_MESSAGE);
 	return SETUP_OK;
@@ -160,8 +162,9 @@ e_working_status Autopilot::Compute() {
 	return ws;
 }
 
-e_working_status Autopilot::compute_Cal_IMU(bool completeCal){
-	if (!BearingMonitor::compute_Cal_IMU(completeCal)) {
+e_working_status Autopilot::compute_Cal_IMU(void){
+
+	if (!BearingMonitor::compute_Cal_IMU(_sensor)) {
 		if (_currentMode==CAL_IMU_COMPLETE) setCurrentMode(STAND_BY);
 	}
 
@@ -236,14 +239,14 @@ void Autopilot::computeLongLoop_WindDir(void) {
 
 // RETURN true = Mode changed successfully
 // false = Change mode aborted
-bool Autopilot::setCurrentMode(e_APmode newMode) {
+bool Autopilot::setCurrentMode(e_APmode newMode, char sensor) {
 
 	bool rt = false;
 	e_APmode prevMode = _currentMode;
 	if (_currentMode == newMode) {return true;}
 
 	//PRE-CHANGE MODE
-	rt = before_changeMode(newMode, _currentMode);
+	rt = before_changeMode(newMode, _currentMode, sensor);
 
 	// Abort change mode
 	if (!rt) {
@@ -257,13 +260,13 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 
 	switch (_currentMode) {
 	case AUTO_MODE:
-		//DEBUG_print("!setCurrentMode: AUTO_MODE\n");
+		//DEBUG_print(F("!setCurrentMode: AUTO_MODE\n"));
 		break;
 	case WIND_MODE:
-		//DEBUG_print("!setCurrentMode: WIND_MODE\n");
+		//DEBUG_print(F("!setCurrentMode: WIND_MODE\n"));
 		break;
 	case STAND_BY:
-		//DEBUG_print("!setCurrentMode: STAND_BY\n");
+		//DEBUG_print(F("!setCurrentMode: STAND_BY\n"));
 		break;
 	case CAL_IMU_COMPLETE:
 		//Start IMU calibration
@@ -277,7 +280,7 @@ bool Autopilot::setCurrentMode(e_APmode newMode) {
 
 	case CAL_AUTOTUNE:
 		startAutoTune();
-    	DEBUG_print("!SetCurrentMode: CAL_AUTOTUNE\n");
+    	DEBUG_print(F("!SetCurrentMode: CAL_AUTOTUNE\n"));
 		break;
 
 
@@ -303,8 +306,7 @@ void Autopilot::computeLongLoop() {
 #ifndef SHIP_SIM
 		refreshCalStatus();
 #endif
-
-		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU(true);
+		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU();
 		if (_currentMode == CAL_AUTOTUNE) computeLongLoop_heading();
 
 		if (isCalMode()) return;
@@ -316,12 +318,14 @@ void Autopilot::computeLongLoop() {
 			computeLongLoop_WP();
 			computeLongLoop_TrackMode();
 			computeLongLoop_WindDir();
+
+
 			LongLoopReset();
 		}
 }
 
 
-bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode){
+bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode, char sensor){
 	switch (currentMode) {
 	case CAL_FEEDBACK:
 		set_calFeedback();
@@ -335,6 +339,10 @@ bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode){
 	case STAND_BY:
 		if (newMode == CAL_AUTOTUNE) {
 			setTargetBearing (getCurrentHeading());
+		}
+
+		if (newMode == CAL_IMU_COMPLETE) {
+			_sensor = sensor;
 		}
 		break;
 
@@ -353,7 +361,7 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 	}
 
 	_offCourseAlarmIDLE = false; // OCA Alarm deactivated until ship heading gets into OCA angle
-	DEBUG_print ("OCA Alarm: Deactivated\n");
+	DEBUG_print(F("OCA Alarm: Deactivated\n"));
 
 	switch (currentMode) {
 	case AUTO_MODE:
@@ -382,7 +390,7 @@ void Autopilot::setTargetBearing(float targetBearing) {
 		// If next course represents a big change in course
 		if (abs (delta180(_targetBearing, targetBearing)) > getOffCourseAlarm()) {
 			_offCourseAlarmIDLE = false;
-			DEBUG_print ("OCA Alarm: Deactivated\n");
+			DEBUG_print(F("OCA Alarm: Deactivated\n"));
 		}
 		// then OCA Alarm is deactivated until ship heading gets into OCA angle
 		_targetBearing = fmod (targetBearing, double(360));
@@ -427,11 +435,14 @@ bool Autopilot::isCalMode(void){
 	return false;
 }
 
-void Autopilot::Start_Cal(){
-	EEsave_ReqCal(true);// Update Calibration Flag to enabled
+void Autopilot::Start_Cal(char sensor){
+	EEsave_ReqCal(sensor);// Update Calibration Flag to enabled
 	reset();  //call reset
 }
 
+void Autopilot::Cal_NextSensor(void){
+	BearingMonitor::Cal_NextSensor();
+}
 void Autopilot::Cancel_Cal(){
 	reset();  //call reset
 }
@@ -528,7 +539,7 @@ void Autopilot::Start_Cancel_AutotunePID(void) {
 void Autopilot::set_extHeading(s_HDM HDM) {
 	_extHeading.HDM = HDM;
 	_extHeading.t0 = millis();
-//	DEBUG_print ("!ext Heading received\n");
+//	DEBUG_print ("!ext Heading received\n"));
 }
 
 //evaluate validity extHeading
@@ -538,9 +549,9 @@ bool Autopilot::isValid_HDM (void) {
 	_extHeading.HDM.isValid = (millis()-_extHeading.t0)<=MAX_HDM_TIME;
 //	if (prev_isValid!=_extHeading.HDM.isValid){
 //		if (prev_isValid == false) {
-//			DEBUG_print ("!EXT Heading\n");
+//			DEBUG_print ("!EXT Heading\n"));
 //			} else {
-//			DEBUG_print ("!INT Heading\n");
+//			DEBUG_print ("!INT Heading\n"));
 //		}
 //	}
 
@@ -551,7 +562,7 @@ bool Autopilot::isValid_HDM (void) {
 void Autopilot::set_windDir(s_VWR VWR) {
 	_windDir.VWR = VWR;
 	_windDir.t0 = millis();
-	//DEBUG_print ("!wind received\n");
+	//DEBUG_print ("!wind received\n"));
 }
 
 //evaluate validity windDir
@@ -571,13 +582,13 @@ int Autopilot::getWindDir(void) {
 void Autopilot::setWPactive(s_APB APB) {
 	_WPactive.APB = APB;
 	_WPactive.t0 = millis();
-	//DEBUG_print ("!WPactive valid\n");
+	//DEBUG_print ("!WPactive valid\n"));
 }
 
 void Autopilot::setWPnext(s_APB APB){
 	_WPnext.APB = APB;
 	_WPnext.t0 = millis();
-	//DEBUG_print ("!WPnext valid\n");
+	//DEBUG_print ("!WPnext valid\n"));
 
 }
 
@@ -759,7 +770,7 @@ void Autopilot::buzzer_setup() {
 	pinMode(PIN_BUZZER, OUTPUT); // Set buzzer - pin PIN_BUZZER as an output
 	buzzer_IBIT();
 #else
-	DEBUG_print("!Debugging: SAFETY NOTICE: Buzzer disconnected!\n");
+	DEBUG_print(F("!Debugging: SAFETY NOTICE: Buzzer disconnected!\n"));
 #endif
 }
 
@@ -837,7 +848,7 @@ bool Autopilot::compute_OCA (float delta) {
 	if (abs(delta) < _offCourseAlarm) {
 		if (!_offCourseAlarmIDLE) {
 			_offCourseAlarmIDLE = true; // Alarm in Stand By
-			DEBUG_print ("OCA Alarm: Stand by\n");
+			DEBUG_print(F("OCA Alarm: Stand by\n"));
 		}
 		if (sb_offCourse ==true) {
 			// reset static values
@@ -876,14 +887,16 @@ void Autopilot::EEPROM_setup() {
 	sprintf(DEBUG_buffer,"EEPROM V%i\n", EE_address.ver);
 	DEBUG_print();
 	if (!EEload_instParam()) {
-		DEBUG_print("!WARNING: Could not load Installation parameters: Restoring default.\n");
+		DEBUG_print(F("!W:Could not load Inst.Param"));
+		DEBUG_print(F(". Restoring default.\n"));
 		setWarning (EE_INSTPARAM_NOTFOUND, true);
 		//Restore HARDCODED parameters but don't save!
 		Change_instParam (HC_INSTPARAM);
 	}
 
 	if (!EEload_PIDgain()) {
-		DEBUG_print("!INFORMATION: Could not load PID parameters: Restoring default.\n");
+		DEBUG_print(F("!I:Could not load PID Param"));
+		DEBUG_print(F(". Restoring default.\n"));
 		setInformation (EE_PID_DEFAULT);
 		//Restore HARDCODED parameters but don't save!
 		SetTunings(HC_GAIN.Kp.float_00(), HC_GAIN.Ki.float_00(), HC_GAIN.Kd.float_00());
@@ -891,27 +904,49 @@ void Autopilot::EEPROM_setup() {
 }
 
 void Autopilot::EEPROM_format() {
-	DEBUG_print("!EEPROM Format...");
+	DEBUG_print(F("!EEPROM Format..."));
 
 	for (uint16_t i = 0 ; i < EEPROM.length() ; i++) {
 	    EEPROM.update(i, 0xFF);
 	  }
 
-	DEBUG_print("Ok\nStop.");
+	DEBUG_print(F("Ok\nStop."));
     while (1) {;}
 
 }
 
-
-void Autopilot::EEsave_ReqCal (bool reqCalib)
+// G, A, M will calibrate one sensor only
+// - will calibrate all in secuence G, A, M
+// Other value (including 0) will not enter into calibration mode
+void Autopilot::EEsave_ReqCal (char sensor)
 {
-	const uint8_t TRUEvalue = CHECKvalue; // 170 = 10101010 in binary
-	const uint8_t FALSEvalue = 0; // 0 = 00000000 in binary
 
-	uint8_t value =0;
-	value = reqCalib?TRUEvalue:FALSEvalue;
-	EEPROM.put(EE_address.Flag, value); // true enables Calibration Flag to force calibration
+	if (sensor =='0' or sensor =='G' or sensor =='A' or sensor =='M' or sensor =='-') {
+		EEPROM.put(EE_address.Flag, sensor); // different to 0, enables Calibration Flag to force calibration
+	}
+
 }
+
+char Autopilot::EEload_ReqCal (void)
+{
+	char sensor = '0';
+
+	EEPROM.get(EE_address.Flag, sensor); // G, A, M or - Require Calibration Flag to force calibration
+	sprintf(DEBUG_buffer,"Load: %c\n", sensor);
+	DEBUG_print(DEBUG_buffer);
+	if (sensor =='G' or sensor =='A' or sensor =='M' or sensor =='-') return char(sensor);
+	return '0'; // No calibration
+}
+
+
+bool Autopilot::EEsave_Calib(){
+	return BearingMonitor::EEsave_Calib(EE_address.IMU);
+}
+
+e_IMU_cal_status Autopilot::EEload_Calib(){
+	return BearingMonitor::EEload_Calib(EE_address.IMU);
+}
+
 
 void Autopilot::EEsave_CHECK (long address)
 {
@@ -926,25 +961,6 @@ bool Autopilot::EEload_CHECK (long address)
 }
 
 
-bool Autopilot::EEload_ReqCal (void)
-{
-	uint8_t value = 0;
-
-	EEPROM.get(EE_address.Flag, value); // true Require Calibration Flag to force calibration
-	//sprintf(DEBUG_buffer,"ReqCal: %i\n",value);
-	//DEBUG_print(DEBUG_buffer);
-	if (value == CHECKvalue) return true;
-	return false;
-}
-
-
-bool Autopilot::EEsave_Calib(){
-	return BearingMonitor::EEsave_Calib(EE_address.IMU);
-}
-
-e_IMU_cal_status Autopilot::EEload_Calib(){
-	return BearingMonitor::EEload_Calib(EE_address.IMU);
-}
 
 bool Autopilot::EEsave_HCParam(){
 	bool inst_OK, PID_OK;
@@ -958,7 +974,7 @@ bool Autopilot::EEsave_instParam(bool HC){
 	//DATA TO SAVE
 	s_instParam instParam;
 	int eeAddress = EE_address.InstParam;
-	DEBUG_print("!Saving InstParam...");
+	DEBUG_print(F("!Saving InstParam..."));
 
     //instParam_CHECK
     EEPROM.put(eeAddress, CHECKvalue);
@@ -966,7 +982,7 @@ bool Autopilot::EEsave_instParam(bool HC){
 
     // InstParam
 	if (HC==true) {
-		DEBUG_print("!Restored manufacturer values.");
+		DEBUG_print(F("!Restored manufacturer values."));
 		instParam=HC_INSTPARAM;}
 	else {
 		Request_instParam(instParam);
@@ -975,7 +991,7 @@ bool Autopilot::EEsave_instParam(bool HC){
     EEPROM.put(eeAddress, instParam);
 
     DataStored = true;
-	DEBUG_print("Ok\n");
+	DEBUG_print(F("Ok\n"));
     return DataStored;
 }
 
@@ -1008,7 +1024,7 @@ bool Autopilot::EEsave_PIDgain(bool HC){
 	bool DataStored=false;
 	long eeAddress = EE_address.PIDgain;
 	s_PIDgain PIDgain;
-	DEBUG_print("!Saving PIDgain...");
+	DEBUG_print(F("!Saving PIDgain..."));
 
     //PID_CHECK
     EEPROM.put(eeAddress, CHECKvalue);
@@ -1016,24 +1032,14 @@ bool Autopilot::EEsave_PIDgain(bool HC){
 
 	if (HC==true) {
 		PIDgain = HC_PIDGAIN;
-		DEBUG_print("Restored manufacturer values.");
+		DEBUG_print(F("Restored manufacturer values."));
 	} else {
 		Request_PIDgain(PIDgain);
 	}
     EEPROM.put(eeAddress, PIDgain);
 
-//    //BORRAME
-//    sprintf(DEBUG_buffer,"PID Saved at %i\n", eeAddress );
-//	DEBUG_print();
-//	bool Loaded = PIDgain.isValid &&
-//			PIDgain.flag.DBConfig &&
-//			PIDgain.flag.sTime &&
-//			PIDgain.flag.gain.Kp && PIDgain.flag.gain.Ki && PIDgain.flag.gain.Kd;
-//    if (!Loaded) DEBUG_print("!Flags not true\n" );
-    //BORRAME
-
     DataStored = true;
-	DEBUG_print("!Ok\n");
+	DEBUG_print(F("!Ok\n"));
     return DataStored;
 }
 
@@ -1064,12 +1070,37 @@ bool Autopilot::EEload_PIDgain (void){
 	return Loaded;
 }
 
+bool Autopilot::Load_calibrate_py (s_calibrate_py calibrate_py){
+	float B[3];
+	float Ainv[3][3];
+	char sensor;
+
+	B[0]=calibrate_py.GAM_B.x.float_00();
+	B[1]=calibrate_py.GAM_B.y.float_00();
+	B[2]=calibrate_py.GAM_B.z.float_00();
+	Ainv[0][0]=calibrate_py.GAM_Ainv.m11.float_00000();
+
+
+	Ainv[0][1]=calibrate_py.GAM_Ainv.m12.float_00000();
+	Ainv[0][2]=calibrate_py.GAM_Ainv.m13.float_00000();
+	Ainv[1][0]=calibrate_py.GAM_Ainv.m21.float_00000();
+	Ainv[1][1]=calibrate_py.GAM_Ainv.m22.float_00000();
+	Ainv[1][2]=calibrate_py.GAM_Ainv.m23.float_00000();
+	Ainv[2][0]=calibrate_py.GAM_Ainv.m31.float_00000();
+	Ainv[2][1]=calibrate_py.GAM_Ainv.m32.float_00000();
+	Ainv[2][2]=calibrate_py.GAM_Ainv.m33.float_00000();
+	sensor = calibrate_py.sensor;
+	return BearingMonitor::set_calibrate_py_offsets(B, Ainv, sensor);
+
+}
+
+
 void Autopilot::printWarning(bool instant) {
 	static e_warning prev_warning = NO_WARNING;
 	static unsigned long lastWprint = 0;
 
 	if (_lost_W) {
-		DEBUG_print("!Warning not displayed\n");
+		DEBUG_print(F("!Warning not displayed\n"));
 		buzzer_Warning();
 		_lost_W = false;
 	}
@@ -1082,6 +1113,12 @@ void Autopilot::printWarning(bool instant) {
 			buzzer_Warning();
 			prev_warning = _warning;
 			_pending_W = false;
+		}
+		int fmemory = freeMemory();//*100)/8192; //% of free memory in Arduino MEGA (8KB RAM)
+		if (fmemory <500) {
+
+			sprintf(DEBUG_buffer,"!Low memory: %i KB\n", fmemory );
+			DEBUG_print();
 		}
 
 		// reset counter
@@ -1096,29 +1133,29 @@ void Autopilot::print_PIDFrontend() {
 	int l=6, d=2;
 	char c3[l+3];
 	if ( (millis() - lastPIDprint) > 1000 ) {
-	DEBUG_print("PID ");
+	DEBUG_print(F("PID "));
 	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID_ext::getSetpoint(),l,d,c3)));
 	  DEBUG_print();
-	  DEBUG_print(" ");
+	  DEBUG_print(F(" "));
 	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(this->getInput(),l,d,c3)));
 	  DEBUG_print();
-	  DEBUG_print(" ");
+	  DEBUG_print(F(" "));
 	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(this->getOutput(),l,d,c3)));
 	  DEBUG_print();
-	  DEBUG_print(" ");
+	  DEBUG_print(F(" "));
 	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID::GetKp(),l,d,c3)));
 	  DEBUG_print();
-	  DEBUG_print(" ");
+	  DEBUG_print(F(" "));
 	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID::GetKi(),l,d,c3)));
 	  DEBUG_print();
-	  DEBUG_print(" ");
+	  DEBUG_print(F(" "));
 	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID::GetKd(),l,d,c3)));
 	  DEBUG_print();
-	  DEBUG_print(" ");
-	  if(PID::GetMode()==AUTOMATIC) DEBUG_print("Automatic");
-	  else DEBUG_print("Manual");
-	  DEBUG_print(" ");
-	  DEBUG_print("Direct\n");
+	  DEBUG_print(F(" "));
+	  if(PID::GetMode()==AUTOMATIC) DEBUG_print(F("Automatic"));
+	  else DEBUG_print(F("Manual"));
+	  DEBUG_print(F(" "));
+	  DEBUG_print(F("Direct\n"));
 
 		// reset counter
 		lastPIDprint = millis();

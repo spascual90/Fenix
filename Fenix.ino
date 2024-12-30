@@ -76,13 +76,13 @@ void setup()
 	// Setup autopilot
 	switch (MyPilot.setup()){
 		case SETUP_OK:
-			DEBUG_print("Start\n");
+			DEBUG_print(F("Start\n"));
 			break;
 
 		case IMU_ERROR:
 		case FEEDBACK_ERROR:
 			MyPilot.buzzer_Error();
-			DEBUG_print("Stop\n");
+			DEBUG_print(F("Stop\n"));
 			while(1){;}
 			break;
 	}

@@ -63,32 +63,32 @@ unsigned long lastPrint = 0; // Keep track of print time
 static float q[4] = {1.0, 0.0, 0.0, 0.0};
 static float yaw, pitch, roll; //Euler angle output
 
-//Gyro default scale 250 dps. Convert to radians/sec subtract offsets
-float G_offset[3] = {240.7, 227.7, -4.8};
-//Accel scale: divide by 16604.0 to normalize
-float A_B[3] = { 470.7 , -83.03 , 300.65 };
-float A_Ainv[3][3] = {
-{ 0.06232 , -0.00413 , -0.00479 },
-{ -0.00413 , 0.0632 , -0.0017 },
-{ -0.00479 , -0.0017 , 0.0589 }};
-//Mag scale divide by 369.4 to normalize
-float M_B[3] = { -80.39 , -35.59 , 18.54 };
-float M_Ainv[3][3] = {
-{ 4.47829 , -0.06586 , 0.02004 },
-{ -0.06586 , 4.53222 , 0.00443 },
-{ 0.02004 , 0.00443 , 4.46886 }};
+////Gyro default scale 250 dps. Convert to radians/sec subtract offsets
+//float G_offset[3] = {240.7, 227.7, -4.8};
+////Accel scale: divide by 16604.0 to normalize
+//float A_B[3] = { 470.7 , -83.03 , 300.65 };
+//float A_Ainv[3][3] = {
+//{ 0.06232 , -0.00413 , -0.00479 },
+//{ -0.00413 , 0.0632 , -0.0017 },
+//{ -0.00479 , -0.0017 , 0.0589 }};
+////Mag scale divide by 369.4 to normalize
+//float M_B[3] = { -80.39 , -35.59 , 18.54 };
+//float M_Ainv[3][3] = {
+//{ 4.47829 , -0.06586 , 0.02004 },
+//{ -0.06586 , 4.53222 , 0.00443 },
+//{ 0.02004 , 0.00443 , 4.46886 }};
+// Hardcoded values are managed at DevICM20948.cpp
+float G_offset[3];
+float A_B[3];
+float A_Ainv[3][3];
+float M_B[3];
+float M_Ainv[3][3];
 
 void get_scaled_IMU(float Gxyz[3], float Axyz[3], float Mxyz[3]);
 void MahonyQuaternionUpdate(float ax, float ay, float az, float gx, float gy, float gz, float mx, float my, float mz, float deltat);
 void vector_cross(float a[3], float b[3], float out[3]);
 void vector_normalize(float a[3]);
 float vector_dot(float a[3], float b[3]);
-
-// Calibration variables
-#define SENSOR_ACCEL false
-#define SENSOR_MAGNET true
-
-//void ICM20948AHRS_printRawAGMT(ICM_20948_AGMT_t agmt);
 
 
 extern bool ICM20948AHRS_setup(bool orientation = false)
@@ -413,54 +413,106 @@ extern bool ICM20948AHRS_setOffsets(float aG_offset[3], float aA_B[3], float aA_
     }
 	return true;
 }
+//
+//bool setoffsets_G(float aG_offset[3]){
+//	for (int i = 0; i < 3; i++) {
+//		G_offset[i] = aG_offset[i];
+//	}
+//	return true;
+//}
+
+extern bool ICM20948AHRS_setoffsets2(float aB[3], float aAinv[3][3], char sensor){
+	switch (sensor) {
+	case 'G':
+		for (int i = 0; i < 3; i++) {
+			G_offset[i] = aB[i];
+		}
+		break;
+	case 'A':
+		for (int i = 0; i < 3; i++) {
+			A_B[i] = aB[i];
+		}
+
+		for (int i = 0; i < 3; i++)
+		{
+			for (int j = 0; j < 3; j++)
+			{
+				A_Ainv[i][j] = aAinv[i][j];
+			}
+		}
+		break;
+	case 'M':
+		for (int i = 0; i < 3; i++) {
+			M_B[i] = aB[i];
+		}
+
+		for (int i = 0; i < 3; i++)
+		{
+			for (int j = 0; j < 3; j++)
+			{
+				M_Ainv[i][j] = aAinv[i][j];
+			}
+		}
+		break;
+	}
+	return true;
+}
 /////////////////////////////////////////////////////
 // CALIBRATION FUNCTIONS
 /////////////////////////////////////////////////////
 
-extern int16_t* ICM20948AHRS_calibration_setup()
-{
-  // gyro offset values for calibration
-  static int16_t gyro[3] = {0};
-  int offset_count = 500; //average this many values for gyro
-  int i;
-  // reset
-  for (i = 0; i < 3; i++) {gyro[i]=0;}
+//extern bool ICM20948AHRS_calibration_setup()
+//{
+//  // gyro offset values for calibration
+//  static float gyro[3] = {0};
+//  int offset_count = 500; //average this many values for gyro
+//  int i;
+//  // reset
+//  for (i = 0; i < 3; i++) {gyro[i]=0;}
+//
+//  for (i = 0; i < offset_count; i++) {
+//    if (imu.dataReady())
+//    {
+//      imu.getAGMT();         // The values are only updated when you call 'getAGMT'
+//      gyro[0] += imu.agmt.gyr.axes.x;
+//      gyro[1] += imu.agmt.gyr.axes.y;
+//      gyro[2] += imu.agmt.gyr.axes.z;
+//    }
+//  }
+//
+//  for (i = 0; i < 3; i++) {
+//	  gyro[i] = gyro[i] / offset_count;
+//  }
+//  setoffsets_G(gyro); //Load gyro offsets
+//
+//return true;
+//}
 
-  for (i = 0; i < offset_count; i++) {
-    if (imu.dataReady())
-    {
-      imu.getAGMT();         // The values are only updated when you call 'getAGMT'
-      gyro[0] += imu.agmt.gyr.axes.x;
-      gyro[1] += imu.agmt.gyr.axes.y;
-      gyro[2] += imu.agmt.gyr.axes.z;
-    }
-  }
+extern int16_t* ICM20948AHRS_calibration_loop(char sensor) {
+	static int16_t gyro_acc_mag[3] = {0};
 
-  for (i = 0; i < 3; i++) {
-	  gyro[i] = gyro[i] / offset_count;
-  }
-
-return gyro;
-}
-
-extern int16_t* ICM20948AHRS_calibration_loop(bool sensor) {
-	static int16_t acc_mag[3] = {0};
-
-//  // get values for calibration of acc/mag
+//  // get values for calibration of gyro/acc/mag
     if (imu.dataReady()) {
       imu.getAGMT();         // The values are only updated when you call 'getAGMT'
-      if (sensor = SENSOR_ACCEL) {
-      acc_mag[0] = imu.agmt.acc.axes.x;
-      acc_mag[1] = imu.agmt.acc.axes.y;
-      acc_mag[2] = imu.agmt.acc.axes.z;
-      } else {
-      // SENSOR_MAGNET
-      acc_mag[0] = imu.agmt.mag.axes.x;
-      acc_mag[1] = imu.agmt.mag.axes.y;
-      acc_mag[2] = imu.agmt.mag.axes.z;
-      }
 
+      switch (sensor) {
+      case 'G':
+    	  gyro_acc_mag[0] = imu.agmt.gyr.axes.x;
+    	  gyro_acc_mag[1] = imu.agmt.gyr.axes.y;
+    	  gyro_acc_mag[2] = imu.agmt.gyr.axes.z;
+    	  break;
+      case 'A':
+    	  gyro_acc_mag[0] = imu.agmt.acc.axes.x;
+    	  gyro_acc_mag[1] = imu.agmt.acc.axes.y;
+    	  gyro_acc_mag[2] = imu.agmt.acc.axes.z;
+    	  break;
+      case 'M':
+    	  gyro_acc_mag[0] = imu.agmt.mag.axes.x;
+    	  gyro_acc_mag[1] = imu.agmt.mag.axes.y;
+    	  gyro_acc_mag[2] = imu.agmt.mag.axes.z;
+    	  break;
+      }
     }
-    return acc_mag;
+    return gyro_acc_mag;
 }
 

@@ -26,7 +26,7 @@ bool DevBNO055Int::IMU_setup(long EE_address){
 	if ((errcode = _imu->IMUInit()) < 0) {
 		sprintf(DEBUG_buffer,"IMU %s. Error Code: %i\n",_imu->IMUName(), errcode);
 		DEBUG_print(DEBUG_buffer);
-		DEBUG_PORT.flush();
+		DEBUG_flush();
 		return false;
 	}
 
@@ -35,12 +35,12 @@ bool DevBNO055Int::IMU_setup(long EE_address){
 
 void DevBNO055Int::IBIT(void){
 
-	DEBUG_print("IMU int... Started\n");
+	DEBUG_print(F("IMU int... Started\n"));
 	sprintf(DEBUG_buffer,"HW: %s\nSDA,SCL=%i,%i\n", IMUName(), get_PIN_SDA(),get_PIN_SCL());
-	DEBUG_print("Internal Fusion Mode\n");
+	DEBUG_print(F("Internal Fusion Mode\n"));
 
 	DEBUG_print(DEBUG_buffer);
-	DEBUG_PORT.flush();
+	DEBUG_flush();
 }
 
 float DevBNO055Int::updateHeading(void){
@@ -66,21 +66,21 @@ bool DevBNO055Int::EEload_Calib(long int & eeAddress)
 	DEBUG_print(DEBUG_buffer);
 
 	if (EE_ID != ID) {
-		DEBUG_print("!WARNING: No Calibration Data for this sensor found!\n");
+		DEBUG_print(F("!WARNING: No Calibration Data for this sensor found!\n"));
 		sprintf(DEBUG_buffer,"ID found: %i\n",EE_ID);
 		DEBUG_print(DEBUG_buffer);
 
 		return false;
 	}
-	DEBUG_print("!Found Calibration data...");
+	DEBUG_print(F("!Found Calibration data..."));
 	eeAddress += sizeof(ID);
 	EEPROM.get(eeAddress, calibrationData);
 	//displaySensorOffsets(calibrationData);
 
 	if (_imu->setSensorOffsets(calibrationData)){
-		DEBUG_print("Ok\n");
+		DEBUG_print(F("Ok\n"));
 	} else {
-		DEBUG_print("Error. Not restored\n");
+		DEBUG_print(F("Error. Not restored\n"));
 	}
 
 	//displaySensorOffsets();
@@ -93,7 +93,7 @@ bool DevBNO055Int::EEsave_Calib( long &eeAddress){
 	long ID;
 	adafruit_bno055_offsets_t Calib;
 
-	DEBUG_print("!Saving Calibration...");
+	DEBUG_print(F("!Saving Calibration..."));
 
 	//ID
     ID = get_IMUdeviceID();
@@ -104,9 +104,9 @@ bool DevBNO055Int::EEsave_Calib( long &eeAddress){
 	if (_imu->getSensorOffsets(Calib)) {
 		EEPROM.put(eeAddress, Calib);
 	    DataStored = true;
-		DEBUG_print("Ok\n");
+		DEBUG_print(F("Ok\n"));
 	} else {
-		DEBUG_print("Error. Not saved\n");
+		DEBUG_print(F("Error. Not saved\n"));
 	}
     return DataStored;
 }
@@ -118,7 +118,7 @@ bool DevBNO055Int::IMU_startCalibration(bool completeCal) {
 }
 
 void DevBNO055Int::displaySensorOffsets(void){
-	DEBUG_print("Sensor offsets are internal.\n");
+	DEBUG_print(F("Sensor offsets are internal.\n"));
     return;
 }
 
