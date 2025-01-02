@@ -75,8 +75,8 @@
 // *** BearingMonitor.h ***
 //Only one IMU driver shall be defined at a time.
 // Uncomment #define as applicable
-#define MINIMU9V5
-//#define ICM20948
+//#define MINIMU9V5
+#define ICM20948
 //#define BNO055_EXTERNAL_FUSION
 //#define BNO055_INTERNAL_FUSION //Sensor fusion performed internally by BNO055.
 

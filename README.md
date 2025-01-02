@@ -34,6 +34,10 @@ Fenix Autopilot is an open-source DIY tiller pilot for small boats based on Ardu
 - v.3.3B1 Known limitations: 
 - v.3.3B1 Known limitations: IMU must be installed: When IMU is not installed/found autopilot stops. It should raise a Warning and continue waiting for external compass information
 - v.3.3B1 Known limitations: NMEA I/F: Centered Tiller Position and Heading alignment set parameter to 0 is not accepted
+- v.3.4.B1 Additional IMU device available. Sparkfun 9DoF IMU Breakout - ICM-20948 (Qwiic) 
+- v.3.4.B1 Known limitations:
+- v.3.4.B1 Known limitations: Not compatible with BNO055
+- v.3.4.B1 Known limitations: NMEA I/F: Centered Tiller Position and Heading alignment set parameter to 0 is not accepted
 
 Release documentation:
 https://github.com/spascual90/Fenix/blob/master/RELEASE.md
@@ -68,14 +72,21 @@ https://fenix-autopilot.com/start-to-build-from-here
 https://github.com/spascual90/PCB-for-Fenix/releases/latest
 
 ## Users: How to start?
+
+### Selecting IMU
+- Sparkfun IMU ICM20948.This IMU has the best performance among all and is recommended. For calibration, Fenix_ICM_20948_Cal (Python application running on Windows/ Linux) is required.
+- Pololu MinIMU9V5. Calibration of this IMU is very simple and can be done with Fenix App (mobile phone). If you dont have computer skills is a good alternative.
+- Adafruit BNO055 is discontinued by the supplier and available units have demostrate low reliability. May not be updated in versions after V3.3.
+
 ### Uploading SW to Arduino
 You can find in HEX folder Xloader executable file, an application to upload HEX to Arduino.
 
 You can find as part of this release HEX Arduino file.
 Which HEX should I use?
-- FenixVxxMinIMU9V5.hex: If you are using IMU Pololu MinIMU9V5. Installed with components on top
-- FenixVxxBNO055_Ext.hex: If you are using IMU BNO055. This HEX uses external algorith for tilt compass and is recommended
-- FenixVxxBNO055_Int.hex: If you are using IMU BNO055. This HEX uses INTERNAL algorith for tilt compass and is NOT recommended
+- FenixVxxICM20948.hex: If you are using Sparkfun IMU ICM20948. Installed with components on top. 
+- FenixVxxMinIMU9V5.hex: If you are using IMU Pololu MinIMU9V5. Installed with components on top. 
+- FenixV33BNO055_Ext.hex: If you are using IMU BNO055. This HEX uses external algorith for tilt compass
+- FenixV33BNO055_Int.hex: If you are using IMU BNO055. This HEX uses INTERNAL algorith for tilt compass
 - SIMULATOR.hex: Simulates ship bearing and rudder. No IMU or linear actuator is required. For demo, development and testing purposes only
 
 ### Installing Virtuino App
