@@ -161,7 +161,7 @@ void DevMinIMU9V5::displaySensorOffsets(void){
 	DEBUG_flush();
 }
 
-bool DevMinIMU9V5::IMU_startCalibration(bool completeCal) {
+bool DevMinIMU9V5::IMU_startCalibration(char sensor) {
 	_gyro = 1;
 	_accel = 1;
 	// Accelerometer and gyroscope calibration
@@ -184,7 +184,7 @@ bool DevMinIMU9V5::IMU_startCalibration(bool completeCal) {
 
 // return false when calibration is finished
 // true, calibration ongoing
-bool DevMinIMU9V5::IMU_Cal_Loop(bool completeCal){
+bool DevMinIMU9V5::IMU_Cal_Loop(void){
 	bool ret = MinIMU9AHRS_calibration_loop();
 	long current_loop = millis();
 	if (ret) {

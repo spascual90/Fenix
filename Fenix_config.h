@@ -33,16 +33,21 @@
 // Known limitations
 // IMU must be installed: When IMU is not installed/found autopilot stops. It should raise a Warning and continue waiting for external compass information
 // NMEA I/F: Centered Tiller Position and Heading alignment set parameter to 0 is not accepted
+// Heading to bow cannot be used as it causes overflow of heading over 360
 // RELEASE v.3.4.B1
+//v.3.4.B1 Additional IMU device available: Sparkfun ICM20948
+// Known limitations
+// Not compatible with BNO055
+// NMEA I/F: Centered Tiller Position and Heading alignment set parameter to 0 is not accepted
 
 //DEBUG
 // Defined for Release version
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
 #define TXNMEA //Comment this line to stop periodic NMEA Transmission
-//#define PRINT_FREE_MEM
 // Commented for Release version
+//#define PRINT_FREE_MEM
 //#define SHIP_SIM // Uncomment to simulate boat to tune PID
-#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
+//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
 
@@ -70,8 +75,8 @@
 // *** BearingMonitor.h ***
 //Only one IMU driver shall be defined at a time.
 // Uncomment #define as applicable
-//#define MINIMU9V5
-#define ICM20948
+#define MINIMU9V5
+//#define ICM20948
 //#define BNO055_EXTERNAL_FUSION
 //#define BNO055_INTERNAL_FUSION //Sensor fusion performed internally by BNO055.
 

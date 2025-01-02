@@ -37,16 +37,24 @@ public:
 
     void IBIT(void);
     bool IMU_setup(long EE_address);
-    bool IMU_startCalibration(bool completeCal);
+    bool IMU_startCalibration(char sensor);
+    void Cal_NextSensor(void) {
+    	;
+    }
     bool EEload_Calib(long int &eeaddress);
     bool EEsave_Calib(long int &eeaddress);
     void displaySensorOffsets(void);
     float updateHeading();
-    bool IMU_Cal_Loop(bool completeCal);
+    bool IMU_Cal_Loop(void);
     bool getCalibrationStatus(uint8_t &system, uint8_t &gyro, uint8_t &accel, uint8_t &mag);
     bool IMU_Cal_stopRequest(void);
     void print_Values(void);
-
+    bool set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor) {
+    	return true;
+    }
+    bool isExternalCalibration(void) {
+    	return false;
+    }
 
 private:
     //Magnetometer calibration variables
