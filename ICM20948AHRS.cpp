@@ -37,6 +37,13 @@
 // On the SparkFun 9DoF IMU breakout the default is 1, and when
 // the ADR jumper is closed the value becomes 0
 
+#define G_OFFSET_MAX 1000
+#define G_OFFSET_MIN -1000
+#define B_MAX 1000
+#define B_MIN -1000
+#define AINV_MAX 50
+#define AINV_MIN-50
+
 ICM_20948_I2C imu; // create an ICM_20948_I2C object imu;
 
 // VERY IMPORTANT!
@@ -134,7 +141,7 @@ float ICM20948AHRS_loop()
 
 
     if ((deltat-deltat_avg) > 0.03) {
-    	DEBUG_print("!ICM20948: Time overflow\n");
+    	//DEBUG_print("!ICM20948: Time overflow\n");
     	return yaw;
     }
 
@@ -380,6 +387,7 @@ void get_scaled_IMU2(float Axyz[3], float Mxyz[3]) {
 
 
 extern bool ICM20948AHRS_getOffsets(float aG_offset[3], float aA_B[3], float aA_Ainv[3][3], float aM_B[3], float aM_Ainv[3][3]){
+	DEBUG_print(F("ICM20948AHRS_getOffsets\n"));
 	for (int i = 0; i < 3; i++) {
 		aG_offset[i] = G_offset[i];
 		aA_B[i] = A_B[i];
@@ -396,6 +404,30 @@ extern bool ICM20948AHRS_getOffsets(float aG_offset[3], float aA_B[3], float aA_
     }
 	return true;
 }
+
+extern bool ICM20948AHRS_checkOffsets(float aG_offset[3], float aA_B[3], float aA_Ainv[3][3], float aM_B[3], float aM_Ainv[3][3]){
+	for (int i = 0; i < 3; i++) {
+		if (aG_offset[i] > G_OFFSET_MAX) return false;
+		if (aG_offset[i] < G_OFFSET_MIN) return false;
+		if (aA_B[i] > B_MAX) return false;
+		if (aA_B[i] < B_MIN) return false;
+		if (aM_B[i] > B_MAX) return false;
+		if (aM_B[i] < B_MIN) return false;
+	}
+
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+    		if (aA_Ainv[i][j] > AINV_MAX) return false;
+    		if (aA_Ainv[i][j] < AINV_MIN) return false;
+    		if (aM_Ainv[i][j] > AINV_MAX) return false;
+    		if (aM_Ainv[i][j] < AINV_MIN) return false;
+        }
+    }
+	return true;
+}
+
 extern bool ICM20948AHRS_setOffsets(float aG_offset[3], float aA_B[3], float aA_Ainv[3][3], float aM_B[3], float aM_Ainv[3][3]){
 	for (int i = 0; i < 3; i++) {
 		G_offset[i] = aG_offset[i];

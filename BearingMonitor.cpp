@@ -177,7 +177,7 @@ bool BearingMonitor::IMU_startCalibration(char sensor) {
 	_IMU_cal_status = CAL_INPROGRESS;
 
 	//First iteration only
-	DEBUG_print(F("Start IMU Calibration...\n"));
+	//DEBUG_print(F("Start IMU Calibration...\n"));
 	return _imuDevice->IMU_startCalibration(sensor);
 }
 
@@ -303,7 +303,7 @@ bool BearingMonitor::IMU_Cal_Loop(void){
 	// Exit if calibration is not in progress
 	if (_IMU_cal_status != CAL_INPROGRESS) return false;
 	bool ret = _imuDevice->IMU_Cal_Loop();
-	if (ret==false) _IMU_cal_status=CAL_RESULT_RECALIBRATED ;
+	if (ret==false) _IMU_cal_status=CAL_RESULT_RECALIBRATED;
 
 	return ret;
 }

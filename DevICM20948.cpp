@@ -177,10 +177,14 @@ bool DevICM20948::EEsave_Calib( long &eeAddress){
 
 void DevICM20948::displaySensorOffsets(void){
 	//ICM20948: Recibir valores de variables calibración e imprimirlos
-	int l=8, d=2, d5=5;
-	char c1[l+3];
-	char c2[l+3];
-	char c3[l+3];
+	//l = minima longitud incluyendo . y -
+	//d = número de cifras decimales
+	//e = máximo número de cifras enteras sin incluir -
+	int d2=2, l2=3+d2;
+	int d5=5, l5=3+d5 ;
+	char c1[5 + l5];
+	char c2[5 + l5];
+	char c3[5 + l5];
 	// Variables calibración ICM20948
 	float G_offset[3];
 	float A_B[3];
@@ -190,31 +194,64 @@ void DevICM20948::displaySensorOffsets(void){
 
 	ICM20948AHRS_getOffsets(G_offset, A_B, A_Ainv, M_B,  M_Ainv);
 
-	sprintf(DEBUG_buffer,"G_offset: x:%s, y:%s, z:%s\n", dtostrf(G_offset[0],l,d,c1), dtostrf(G_offset[1],l,d,c2), dtostrf(G_offset[2],l,d,c3));
+	if (!ICM20948AHRS_checkOffsets(G_offset, A_B, A_Ainv, M_B,  M_Ainv)) {
+		DEBUG_print(F("!IMU offsets out of range\n"));
+		DEBUG_flush();
+		return;
+	}
+
+	sprintf(DEBUG_buffer,"G_offset: x:%s, y:%s, z:%s\n",
+			dtostrf(G_offset[0],l2,d2,c1),
+			dtostrf(G_offset[1],l2,d2,c2),
+			dtostrf(G_offset[2],l2,d2,c3));
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_flush();
-	sprintf(DEBUG_buffer,"A_B: %s \t %s \t %s\n", dtostrf(A_B[0],l,d,c1), dtostrf(A_B[1],l,d,c2), dtostrf(A_B[2],l,d,c3));
+	sprintf(DEBUG_buffer,"A_B: %s \t %s \t %s\n",
+			dtostrf(A_B[0],l2,d2,c1),
+			dtostrf(A_B[1],l2,d2,c2),
+			dtostrf(A_B[2],l2,d2,c3));
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_flush();
-	sprintf(DEBUG_buffer,"A_Ainv:\t %s \t %s \t %s\n", dtostrf(A_Ainv[0][0],l,d5,c1), dtostrf(A_Ainv[0][1],l,d5,c2), dtostrf(A_Ainv[0][2],l,d5,c3));
+	sprintf(DEBUG_buffer,"A_Ainv:\t %s \t %s \t %s\n",
+			dtostrf(A_Ainv[0][0],l5,d5,c1),
+			dtostrf(A_Ainv[0][1],l5,d5,c2),
+			dtostrf(A_Ainv[0][2],l5,d5,c3));
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_flush();
-	sprintf(DEBUG_buffer,"A_Ainv:\t %s \t %s \t %s\n", dtostrf(A_Ainv[1][0],l,d5,c1), dtostrf(A_Ainv[1][1],l,d5,c2), dtostrf(A_Ainv[1][2],l,d5,c3));
+	sprintf(DEBUG_buffer,"A_Ainv:\t %s \t %s \t %s\n",
+			dtostrf(A_Ainv[1][0],l5,d5,c1),
+			dtostrf(A_Ainv[1][1],l5,d5,c2),
+			dtostrf(A_Ainv[1][2],l5,d5,c3));
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_flush();
-	sprintf(DEBUG_buffer,"A_Ainv:\t %s \t %s \t %s\n", dtostrf(A_Ainv[2][0],l,d5,c1), dtostrf(A_Ainv[2][1],l,d5,c2), dtostrf(A_Ainv[2][2],l,d5,c3));
+	sprintf(DEBUG_buffer,"A_Ainv:\t %s \t %s \t %s\n",
+			dtostrf(A_Ainv[2][0],l5,d5,c1),
+			dtostrf(A_Ainv[2][1],l5,d5,c2),
+			dtostrf(A_Ainv[2][2],l5,d5,c3));
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_flush();
-	sprintf(DEBUG_buffer,"M_B: %s \t %s \t %s\n", dtostrf(M_B[0],l,d,c1), dtostrf(M_B[1],l,d,c2), dtostrf(M_B[2],l,d,c3));
+	sprintf(DEBUG_buffer,"M_B: %s \t %s \t %s\n",
+			dtostrf(M_B[0],l2,d2,c1),
+			dtostrf(M_B[1],l2,d2,c2),
+			dtostrf(M_B[2],l2,d2,c3));
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_flush();
-	sprintf(DEBUG_buffer,"M_Ainv: %s \t %s \t %s\n", dtostrf(M_Ainv[0][0],l,d5,c1), dtostrf(M_Ainv[0][1],l,d5,c2), dtostrf(M_Ainv[0][2],l,d5,c3));
+	sprintf(DEBUG_buffer,"M_Ainv: %s \t %s \t %s\n",
+			dtostrf(M_Ainv[0][0],l5,d5,c1),
+			dtostrf(M_Ainv[0][1],l5,d5,c2),
+			dtostrf(M_Ainv[0][2],l5,d5,c3));
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_flush();
-	sprintf(DEBUG_buffer,"M_Ainv: %s \t %s \t %s\n", dtostrf(M_Ainv[1][0],l,d5,c1), dtostrf(M_Ainv[1][1],l,d5,c2), dtostrf(M_Ainv[1][2],l,d5,c3));
+	sprintf(DEBUG_buffer,"M_Ainv: %s \t %s \t %s\n",
+			dtostrf(M_Ainv[1][0],l5,d5,c1),
+			dtostrf(M_Ainv[1][1],l5,d5,c2),
+			dtostrf(M_Ainv[1][2],l5,d5,c3));
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_flush();
-	sprintf(DEBUG_buffer,"M_Ainv: %s \t %s \t %s\n", dtostrf(M_Ainv[2][0],l,d5,c1), dtostrf(M_Ainv[2][1],l,d5,c2), dtostrf(M_Ainv[2][2],l,d5,c3));
+	sprintf(DEBUG_buffer,"M_Ainv: %s \t %s \t %s\n",
+			dtostrf(M_Ainv[2][0],l5,d5,c1),
+			dtostrf(M_Ainv[2][1],l5,d5,c2),
+			dtostrf(M_Ainv[2][2],l5,d5,c3));
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_flush();
 }
@@ -250,17 +287,17 @@ bool DevICM20948::IMU_Cal_Loop(void){
 			// First read of this sensor
 			DEBUG_print(F("!Gyro raw data:\n"));
 			DEBUG_print(F("Keep device stable...\n"));
-			DEBUG_print(F("$PEMC,12,O,0,1,0,0\n"));
+			DEBUG_print(F("$PEMC,12,O,0,1,0,0*56\n"));
 			break;
 		case 'A':
 			DEBUG_print(F("!Accel. raw data:\n"));
 			DEBUG_print(F("6 stable positions...\n"));
-			DEBUG_print(F("$PEMC,12,O,0,0,1,0\n"));
+			DEBUG_print(F("$PEMC,12,O,0,0,1,0*56\n"));
 			break;
 		case 'M':
 			DEBUG_print(F("!Magnet. raw data:\n"));
 			DEBUG_print(F("Write number 8...\n"));
-			DEBUG_print(F("$PEMC,12,O,0,0,0,1\n"));
+			DEBUG_print(F("$PEMC,12,O,0,0,0,1*56\n"));
 			break;
 		}
 	}
@@ -275,7 +312,7 @@ bool DevICM20948::IMU_Cal_Loop(void){
 	// evaluate continue sensor, next sensor or finish
 	if (_sensor_count == SENSOR_LOOPS) {
 		_sensor_count=0;
-		DEBUG_print(F("Finished\n"));
+		DEBUG_print(F("!Raw data sent\n"));
 		if (_allsensor == true) {
 			switch (_sensor) {
 			case 'G':
@@ -295,7 +332,7 @@ bool DevICM20948::IMU_Cal_Loop(void){
 		}
 	}
 
-	if (ret == false) DEBUG_print(F("$PEMC,12,O,0,0,0,0*57\n"));
+	if (ret == false) DEBUG_print(F("$PEMC,12,N,0,0,0,0*57\n")); // After offset sending, IMU is not calibrated
 
 	return ret;
 }
@@ -317,11 +354,11 @@ bool DevICM20948::IMU_Cal_stopRequest(void) {
 	return true;
 }
 
-void DevICM20948::displayRaw_gyroOffsets(float *gyro) {
-	sprintf(DEBUG_buffer,"Gyro offsets: %i \t %i \t %i\n", gyro[0],gyro[1],gyro[2]);
-	DEBUG_print(DEBUG_buffer);
-	DEBUG_flush();
-  }
+//void DevICM20948::displayRaw_gyroOffsets(float *gyro) {
+//	sprintf(DEBUG_buffer,"Gyro offsets: %i \t %i \t %i\n", gyro[0],gyro[1],gyro[2]);
+//	DEBUG_print(DEBUG_buffer);
+//	DEBUG_flush();
+//  }
 
 void DevICM20948::displayRaw_sensorOffsets(int16_t *raw_sensor) {
 	sprintf(DEBUG_buffer,"%i,%i,%i\n",raw_sensor[0],raw_sensor[1],raw_sensor[2]);
@@ -329,22 +366,22 @@ void DevICM20948::displayRaw_sensorOffsets(int16_t *raw_sensor) {
 	DEBUG_flush();
   }
 
-void DevICM20948::displayRaw_SumOffsets(int16_t **acc_mag) {
-	int i=0;
-	DEBUG_print(F("Accelerometer raw data:\n"));
-	for (i=0; i<SENSOR_LOOPS; i++){
-		sprintf(DEBUG_buffer,"%i,%i,%i\n",acc_mag[i][0],acc_mag[i][1],acc_mag[i][2]);
-		DEBUG_print(DEBUG_buffer);
-		DEBUG_flush();
-	}
-
-	DEBUG_print(F("Magnet raw data:\n"));
-	for (i=0; i<SENSOR_LOOPS; i++){
-		sprintf(DEBUG_buffer,"%i,%i,%i\n",acc_mag[i][3],acc_mag[i][4],acc_mag[i][5]);
-		DEBUG_print(DEBUG_buffer);
-		DEBUG_flush();
-	}
-  }
+//void DevICM20948::displayRaw_SumOffsets(int16_t **acc_mag) {
+//	int i=0;
+//	DEBUG_print(F("Accelerometer raw data:\n"));
+//	for (i=0; i<SENSOR_LOOPS; i++){
+//		sprintf(DEBUG_buffer,"%i,%i,%i\n",acc_mag[i][0],acc_mag[i][1],acc_mag[i][2]);
+//		DEBUG_print(DEBUG_buffer);
+//		DEBUG_flush();
+//	}
+//
+//	DEBUG_print(F("Magnet raw data:\n"));
+//	for (i=0; i<SENSOR_LOOPS; i++){
+//		sprintf(DEBUG_buffer,"%i,%i,%i\n",acc_mag[i][3],acc_mag[i][4],acc_mag[i][5]);
+//		DEBUG_print(DEBUG_buffer);
+//		DEBUG_flush();
+//	}
+//  }
 
 bool DevICM20948::set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor) {
 	ICM20948AHRS_setoffsets2(B, Ainv, sensor);

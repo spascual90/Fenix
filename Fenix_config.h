@@ -38,7 +38,7 @@
 //DEBUG
 // Defined for Release version
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
-//#define TXNMEA //Comment this line to stop periodic NMEA Transmission
+#define TXNMEA //Comment this line to stop periodic NMEA Transmission
 //#define PRINT_FREE_MEM
 // Commented for Release version
 //#define SHIP_SIM // Uncomment to simulate boat to tune PID

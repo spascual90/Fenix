@@ -28,6 +28,7 @@ int16_t* ICM20948AHRS_calibration_loop(char sensor);
 
 struct s_offset {int16_t x, y, z;};
 bool ICM20948AHRS_getOffsets(float aG_offset[3], float aA_B[3], float aA_Ainv[3][3], float aM_B[3], float aM_Ainv[3][3]);
+bool ICM20948AHRS_checkOffsets(float aG_offset[3], float aA_B[3], float aA_Ainv[3][3], float aM_B[3], float aM_Ainv[3][3]);
 bool ICM20948AHRS_setOffsets(float aG_offset[3], float aA_B[3], float aA_Ainv[3][3], float aM_B[3], float aM_Ainv[3][3]);
 bool ICM20948AHRS_setoffsets2(float aB[3], float aAinv[3][3], char sensor);
 bool setoffsets_G(float aG_offset[3]);
@@ -50,9 +51,9 @@ public:
     bool getCalibrationStatus(uint8_t &system, uint8_t &gyro, uint8_t &accel, uint8_t &mag);
     bool IMU_Cal_stopRequest(void);
     //void print_Values(void);
-    void displayRaw_gyroOffsets(float *gyro);
+    //void displayRaw_gyroOffsets(float *gyro);
     void displayRaw_sensorOffsets(int16_t *acc_mag);
-    void displayRaw_SumOffsets(int16_t **acc_mag);
+    //void displayRaw_SumOffsets(int16_t **acc_mag);
     bool set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor);
 
 private:
