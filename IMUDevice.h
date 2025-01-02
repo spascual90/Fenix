@@ -56,6 +56,7 @@ public:
     virtual bool IMU_setup(long EE_address);
     virtual bool IMU_startCalibration(char sensor);
     virtual void Cal_NextSensor(void);
+    virtual bool isExternalCalibration(void);
     virtual bool EEload_Calib(long int &eeaddress);
     virtual bool EEsave_Calib(long int &eeaddress);
     virtual void displaySensorOffsets(void);

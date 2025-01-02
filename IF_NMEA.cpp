@@ -59,7 +59,9 @@ void IF_NMEA::refresh(){
 	if (IsTXtime()) {
 		switch (MyPilot->getCurrentMode()) {
 		case CAL_IMU_COMPLETE:
-			printPEMC_12(& gpsPort);
+			//If calibration is performed by external application, PMEC12 messages are managed directly by IMU Device
+			// eg. ICM20948 uses Fenix py for calibration
+			if (!MyPilot->isExternalCalibration()) printPEMC_12(& gpsPort);
 			break;
 		case CAL_FEEDBACK:
 			printPEMC_13(& gpsPort);

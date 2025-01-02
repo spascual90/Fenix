@@ -31,6 +31,7 @@ public:
 	bool IMU_startCalibration(char sensor);
 	bool compute_Cal_IMU(char sensor);
 	void Cal_NextSensor(void);
+	bool isExternalCalibration(void);
 
 	bool compute_check_IMU(void);
 
@@ -95,6 +96,10 @@ public:
 	}
 
     void reset_calibration (long &eeaddress);
+
+    void displaySensorOffsets(void) {
+    	_imuDevice->displaySensorOffsets();
+    }
 
 protected:
    e_IMU_status updateHeading(bool fixedSource, bool valid, float HDM);

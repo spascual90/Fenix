@@ -55,7 +55,9 @@ public:
     void displayRaw_sensorOffsets(int16_t *acc_mag);
     //void displayRaw_SumOffsets(int16_t **acc_mag);
     bool set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor);
-
+    bool isExternalCalibration(void) {
+    	return true;
+    }
 private:
     //Magnetometer calibration variables
 	//long _start_cal_time = 0;

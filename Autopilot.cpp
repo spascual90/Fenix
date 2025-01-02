@@ -363,6 +363,16 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 	_offCourseAlarmIDLE = false; // OCA Alarm deactivated until ship heading gets into OCA angle
 	DEBUG_print(F("OCA Alarm: Deactivated\n"));
 
+	if (preMode == CAL_IMU_COMPLETE) {
+		if (this->isExternalCalibration()) {
+			// Reset autopilot after external calibration (eg. ICM_20948)
+			reset();
+		} else {
+			// Print new calibration values after internal calibration
+			BearingMonitor::displaySensorOffsets();
+		}
+	}
+
 	switch (currentMode) {
 	case AUTO_MODE:
 		// Same behavior as Track mode
@@ -443,6 +453,11 @@ void Autopilot::Start_Cal(char sensor){
 void Autopilot::Cal_NextSensor(void){
 	BearingMonitor::Cal_NextSensor();
 }
+
+bool Autopilot::isExternalCalibration(void){
+	return BearingMonitor::isExternalCalibration();
+}
+
 void Autopilot::Cancel_Cal(){
 	reset();  //call reset
 }

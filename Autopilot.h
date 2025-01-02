@@ -476,6 +476,7 @@ public:
 	bool EEsave_PIDgain(bool HC=false);
 	bool EEload_PIDgain ();
 	bool isCalMode(void);
+	bool isExternalCalibration(void);
 
 	bool EEload_CHECK (long address);
 	void EEsave_CHECK (long address);
@@ -626,6 +627,8 @@ private:
 
 
 	void reset(){
+		DEBUG_print(F("Reset\n"));
+		delay (2000);
 		resetFunc();  //call reset
 	}
 

@@ -387,7 +387,6 @@ void get_scaled_IMU2(float Axyz[3], float Mxyz[3]) {
 
 
 extern bool ICM20948AHRS_getOffsets(float aG_offset[3], float aA_B[3], float aA_Ainv[3][3], float aM_B[3], float aM_Ainv[3][3]){
-	DEBUG_print(F("ICM20948AHRS_getOffsets\n"));
 	for (int i = 0; i < 3; i++) {
 		aG_offset[i] = G_offset[i];
 		aA_B[i] = A_B[i];

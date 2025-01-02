@@ -122,12 +122,12 @@ bool BearingMonitor::compute_Cal_IMU(char sensor) {
 		// completeCal=true performs complete initial calibration + check (system==3 required)
 		// completeCal=false ensures minimum recalibration after each power-on ( as long as mag and gyro are 3, data is realiable)
 		if (_IMU_check == CHECK_NOT_STARTED) {
-			_imuDevice->displaySensorOffsets();
-			DEBUG_print(F("\nCalibrated! Ok\n"));
-			// Heading value is not received until a slight movement is detected by IMU
-			// Practically speaking this is not an issue, but some info is provided to user
-			//DEBUG_print(F("Move slightly to start receiving IMU data\n"));
-			updateHeading();
+			//if (!_imuDevice->isExternalCalibration())
+				//DEBUG_print(F("\nCalibrated! Ok\n"));
+				// Heading value is not received until a slight movement is detected by IMU
+				// Practically speaking this is not an issue, but some info is provided to user
+				//DEBUG_print(F("Move slightly to start receiving IMU data\n"));
+				//updateHeading();
 			ret=false;
 		}
 
@@ -310,6 +310,10 @@ bool BearingMonitor::IMU_Cal_Loop(void){
 
 void BearingMonitor::Cal_NextSensor(void){
 	_imuDevice->Cal_NextSensor();
+}
+
+bool BearingMonitor::isExternalCalibration(void){
+	return _imuDevice->isExternalCalibration();
 }
 
 bool BearingMonitor::IMU_startCalCheck(void) {
