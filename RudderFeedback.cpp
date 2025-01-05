@@ -143,7 +143,9 @@ int RudderFeedback::rudder_IBIT () {
 #else
 	int val, val_min=1024, val_max =0, error;
 	int i = 0;
-	DEBUG_print(F("Checking feedback error. It may take a few seconds..."));
+	// Corrected in V3.4-B1.1. Message was too long
+	DEBUG_print(F("Checking feedback error."));
+	DEBUG_print(F(" It may take a few seconds..."));
 
 	while ( i++ < 500) {
 		val = getFeedback();

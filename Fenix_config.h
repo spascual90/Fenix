@@ -1,7 +1,7 @@
 #ifndef FENIX_CONFIG_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.3.4.B1"
+#define ARDUINO_VERSION "v.3.4.B1.1"
 
 // RELEASE v.2.0.B1
 // RELEASE v.2.1.B1
@@ -39,6 +39,9 @@
 // Known limitations
 // Not compatible with BNO055
 // NMEA I/F: Centered Tiller Position and Heading alignment set parameter to 0 is not accepted
+//v.3.4.B1.1 correct B1 errors:
+// PEMC12 message after magnetometer offset was wrong and not recognized by Fenix_Cal
+// Linear actuator error check message was too long
 
 //DEBUG
 // Defined for Release version

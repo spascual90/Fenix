@@ -331,8 +331,7 @@ bool DevICM20948::IMU_Cal_Loop(void){
 			ret = false; // Finished calibration of selected sensor
 		}
 	}
-
-	if (ret == false) DEBUG_print(F("$PEMC,12,N,0,0,0,0*57\n")); // After offset sending, IMU is not calibrated
+	if (ret == false) DEBUG_print(F("$PEMC,12,N,0,0,0*57\n")); // After offset sending, IMU is not calibrated
 
 	return ret;
 }
