@@ -33,7 +33,7 @@
 // default settings for accel and magnetometer
 
 #define WIRE_PORT Wire // desired Wire port.
-#define AD0_VAL 1      // value of the last bit of the I2C address.
+//#define AD0_VAL 1      // value of the last bit of the I2C address.
 // On the SparkFun 9DoF IMU breakout the default is 1, and when
 // the ADR jumper is closed the value becomes 0
 
@@ -103,10 +103,13 @@ extern bool ICM20948AHRS_setup(bool orientation = false)
   //Orientation not implemented
   WIRE_PORT.begin();
   WIRE_PORT.setClock(400000);
-  imu.begin(WIRE_PORT, AD0_VAL);
+  imu.begin(WIRE_PORT, 0);
   if (imu.status != ICM_20948_Stat_Ok) {
-	  DEBUG_print("ICM_90248 not detected\n");
-    while (1);
+	  imu.begin(WIRE_PORT, 1);
+	  if (imu.status != ICM_20948_Stat_Ok) {
+		  DEBUG_print("ICM_90248 not detected\n");
+		  return false;
+	  }
   }
   return true;
 }
