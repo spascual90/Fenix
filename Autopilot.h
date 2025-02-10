@@ -359,9 +359,10 @@ enum e_info {
 	struct  {
 		// ver 1: Fenix v0.1
 		// ver 2: save CHECK value before IMU, InstParam and PID structures
-		int ver=2; // TODO: Version of EEPROM structure is not saved
+		// ver 3: additional space for IMU ICM20948
+		int ver=3; // TODO: Version of EEPROM structure is not saved
 		long Flag=0;
-		long IMU=25; //Length 48
+		long IMU=500;//25; //Length 48 (bno055) 112 (ICM20948)
 		long InstParam=73;
 		long PIDgain=125;
 	} EE_address;

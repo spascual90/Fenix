@@ -83,11 +83,12 @@ void BearingMonitor::IBIT(){
 //return false-->process finished / IMU in operational mode again
 
 
-e_IMU_cal_status BearingMonitor::EEload_Calib(long int &eeaddress){
+e_IMU_cal_status BearingMonitor::EEload_Calib(long int eeaddress){
+
 	return (_imuDevice->EEload_Calib(eeaddress)?CAL_RESULT_RECALIBRATED:CAL_RESULT_NOT_CALIBRATED);
 }
 
-bool BearingMonitor::EEsave_Calib( long int &eeaddress){
+bool BearingMonitor::EEsave_Calib( long int eeaddress){
 	return (_imuDevice->EEsave_Calib(eeaddress));
 }
 

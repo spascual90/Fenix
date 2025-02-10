@@ -1022,11 +1022,12 @@ bool Autopilot::EEload_instParam (void){
 
     if (check == CHECKvalue) {
 		EEPROM.get(eeAddress, instParam);
+
 		Loaded = instParam.isValid &&
 				instParam.flag.avgSpeed && instParam.flag.centerTiller &&
 				instParam.flag.headAlign && instParam.flag.instSide && instParam.flag.magVariation &&
 				instParam.flag.maxRudder && instParam.flag.offcourseAlarm && instParam.flag.rudDamping &&
-				instParam.minFeedback && instParam.maxFeedback;
+				instParam.flag.minFeedback && instParam.flag.maxFeedback;
 		if (Loaded) Change_instParam (instParam);
 		DEBUG_print();
 

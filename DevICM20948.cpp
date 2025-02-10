@@ -134,7 +134,7 @@ bool DevICM20948::EEload_Calib(long int &eeAddress)
 }
 bool DevICM20948::EEsave_Calib( long &eeAddress){
 
-
+	long eeAddress_ini = eeAddress;
 	bool DataStored = false;
  	//DATA TO SAVE
 	long id_IMU;
@@ -165,7 +165,7 @@ bool DevICM20948::EEsave_Calib( long &eeAddress){
     EEPROM.put(eeAddress, M_B);
     eeAddress += sizeof(M_B);
     EEPROM.put(eeAddress, M_Ainv);
-    eeAddress += sizeof(M_Ainv);
+    //eeAddress += sizeof(M_Ainv);
 
     DataStored = true;
 

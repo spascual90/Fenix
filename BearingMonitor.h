@@ -103,8 +103,8 @@ public:
 
 protected:
    e_IMU_status updateHeading(bool fixedSource, bool valid, float HDM);
-	e_IMU_cal_status EEload_Calib(long int &eeaddress);
-	bool EEsave_Calib(long int &eeaddress);
+	e_IMU_cal_status EEload_Calib(long int eeaddress);
+	bool EEsave_Calib(long int eeaddress);
 	bool set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor);
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
 	void SIM_updateShip(int tillerAngle);
