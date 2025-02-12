@@ -1,7 +1,7 @@
 #ifndef FENIX_CONFIG_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.3.4.B1.1"
+#define ARDUINO_VERSION "v.3.4.B2"
 
 // RELEASE v.2.0.B1
 // RELEASE v.2.1.B1
@@ -42,7 +42,8 @@
 //v.3.4.B1.1 correct B1 errors:
 // PEMC12 message after magnetometer offset was wrong and not recognized by Fenix_Cal
 // Linear actuator error check message was too long
-
+//v.3.4.B2 CORRECT B1.1 errors:
+// EEPROM address of IMU overlapping InstParam.
 //DEBUG
 // Defined for Release version
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
