@@ -944,12 +944,14 @@ void Autopilot::EEsave_ReqCal (char sensor)
 
 char Autopilot::EEload_ReqCal (void)
 {
-	char sensor = '0';
+	char sensor;
 
 	EEPROM.get(EE_address.Flag, sensor); // G, A, M or - Require Calibration Flag to force calibration
-	if (sensor !=0) sprintf(DEBUG_buffer,"!Cal.Flag: %c\n", sensor);
-	DEBUG_print(DEBUG_buffer);
-	if (sensor =='G' or sensor =='A' or sensor =='M' or sensor =='-') return char(sensor);
+	if (sensor =='G' or sensor =='A' or sensor =='M' or sensor =='-') {
+		sprintf(DEBUG_buffer,"!Cal.Flag: %c\n", sensor);
+		DEBUG_print(DEBUG_buffer);
+		return char(sensor);
+	}
 	return '0'; // No calibration
 }
 
