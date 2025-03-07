@@ -21,6 +21,7 @@
 #include "emcNMEA.h"
 #include <MemoryFree.h>
 
+
 emcNMEA::emcNMEA ()
 :NMEAGPS()
 {
@@ -52,6 +53,7 @@ void emcNMEA::sentenceInvalid()
 
   // All the values are suspect.  Start over.
   //DEBUG_print("sentenceInvalid\n");
+
   INorder.reset();
   nmeaMessage = NMEA_UNKNOWN;
   reset();
@@ -62,7 +64,6 @@ void emcNMEA::sentenceInvalid()
 
 emcNMEA::decode_t emcNMEA::decode( char c )
 {
-
 	decode_t res = NMEAGPS::decode (c);
 	switch (res) { //DECODE_CHR_INVALID, DECODE_CHR_OK, DECODE_COMPLETED
 
@@ -70,6 +71,7 @@ emcNMEA::decode_t emcNMEA::decode( char c )
 			break;
 		case DECODE_CHR_INVALID:
 			//TIP if sentence: Remove CR, NL or CR/NL options from Serial Terminal
+
 			sentenceInvalid(); break;
 		case DECODE_COMPLETED:
 			sentenceOk(); break;
@@ -84,8 +86,8 @@ emcNMEA::decode_t emcNMEA::decode( char c )
 bool emcNMEA::parseField(char chr)
 {
   if (nmeaMessage >= (nmea_msg_t) EXT_FIRST_MSG) {
-//		sprintf(DEBUG_buffer, "parseField:%i\n", nmeaMessage);
-//		DEBUG_print();
+	//sprintf(DEBUG_buffer, "parseField:%i\n", nmeaMessage);
+	//DEBUG_print();
     switch (nmeaMessage) {
       //Initial entry point for all PEMC messages.
       //Parse messages without parameters (eg.00, 09, 10)
@@ -127,8 +129,11 @@ bool emcNMEA::parseField(char chr)
   return true;
 
 } // parseField
+// $GPAPB,A,A,0.0,L,N,V,V,043.6,,5,043.6,T,43.583042528455735,T*46
+// $ECAPB,A,A,0.00,L,N,V,V,312.23,M,001,312.34,M,312.34,M*2A
+// $GPAPB,A,A,0.00,R,N,V,,291.3,T,3,291.3,T,291.3,T*50
 
-// $--APB,A,A,x.x,a,N,A,A,x.x,a,c--c,x.x,a,x.x,a*hh<CR><LF>
+// $--APB,A,A,x.x,a,N,A,A,x.x  ,a  ,c--c,x.x  ,a,x.x               ,a*hh<CR><LF>
 bool emcNMEA::parseAPB( char chr )
 {
 	bool ok = true;
@@ -146,6 +151,8 @@ bool emcNMEA::parseAPB( char chr )
 	  case 10: parseWPID( INorder.APB.destID, chr ); break;// WP ID: Up to 4 characters, rest ignored
 	  case 11: parse360( INorder.APB.BTW, chr); break;
 	  case 12: parseAngleRef(INorder.APB.BTW, chr); break;
+	  //APB received by AvNav=12 decimals and OpenCPN=2 decimals
+	  //numbesr below 13 decimals will be valid
 	  case 13:parse360( INorder.APB.CTS, chr);  break; // Angle: Magnitude, Reference (M/T)
 	  case 14: parseAngleRef(INorder.APB.CTS, chr);
 		  INorder.APB.isValid=YES;
@@ -561,18 +568,22 @@ bool emcNMEA::parseFix( char chr )
   return true;
 }
 
-
-bool emcNMEA::parse360( whole_frac & angle, char chr ) //0<=angle<360
+bool emcNMEA::parse360( whole_frac & angle, char chr) //0<=angle<360
 {
 	bool done = parseFloat( angle, chr, 2 );
     if (done) {
-    	  if (negative || (angle.whole >= 360)) {
-    		  angle.whole =0;
-    		  sentenceInvalid();
-    	  }
+    	//aunque ya tengamos el float con sus 2 decimales
+    	//no termina este campo hasta que llegue una ,
+    	//descartando todos los decimales entre 2 y max_char
+    	if (chr!=',') done = false;
+
+    	if (negative || (angle.whole >= 360)) {
+    	  angle.whole =0;
+    	  sentenceInvalid();
+    	}
     }
 
-  return done;
+    return done;
 }
 
 bool emcNMEA::parse180( whole_frac & angle, char chr, bool & field_informed  ) //-180<=angle<180
@@ -663,15 +674,13 @@ bool emcNMEA::parseAngleRef( whole_frac & angle, char chr)
     if (chrCount == 0) {
 
         // First char can only be 'M'agnetic or 'T'
-        if (chr == 'M'||chr == 'T' ) {
+    	//Compatibility with AvNav also '' instead of 'T'
+        if (chr == 'M'||chr == 'T'||chr == ',') {
 
-    		if (chr == 'T') { // If T convert to M as angles are always stored in Magnetic.
+    		if (chr == 'T'||chr == ',') { // If T convert to M as angles are always stored in Magnetic.
     			angle.Towf_00(getMagnetic(angle.float_00()));
 
     		}
-
-        } else {
-          sentenceInvalid();
         }
 
         // Second char can only be ','
@@ -780,10 +789,11 @@ bool emcNMEA::parseAlarmCircle( char chr ){
 
     if (chrCount == 0) {
 
+    	//default value 'V'
         // First char can only be 'A' or 'V'
-        if (chr == 'A'||chr == 'V') {
-
+        if (chr == 'A'||chr == 'V'||chr == ',') {
         	INorder.APB.alarmCircle = chr;
+        	if (INorder.APB.alarmCircle == ',') INorder.APB.alarmCircle = 'V';
 
         } else {
           sentenceInvalid();
@@ -800,10 +810,11 @@ bool emcNMEA::parseAlarmPerp( char chr ){
 
     if (chrCount == 0) {
 
+    	//default value 'V'
         // First char can only be 'A' or 'V'
-        if (chr == 'A'||chr == 'V') {
-
+        if (chr == 'A'||chr == 'V'||chr == ',') {
         	INorder.APB.alarmPerp = chr;
+        	if (INorder.APB.alarmPerp == ',') INorder.APB.alarmPerp = 'V';
 
         } else {
           sentenceInvalid();

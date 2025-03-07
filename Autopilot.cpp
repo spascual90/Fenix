@@ -633,8 +633,9 @@ void Autopilot::APBreceived(s_APB APB) {
 		setWPnext(APB);
 		setInformation (TRACKMODE_AVAILABLE);
 	}
+//	sprintf(DEBUG_buffer,"CTS %i.%i\n", APB.CTS.whole, APB.CTS.frac );
+//	DEBUG_print();
 }
-//$ECAPB,A,A,0.00,L,N,V,V,312.23,M,001,312.34,M,312.34,M*2A
 
 void Autopilot::HDMreceived(s_HDM HDM) {
 	set_extHeading(HDM);

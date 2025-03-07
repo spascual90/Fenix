@@ -87,7 +87,7 @@ protected:
     NMEAGPS_VIRTUAL bool parseAPB( char chr );
     NMEAGPS_VIRTUAL bool parseHDM( char chr );
     NMEAGPS_VIRTUAL bool parseVWR( char chr );
-    bool parse360(whole_frac & angle, char chr );
+    bool parse360(whole_frac & angle, char chr);
     bool parse180(whole_frac & angle, char chr );
     bool parse180( whole_frac & angle, char chr, bool & field_informed);
     bool parseAngleRef( whole_frac & angle, char chr);

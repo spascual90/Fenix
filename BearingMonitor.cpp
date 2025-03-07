@@ -374,3 +374,7 @@ void BearingMonitor::SIM_updateShip(int tillerAngle) {
 
 }
 
+
+
+
+

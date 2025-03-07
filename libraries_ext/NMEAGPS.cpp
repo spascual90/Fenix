@@ -193,7 +193,8 @@ NMEAGPS::decode_t NMEAGPS::decode( char c )
 
   decode_t res = DECODE_CHR_OK;
 
-  if (c == '$') {  // Always restarts
+
+  if ((c == '$') || (c == CR) || (c == LF)) {  // Always restarts
     sentenceBegin();
 
   } else if (rxState == NMEA_RECEIVING_DATA) { //---------------------------
