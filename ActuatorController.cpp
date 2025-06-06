@@ -64,26 +64,24 @@ int ActuatorController::setSpeed(int speed) {
 
 //VIRTUAL ACTUATOR status update
 // returns a float between (-1, 1) representing the % of actuator length run in the last period
-float ActuatorController::compute_VA (void) {
-	float const c_ratio = float(VA_SPEEDFEEDBACK) / float(VA_LENGHTFEEDBACK);
+int ActuatorController::compute_VA (void) {
+	float const c_ratio = (1024.0 * float(VA_SPEEDFEEDBACK)) / float(VA_LENGHTFEEDBACK);
 	static long lastTime = millis();
 	long  thisTime = millis();
 	float deltaTime = thisTime-lastTime;
-	float value;
 	lastTime = thisTime;
 	if (_currentSpeed == 0) return 0;
-	//value = (float(VA_SPEEDFEEDBACK) * float(deltaTime) / float(VA_LENGHTFEEDBACK));
-	value = ( c_ratio * float(deltaTime) );
-		if (_currentDirection== RETRACT) value = -value;
+	float f_value = ( c_ratio * float(deltaTime) );
+		if (_currentDirection== RETRACT) f_value = -f_value;
 
 //				int l=8, d=4;
 //				char c3[l+3];
 //				char c4[l+3];
-//				sprintf(DEBUG_buffer,"deltaTime, value=%s,%s\n",dtostrf(deltaTime,l,d,c3), dtostrf(value,l,d,c4));
+//				sprintf(DEBUG_buffer,"deltaTime, value=%s,%s,%i\n",dtostrf(deltaTime,l,d,c3), dtostrf(f_value,l,d,c4), round(f_value));
 //				DEBUG_print();
 //				DEBUG_PORT.flush();
 
-	return value;
+	return round(f_value);
 
 }
 

@@ -73,6 +73,10 @@ void IF_NMEA::refresh(){
 					printMemory(& gpsPort);
 				#endif
 				printRSA(& gpsPort);
+				#ifdef TESTER_IF
+					TESTER_sincroTime();
+				#endif
+
 				TXNext();
 				break;
 			case 1:
@@ -335,6 +339,21 @@ void IF_NMEA::printAPB(Stream * outStream, s_APB APB) {
 	OUTorder.APB.isValid= true;
 	emcNMEA::printAPB(outStream);
 }
+
+void IF_NMEA::TESTER_sincroTime(void) {
+		static unsigned long DelayCalcStart = millis();
+		int l=7, d=2;
+		char c3[l+3];
+		char c4[l+3];
+		char c5[l+3];
+
+		if ((millis() -DelayCalcStart) < 100) return;
+
+		sprintf(DEBUG_buffer,"#%ld,%s,%s,%s\n", millis(),dtostrf(MyPilot->getKpContrib(),0,d,c3),dtostrf(MyPilot->getITerm(),0,d,c4),dtostrf(MyPilot->getKdContrib(),0,d,c5));
+		DEBUG_print();
+		DEBUG_flush();
+		DelayCalcStart = millis();
+	}
 
 
 #endif //SERIAL_IF_AVAILABLE

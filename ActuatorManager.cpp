@@ -37,12 +37,12 @@ void ActuatorManager::setup(double aTuneNoise, double aTuneStep, double aTuneLoo
 
 	if (out_min) {
 		setDir(EXTEND);
-		DEBUG_print(F("Warning: Linear actuator below limit\n"));
+		DEBUG_print(F("W: L.actuator below limit\n"));
 	}
 
 	if (out_max) {
 		setDir(RETRACT);
-		DEBUG_print(F("Warning: Linear actuator over limit\n"));
+		DEBUG_print(F("W: L.actuator over limit\n"));
 	}
 
 	setupAutoTune(aTuneNoise, aTuneStep, aTuneLookBack);
@@ -126,8 +126,8 @@ int ActuatorManager::Compute_Autotune(float PIDerrorPrima) {
 int ActuatorManager::compute_VA() {
 	// Refresh virtual actuator status
 	#ifdef VIRTUAL_ACTUATOR
-	float distance = ActuatorController::compute_VA();
-	int new_analog = getVAanalogRead() + int(distance * 1024.0);
+	int distance = ActuatorController::compute_VA();
+	int new_analog = getVAanalogRead() + distance;
 	if (new_analog>getLimitMaxFeedback()) new_analog = getLimitMaxFeedback();
 	if (new_analog<getLimitMinFeedback()) new_analog = getLimitMinFeedback();
 

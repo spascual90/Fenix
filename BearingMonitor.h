@@ -101,8 +101,17 @@ public:
     	_imuDevice->displaySensorOffsets();
     }
 
+
+	double deltaAngle(double origen, double destino) {
+		double diff = fmod(destino - origen + 180.0, 360.0);
+		if (diff < 0)
+			diff += 360.0;
+		return diff - 180.0;
+	}
+
+
 protected:
-   e_IMU_status updateHeading(bool fixedSource, bool valid, float HDM);
+   e_IMU_status updateHeading(bool fixedSource, bool valid, float HDM, unsigned long HDM_RXtime);
 	e_IMU_cal_status EEload_Calib(long int eeaddress);
 	bool EEsave_Calib(long int eeaddress);
 	bool set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor);
@@ -147,7 +156,7 @@ private:
 	void updateHeading(void);
 
     // EXTERNAL COMPASS
-    e_IMU_status updateHeading(bool valid, float HDM);
+    e_IMU_status updateHeading(float HDM, unsigned long HDM_RXtime, bool ab_reset);
 
 	//FUNCTIONAL MODULE:SHIP SIMULATOR
 	float _SIMheading =0;

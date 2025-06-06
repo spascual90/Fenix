@@ -1,7 +1,7 @@
 #ifndef FENIX_CONFIG_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.3.4.B2"
+#define ARDUINO_VERSION "v.3.5.B1"
 
 // RELEASE v.2.0.B1
 // RELEASE v.2.1.B1
@@ -44,6 +44,10 @@
 // Linear actuator error check message was too long
 //v.3.4.B2 CORRECT B1.1 errors:
 // EEPROM address of IMU overlapping InstParam.
+//v.3.5.B1
+// Implementation of PID improvements: Derivative low-pass filter, Anti-windup, limit ITerm, reset ITerm
+// Implementation of TESTER_IF to report internal time via Serial I/F
+// Improved heading in External HDM mode
 //DEBUG
 // Defined for Release version
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
@@ -54,6 +58,7 @@
 //#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
+#define TESTER_IF
 
 //Other libraries necessary for printing to serial monitor
 #include "GPSport.h" // Some libraries requires to uncomment this line to print debug messages to serial monitor
@@ -153,17 +158,18 @@
 
 // ADDITIONAL RUDDER PARAMETERS
 // Parameters for rudder
-#define DEFAULT_MRA 512 // MRA = ABS_MIN_RUDDER Value in degrees *10
-#define RUDDER_LENGHT 1023 // Value in degrees *10
+//Changed default from 512. 35.0 is the standard maximum rudder angle used.
+#define DEFAULT_MRA 350  // MRA = ABS_MIN_RUDDER Value in degrees *10
+#define RUDDER_LENGHT 699//1023 // Value in degrees *10
 
 // VIRTUAL_ACTUATOR Parameters
-#define VA_MRA 512 // Rudder value. MIN_RUDDER = -MRA; MAX_RUDDER = MRA-1
+#define VA_MRA 350 //512 // Rudder value. MIN_RUDDER = -MRA; MAX_RUDDER = MRA-1
 #define VA_ERROR 5
 #define VA_DELTACENTEROFRUDDER 0
 #define VA_MINFEEDBACK 34 //value between 0 and 1024
 #define VA_MAXFEEDBACK 935 //value between 0 and 1024
-#define VA_SPEEDFEEDBACK 0.05 // speed in mm/mseg    20mm/seg--> 0.02 mm/mseg
-#define VA_LENGHTFEEDBACK 300.0 // mm lenght
+#define VA_SPEEDFEEDBACK 0.040//0.027 // speed in mm/mseg    20mm/seg--> 0.02 mm/mseg
+#define VA_LENGHTFEEDBACK 300.0 // mm lenght --> 7.5 seg to get to the center
 
 
 // *** HMIArq.h ***
@@ -174,6 +180,7 @@
 
 // Maximum time (in millisecs) to answer to user request
 #define MAX_USER_ANSWER_TIME 5000
+
 
 
 #endif

@@ -59,8 +59,14 @@ e_IMU_status BearingMonitor::IMU_setup(long EE_address){
 
 	if (_imuDevice->IMU_setup(EE_address)) {
 		_internalIMU_status= INT_DETECTED;
-		_IMU_status = CAL_MODE;
-		_IMU_cal_status = CAL_START;
+		if (_imuDevice->isExternalCalibration()){
+			//This IMU requires external calibration
+			_IMU_status = OPERATIONAL;
+			_IMU_cal_status = CAL_NOT_STARTED;
+		}else {
+			_IMU_status = CAL_MODE;
+			_IMU_cal_status = CAL_START;
+		}
 	}else {
 		_IMU_status = NOT_DETECTED;
 		_internalIMU_status= INT_NOT_DETECTED;
@@ -231,13 +237,14 @@ void BearingMonitor::displayCalStatus(void)
 	DEBUG_flush();
 }
 
-e_IMU_status BearingMonitor::updateHeading(bool changeSourceEnabled, bool validExternal, float HDMExternal){
+e_IMU_status BearingMonitor::updateHeading(bool changeSourceEnabled, bool validExternal, float HDMExternal, unsigned long HDM_RXtime){
 #ifdef SHIP_SIM
 	_heading = _SIMheading;
 	_heading_isValid = true;
 	_heading_isFrozen = false;
 	return SIMULATED;
 #else
+	static bool sb_ext_reset = true;
 	//decide if changing IMU status and source
 	if (changeSourceEnabled and _IMU_status!=CAL_MODE) {
 		if (validExternal) {
@@ -257,16 +264,18 @@ e_IMU_status BearingMonitor::updateHeading(bool changeSourceEnabled, bool validE
 	case OPERATIONAL:
 	case CAL_MODE:
 		updateHeading();
+		sb_ext_reset = true;
 
 		break;
 	case EXTERNAL_IMU:
-		updateHeading(validExternal, HDMExternal);
+		if (HDM_RXtime!=0) {
+			updateHeading(HDMExternal, HDM_RXtime, sb_ext_reset);
+			sb_ext_reset= false;
+		}
 
 		break;
 	case NOT_DETECTED:
 		break;
-	//case SIMULATED:
-	//	break;
 	}
 
 	return _IMU_status;
@@ -292,10 +301,54 @@ void BearingMonitor::updateHeading(void){
 	_heading = yaw;
 }
 
-e_IMU_status BearingMonitor::updateHeading(bool valid, float HDM){
-	_heading_isValid = valid;
+e_IMU_status BearingMonitor::updateHeading(float HDM, unsigned long HDM_RXtime, bool firstTime){
+	static float prev_HDM=0;
+	static float pendiente =0;
+	static unsigned long prev_tiempo = 0;
+	static unsigned long prev_HDM_RXtime = 0;
+
+	_heading_isValid = true;
 	_heading_isFrozen = false; //in external mode, there is no info of heading quality
-	if (valid) _heading = HDM;
+
+	if (HDM_RXtime==0) return _IMU_status;
+
+	unsigned long tiempo = millis();
+
+	//sprintf(DEBUG_buffer,"RXtime, prev:%ld,%ld\n", HDM_RXtime, prev_HDM_RXtime);
+	//DEBUG_print();
+
+	if (firstTime) {
+		//DEBUG_print("First time\n");
+		_heading = HDM;
+		prev_HDM=HDM;
+		prev_tiempo = HDM_RXtime;
+		prev_HDM_RXtime = HDM_RXtime;
+		pendiente=0;
+	}
+
+	if (prev_HDM_RXtime!=HDM_RXtime) {
+		//DEBUG_print("HDM Update\n");
+		//ajustamos heading al valor recibido
+		_heading = HDM;
+		//Calculamos pendiente cada vez que se reciba un nuevo mensaje HDM
+		double deltaHDM = deltaAngle(prev_HDM, HDM);
+		pendiente = ((deltaHDM)*1000.0)/(HDM_RXtime-prev_HDM_RXtime);
+		prev_HDM = HDM;
+		prev_HDM_RXtime = HDM_RXtime;
+
+	} else {
+		//DEBUG_print("Extrapolate\n");
+		// Extrapolamos heading con la última pendiente calculada
+		_heading += (pendiente*(tiempo-prev_tiempo))/1000.0;
+		_heading = reduce360(_heading);
+		prev_tiempo = tiempo;
+	}
+//	int l=9, d=4;
+//	char c3[l+3];
+//	char c4[l+3];
+//	sprintf(DEBUG_buffer,"Heading,pendiente:%s,%s\n", dtostrf(_heading,0,d,c3),dtostrf(pendiente,0,d,c4));
+//	DEBUG_print();
+
 	return _IMU_status;
 }
 
@@ -358,14 +411,15 @@ bool BearingMonitor::set_calibrate_py_offsets(float B[3], float Ainv[3][3], char
 }
 
 //FUNCTIONAL MODULE:SHIP SIMULATOR
+
 void BearingMonitor::SIM_updateShip(int tillerAngle) {
 	static unsigned long DelayCalcStart = millis();
 
 	if ((millis() -DelayCalcStart) < deltaT) return;
 
-	float unstat= random(unstat0)-unstat0/2;
+	float unstat= 0;//random(unstat0)-unstat0/2;
+
 	float alfa = (tillerAngle-unstat)*alfaMax/(sqrt(sq(float(tillerAngle-unstat))+softFactor));
-	//_SIMheading = (tillerAngle<40? _SIMheading : _SIMheading *intertia + (1-intertia)*(_SIMheading + deltaT * alfa));
 	_SIMheading = _SIMheading *intertia + (1-intertia)*(_SIMheading + deltaT * alfa);
 	_SIMheading = reduce360(_SIMheading);
 

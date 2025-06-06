@@ -3,6 +3,15 @@
 
 #include <PID_v1.h>
 
+// *** PID_v1_ext.h ***
+// Limit Max. ITerm contribution
+#define I_MAX_COEFICIENT 3.0
+//reset I term for changes higher than I_MAX_DELTA
+#define I_MAX_DELTA 40.0
+// low-pass filter for derivative contribution. ALFA 0: No filter. ALFA 1: All filtered
+#define D_FILTER_ALFA 0.8
+
+
 class PID_ext : public PID {
 
   public:
@@ -16,11 +25,13 @@ class PID_ext : public PID {
                                           //   SetSampleTime respectively
 
     void SetTunings(double Kp, double Ki, double Kd);
+    void SetOutputLimits(double Min, double Max);
     //MODIFIED SPM
     unsigned long GetSampleTime();
     double getSetpoint();
     //END SPM MODIF
-										  
+    bool resetITerm(float delta);
+    void resetITerm(void);
 										  
 										  
   //Display functions ****************************************************************
@@ -30,6 +41,11 @@ class PID_ext : public PID {
   private:
     //SPM INI
     double _kpContrib, _kdContrib;
+    //Limit I contribution to PID
+    double IoutMin, IoutMax;
+    //anti-windup function
+    bool clamp_I = false;
+
     //SPM FIN
 };
 #endif

@@ -54,7 +54,7 @@ protected:
 	int cal_FBK_move(e_dir dir);
 
 	//VIRTUAL ACTUATOR status update
-	float compute_VA (void);
+	int compute_VA (void);
 
 private:
 	e_dir _currentDirection= EXTEND; // EXTEND or RETRACT

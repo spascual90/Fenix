@@ -7,6 +7,7 @@
 
 #include "Autopilot.h"
 #include <MemoryFree.h>
+#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
 Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
  : ActuatorManager(gain.Kp.float_00(), gain.Ki.float_00(), gain.Kd.float_00(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback) //maxRudder is the min/max value for PID as well.
@@ -124,6 +125,7 @@ e_working_status Autopilot::Compute() {
 	SIM_updateShip(getCurrentRudder());
 #endif
 
+
 	// Once each XXX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	computeLongLoop();
 
@@ -144,6 +146,23 @@ e_working_status Autopilot::Compute() {
 	case TRACK_MODE:
 	case WIND_MODE:
 		ws = compute_OperationalMode();
+
+		//plot2(NeoSerial,int(getInput()), -int(getKdContrib()));//,int(getOutput(), int(getKpContrib()), int(getITerm()))
+//		getTargetBearing();
+//		getInput();
+//		getCurrentRudder();
+//		float (getKpContrib());
+//		float (getITerm());
+//		float(getKdContrib());
+//		float(getOutput());
+//		//_V[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
+//		//dbt.getDeadband();
+//		dbt.getTrim();
+
+		//
+
+
+
 		break;
 	case STAND_BY:
 		ws = compute_Stand_By();
@@ -397,12 +416,15 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 
 void Autopilot::setTargetBearing(float targetBearing) {
 		if (targetBearing<0) {targetBearing+= 360;}
-		// If next course represents a big change in course
-		if (abs (delta180(_targetBearing, targetBearing)) > getOffCourseAlarm()) {
+		// If next course represents a big change in course...
+		float delta_tb = abs (delta180(_targetBearing, targetBearing));
+		// ...then OCA Alarm is deactivated until ship heading gets into OCA angle
+		if (delta_tb > getOffCourseAlarm()) {
 			_offCourseAlarmIDLE = false;
 			DEBUG_print(F("OCA Alarm: Deactivated\n"));
 		}
-		// then OCA Alarm is deactivated until ship heading gets into OCA angle
+		// ...then Integral Term of PID is reset
+		ActuatorManager::PID_ext::resetITerm(delta_tb);
 		_targetBearing = fmod (targetBearing, double(360));
 	}
 
@@ -562,6 +584,8 @@ bool Autopilot::isValid_HDM (void) {
 	//if ((_extHeading.HDM.isValid) &&
 	//bool prev_isValid = _extHeading.HDM.isValid;
 	_extHeading.HDM.isValid = (millis()-_extHeading.t0)<=MAX_HDM_TIME;
+	//reset value of extHeading if last received is not valid any more
+	if (!_extHeading.HDM.isValid) _extHeading.t0=0;
 //	if (prev_isValid!=_extHeading.HDM.isValid){
 //		if (prev_isValid == false) {
 //			DEBUG_print ("!EXT Heading\n"));
@@ -572,6 +596,21 @@ bool Autopilot::isValid_HDM (void) {
 
 	return _extHeading.HDM.isValid;
 }
+
+//bool Autopilot::isValid_HDM (unsigned long &RXtime) {
+//	bool lb_validHDM = isValid_HDM();
+//	if (lb_validHDM) {
+//		DEBUG_print ("lb_validHDM\n");
+//	} else {
+//		DEBUG_print ("lb_validHDM FALSE\n");
+//		_extHeading.t0 =0;
+//	}
+//	RXtime = _extHeading.t0;
+//
+//	//RXtime = lb_validHDM?_extHeading.t0: 0 ;
+//	return lb_validHDM;
+//}
+
 
 // WIND MODE
 void Autopilot::set_windDir(s_VWR VWR) {
@@ -648,7 +687,8 @@ void Autopilot::VWRreceived(s_VWR VWR) {
 void Autopilot::computeLongLoop_heading(void) {
 	//if HDM messages are received within MAX_HDM_TIME seconds, external compass is valid.
 	//only changes compass source (internal/ external) in STAND_BY
-	BearingMonitor::updateHeading(_currentMode == STAND_BY, isValid_HDM(), _extHeading.HDM.HDM.float_00());
+
+	BearingMonitor::updateHeading(_currentMode == STAND_BY, isValid_HDM(), _extHeading.HDM.HDM.float_00(), _extHeading.t0);
 
 	if (isHeadingFrozen()) setWarning(IMU_LOW);
 
@@ -1181,5 +1221,4 @@ void Autopilot::print_PIDFrontend() {
 	}
 
 }
-
 

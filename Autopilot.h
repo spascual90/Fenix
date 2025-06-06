@@ -572,7 +572,6 @@ public:
 	}
 
 	void print_PIDFrontend (void);
-
 private:
 	e_APmode _currentMode= STAND_BY; // current working mode
 	float _targetBearing= 0; // target vessel bearing
@@ -619,6 +618,7 @@ private:
 	s_extHeading _extHeading;
 	void set_extHeading(s_HDM HDM);
 	bool isValid_HDM (void);
+	//bool isValid_HDM (unsigned long &RXtime);
 
 	//Wind mode
 	s_windDir _windDir;

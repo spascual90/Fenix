@@ -55,26 +55,7 @@ public:
 
 private:
 	void refresh_INorder();
-
-//	/*!
-//	@function   freeMemory
-//	@abstract   Return available RAM memory
-//	@discussion This routine returns the ammount of RAM memory available after
-//	initialising the C runtime.
-//	@param
-//	@return     Free RAM available.
-//	*/
-//	static int freeMemory ( void )
-//	{
-//	   int free_memory;
-//
-//	   if((int)__brkval == 0)
-//	   free_memory = ((int)&free_memory) - ((int)&__bss_end);
-//	   else
-//	   free_memory = ((int)&free_memory) - ((int)__brkval);
-//
-//	   return free_memory;
-//	}
+	void TESTER_sincroTime(void);
 
 };
 

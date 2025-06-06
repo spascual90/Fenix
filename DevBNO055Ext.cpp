@@ -7,7 +7,7 @@
 
 #include "DevBNO055Ext.h"
 #include "GPSport.h" // uncomment this line to print debug messages to serial monitor
-#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
+//#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
 
 DevBNO055Ext::DevBNO055Ext(void)
