@@ -190,12 +190,20 @@ void HMIArq::Inc_Course_10(){
 	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()+10);
 	  MyPilot->buzzer_Beep();
 }
+void HMIArq::Inc_Course_100(){
+	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()+100);
+	  MyPilot->buzzer_Beep();
+}
 void HMIArq::Dec_Course_1(){
 	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()-1);
 	  MyPilot->buzzer_Beep();
 }
 void HMIArq::Dec_Course_10(){
 	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()-10);
+	  MyPilot->buzzer_Beep();
+}
+void HMIArq::Dec_Course_100(){
+	  MyPilot->setTargetBearing(MyPilot->getTargetBearing()-100);
 	  MyPilot->buzzer_Beep();
 }
 

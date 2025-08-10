@@ -48,8 +48,10 @@ protected:
 	void Stop_Rudder();
 	void Inc_Course_1();
 	void Inc_Course_10();
+	void Inc_Course_100();
 	void Dec_Course_1();
 	void Dec_Course_10();
+	void Dec_Course_100();
 
 	void Inc_Mix_1();
 	void Inc_Mix_10();

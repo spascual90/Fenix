@@ -315,8 +315,10 @@ enum e_info {
 		, DEC_RUDDER_10
 		, INC_COURSE_1
 		, INC_COURSE_10
+		, INC_COURSE_100
 		, DEC_COURSE_1
 		, DEC_COURSE_10
+		, DEC_COURSE_100
 		, NOT_AVAILABLE
 		, STOP_RUDDER
 		//Get Installation Parameters

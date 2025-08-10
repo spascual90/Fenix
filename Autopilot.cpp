@@ -196,7 +196,8 @@ e_working_status Autopilot::compute_Cal_Feedback(){
 }
 
 e_working_status Autopilot::compute_Stand_By(){
-	if (changeRudder(0)!=1) return RUNNING_ERROR;
+	//if (changeRudder(0)!=1) return RUNNING_ERROR;
+	changeRudder(0);
 	return RUNNING_OK;
 }
 
@@ -424,7 +425,7 @@ void Autopilot::setTargetBearing(float targetBearing) {
 			DEBUG_print(F("OCA Alarm: Deactivated\n"));
 		}
 		// ...then Integral Term of PID is reset
-		ActuatorManager::PID_ext::resetITerm(delta_tb);
+		//ActuatorManager::PID_ext::resetITerm(delta_tb);
 		_targetBearing = fmod (targetBearing, double(360));
 	}
 

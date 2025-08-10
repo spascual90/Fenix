@@ -320,6 +320,16 @@ bool emcNMEA::parsePEMC_02( char chr )
                   		  INorder.set_order(DEC_COURSE_10);
 
                   		  break;
+                  	  case 'P': // Tack Portboard
+                  		  INorder.set_order(DEC_COURSE_100);
+
+                  		  break;
+                  	  case 'S': // Tack Stardboard
+                  		  INorder.set_order(INC_COURSE_100);
+
+                  		  break;
+
+                  		  break;
                   	  }
 
 
@@ -998,6 +1008,8 @@ void emcNMEA::printPEMC_0102(uint8_t num, char changeRate, Stream * outStream){
 	case 'I':
 	case 'r':
 	case 'R':
+	case 'P':
+	case 'S':
 		break;
 	default:
 		return;

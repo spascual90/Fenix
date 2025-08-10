@@ -99,14 +99,15 @@ int ActuatorManager::Compute(float setPoint, float processVariable) {
 
 int ActuatorManager::Compute(float PIDerrorPrima) {
 
+		static int delta_rudder =0;
 		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 		//setSetpoint(0); If always 0 it is not necessary to update value...
 
-		PID_ext::Compute();
+		PID_ext::Compute(delta_rudder);
 
 		dbt.calculateDBTrim(PIDerrorPrima, getCurrentRudder());
 
-		controlActuator (getOutput(), dbt.getDeadband(PIDerrorPrima), int(dbt.getTrim()));
+		delta_rudder = controlActuator (getOutput(), dbt.getDeadband(PIDerrorPrima), int(dbt.getTrim()));
 
 		return 1;
 	}
@@ -145,6 +146,7 @@ int ActuatorManager::changeRudder(int delta_rudder) {
 	return 1;
 }
 
+//Returns delta btw current and target rudder position
 int ActuatorManager::controlActuator(int target_rudder, boolean deadband, int trim) {
 	int delta = 0;
 	int feedback = updateCurrentRudder();

@@ -172,11 +172,17 @@ void IF_NMEA::refresh_INorder() {
 		case INC_COURSE_10:
 				Inc_Course_10();
 			break;
+		case INC_COURSE_100:
+				Inc_Course_100();
+			break;
 		case DEC_COURSE_1:
 				Dec_Course_1();
 			break;
 		case DEC_COURSE_10:
 				Dec_Course_10();
+			break;
+		case DEC_COURSE_100:
+				Dec_Course_100();
 			break;
 		case REQ_INST: //$PEMC,08,I*5A received
 			if (!MyPilot->isCalMode()) printPEMC_03(& gpsPort);

@@ -55,7 +55,7 @@
 // Commented for Release version
 //#define PRINT_FREE_MEM
 //#define SHIP_SIM // Uncomment to simulate boat to tune PID
-//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
+#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
 #define TESTER_IF
