@@ -1,13 +1,30 @@
 #include "PID_v1_ext.h"
 #include "Arduino.h"
 #include "GPSport.h"
+
+// COMPUTE_MODEL: PID_BASIC2, PID_ADVANCED
+#define  PID_ADVANCED1
+
 PID_ext::PID_ext(double* Input, double* Output, double* Setpoint,
-        double Kp, double Ki, double Kd, int ControllerDirection)
+        double Kp, double Ki, double Kd, int ControllerDirection, float speed_ref)
 :PID(Input, Output, Setpoint,
         Kp, Ki, Kd, ControllerDirection){
+	setSpeed_ref(speed_ref);
 
 }
 
+// overwrite
+/* Initialize()****************************************************************
+ *	does all the things that need to happen to ensure a bumpless transfer
+ *  from manual to automatic mode.
+ ******************************************************************************/
+void PID_ext::Initialize()
+{
+	DEBUG_print("DEBUG:PID_ext::Initialize()\n");
+	_dInput_prev = 0;
+    _kdContrib_prev = 0;
+	PID::Initialize();
+}
 
 // overwrite
 /* SetOutputLimits(...)****************************************************
@@ -32,225 +49,197 @@ void PID_ext::SetTunings(double Kp, double Ki, double Kd) {
 	PID::SetTunings(Kp, Ki, Kd);
 }
 
+#ifdef PID_BASIC
+bool PID_ext::Compute(int rudder_error, float speed) {
+	if(!inAuto) return false;
+	unsigned long now = millis();
+	unsigned long timeChange = (now - lastTime);
+	if(timeChange>=SampleTime) {
+	   /*Compute all the working error variables*/
+		  double input = *myInput;
+	   double error = *mySetpoint - input;
+	   ITerm+= (ki * error);
+	   if(ITerm > outMax) ITerm= outMax;
+	   else if(ITerm < outMin) ITerm= outMin;
+	   double dInput = (input - lastInput);
 
-//bool PID_ext::Compute()
-//{
-//   if(!inAuto) return false;
-//   unsigned long now = millis();
-//   unsigned long timeChange = (now - lastTime);
-//   if(timeChange>=SampleTime)
-//   {
-//      /*Compute all the working error variables*/
-//	  double input = *myInput;
-//      double error = *mySetpoint - input;
-//      // SPM INI
-//      // Prevents windup effect
-//      //https://youtu.be/NVLXCwc8HzM?si=5R9HTPmz-H-DV_IK
-//      if (!clamp_I) ITerm+= (ki * error);
-//      // SPM FIN
-//      //Limit I contribution
-//      if(ITerm > IoutMax) ITerm= IoutMax;
-//      else if(ITerm < IoutMin) ITerm= IoutMin;
-//      double dInput = (input - lastInput)/(timeChange/SampleTime);
-//      /*Compute PID Output*/
-//      // SPM INI
-//      _kpContrib = kp * error;
-//
-//      // Low Pass Filter Implementation on derivative
-//      static double _kdContrib_prev=0;
-//      _kdContrib = (-kd * dInput)* (1.0-D_FILTER_ALFA) + _kdContrib_prev * D_FILTER_ALFA;
-//
-//      double output = _kpContrib + ITerm + _kdContrib;
-//      double output_pre = output;
-//      // SPM FIN
-//
-//	  if(output > outMax) output = outMax;
-//      else if(output < outMin) output = outMin;
-//	  *myOutput = output;
-//
-//      /*Remember some variables for next time*/
-//      lastInput = input;
-//      lastTime = now;
-//
-//      // SPM INI
-//      //anti-windup mechanism
-//      //https://youtu.be/NVLXCwc8HzM?si=5R9HTPmz-H-DV_IK
-//      // Saturation check
-//      bool saturated = (output_pre!=output);
-//      // TRUE if PID and error have the same sign
-//      bool equal_sign = (((error>0?1:-1) * (output>0?1:-1))==1);
-//      clamp_I = (saturated && equal_sign);
-//      // SPM FIN
-//
-//	  return true;
-//   }
-//   else return false;
-//}
+	   double output = kp * error + ITerm -kd * dInput;
+		  if(output > outMax) output = outMax;
+	   else if(output < outMin) output = outMin;
+		  *myOutput = output;
 
-//bool PID_ext::Compute(int rudder_error)
-//{
-//    if (!inAuto) return false;
-//
-//    unsigned long now = millis();
-//    unsigned long timeChange = (now - lastTime);
-//
-//    if (timeChange >= SampleTime)
-//    {
-//        /* Lectura de entrada y cálculo de error */
-//        double input = *myInput; // rumbo actual
-//        double error = *mySetpoint - input;
-//
-//        _kpContrib = kp * error;
-//
-//
-//        /* --- ANTI-WINDUP EXTENDIDO --- */
-//        // Factor para considerar "P cerca del límite" (ej: 0.8 = 80% de la capacidad)
-//        const double P_THRESHOLD_FACTOR = 0.80;
-//
-//        // Magnitud máxima disponible de salida (usa valor absoluto por si outMin < 0)
-//        double outMaxAbs = fmax(fabs(outMax), fabs(outMin));
-//
-//        // Umbral de P en unidades de salida (si |P| >= P_THRESHOLD ésta condición se cumple)
-//        double P_threshold = P_THRESHOLD_FACTOR * outMaxAbs;
-//
-//        // Si el proporcional está en el rango en el que por sí solo ya "está trabajando fuerte"
-//        bool P_cerca_del_limite = (fabs(_kpContrib) >= P_threshold);
-//
-//        // Diferencia entre consigna de timón (output actual del PID) y posición real
-//        // Necesitas tener disponible 'rudder_position' (sensor) y el setpoint actual del timón
-//        bool actuator_busy = abs(rudder_error) > 10 ;//rudder_threshold; // p.ej. 2.0 grados
-//
-//        // Prevención de windup
-//        if (!clamp_I && !actuator_busy && P_cerca_del_limite) {
-//            ITerm += (ki * error);
-//        }
-//
-//        // Límite del término integral
-//        if (ITerm > IoutMax) ITerm = IoutMax;
-//        else if (ITerm < IoutMin) ITerm = IoutMin;
-//
-//        /* Derivada filtrada */
-//        double dInput = (input - lastInput) / (timeChange / SampleTime);
-//
-//        static double _kdContrib_prev = 0;
-//        _kdContrib = (-kd * dInput) * (1.0 - D_FILTER_ALFA) + _kdContrib_prev * D_FILTER_ALFA;
-//        _kdContrib_prev = _kdContrib;
-//
-//        /* Salida PID */
-//        double output = _kpContrib + ITerm + _kdContrib;
-//        double output_pre = output;
-//
-//        // Saturación de salida
-//        if (output > outMax) output = outMax;
-//        else if (output < outMin) output = outMin;
-//
-//        *myOutput = output;
-//
-//        /* Variables para siguiente ciclo */
-//        lastInput = input;
-//        lastTime = now;
-//
-//        /* --- Actualización de clamp_I --- */
-//        bool saturated = (output_pre != output);
-//        bool equal_sign = (((error > 0 ? 1 : -1) * (output > 0 ? 1 : -1)) == 1);
-//
-//        // clamp_I activo si estamos saturados y empujando en la misma dirección
-//        // o si el actuador aún no ha alcanzado el setpoint
-//        clamp_I = ( (saturated && equal_sign) || actuator_busy );
-//
-//        return true;
-//    }
-//    else return false;
-//}
-bool PID_ext::Compute(int rudder_error)
+	   /*Remember some variables for next time*/
+	   lastInput = input;
+	   lastTime = now;
+
+		  return true;
+		}
+	else return false;
+}
+#endif
+
+#ifdef PID_ADVANCED1
+bool PID_ext::Compute(int rudder_error, float speed)
 {
     if (!inAuto) return false;
+    static bool timon_en_posicion = false;
+    static double error_prev = 1.0;
+    static double derr_prev = 0.0;
+    static double avg_rudder_error = 0.0;
+    static double output_prev = 0.0;
+    static double factor = 1.0;
+    static bool clamp_I = false;
 
     unsigned long now = millis();
     unsigned long timeChange = (now - lastTime);
-
-    static bool timon_en_posicion = false;
-    static unsigned long t_timon_estable = 0;
-    static double error_prev = 0.0;
-
-    const unsigned long espera_reaccion_ms = 1000; // 1s
-    const double error_delta_umbral = 0.2;         // grados
 
     if (timeChange >= SampleTime)
     {
         /* Entrada y error */
         double input = *myInput;
         double error = *mySetpoint - input;
-        _kpContrib = kp * error;
+        /* Escalado dinámico de ganancias */
+        factor = (getSpeed_ref() / fmax(speed, 1))* ALFA_10 + ALFA_90 * factor;
+        //TODO:SUSTITUIR 350 es el angulo maximo de timon
+        //TODO:100 es el error máximo a considerar (angulo de virada máxima)
+        factor = fmin (factor, abs(350.0/(kp*100.0)));
+        double kp_eff = kp * factor;
+        double ki_eff = ki * factor;
+        double kd_eff = kd / factor;
+        double outMaxeff = fmin (outMax * factor, 350.0);
+        double outMineff = fmax (outMin * factor, -350.0);
+        double IoutMaxeff = IoutMax;
+        double IoutMineff = IoutMin;
+        double error_eff = error;
+
+        /* Deadband: aplica zona muerta proporcional */
+        calcDeadband(error, error_prev);
+        if (isInDeadband()) {
+            error_eff = 0.0; // dentro de la banda, no actuamos
+        } else {
+            error_eff = error - _deadband * ((error > 0) ? 1 : -1);
+        }
+
+        _kpContrib = kp_eff * error_eff;
 
         /* Estado del actuador */
-        bool actuator_busy = abs(rudder_error) > 10; // umbral en grados
+        bool actuator_busy = abs(rudder_error) > I_ACTUATOR_BUSY_THRESHOLD;
 
-        // Detección de llegada a posición
         if (!actuator_busy && !timon_en_posicion) {
             timon_en_posicion = true;
-            t_timon_estable = now;
-            error_prev = error;
         } else if (actuator_busy) {
             timon_en_posicion = false;
         }
 
-        /* Umbral proporcional */
-        const double P_THRESHOLD_FACTOR = 0.80;
-        double outMaxAbs = fmax(fabs(outMax), fabs(outMin));
-        double P_threshold = P_THRESHOLD_FACTOR * outMaxAbs;
-        bool P_cerca_del_limite = (fabs(_kpContrib) >= P_threshold);
+        /* Velocidad de cambio de error */
+        double derr = (error_eff - error_prev);
+        derr = derr * ALFA_10 + ALFA_90 * derr_prev ;
 
-        /* Sin reacción detectada */
-        bool sin_reaccion = fabs(error - error_prev) < error_delta_umbral;
+        avg_rudder_error = double (rudder_error) * ALFA_10 + ALFA_90 * avg_rudder_error;
+
+        bool sin_reaccion = ((fabs(derr) < D_DERR_UMBRAL) && (abs (avg_rudder_error) <= D_RUDDER_ERROR_UMBRAL));
 
         /* Condición de integración */
-        bool permitir_integral = (!clamp_I && !actuator_busy && P_cerca_del_limite);
-        if (timon_en_posicion && (now - t_timon_estable) > espera_reaccion_ms && sin_reaccion) {
-            permitir_integral = true;
-        }
+        //bool permitir_integral = (!clamp_I && !actuator_busy && !(isInDeadband())); actuator_busy es redundante con la definición de clamp_I
+        bool permitir_integral = !(clamp_I or isInDeadband());
 
-        /* Boost adaptativo */
-        if (permitir_integral) {
-            double ki_boost = ki;
-            if (timon_en_posicion && (now - t_timon_estable) > espera_reaccion_ms && sin_reaccion) {
-                double boost_factor = 1.0 + ((now - t_timon_estable) / 3000.0); // +1 cada 3s
-                if (boost_factor > 5.0) boost_factor = 5.0; // límite máx
-                ki_boost *= boost_factor;
-            }
-            ITerm += (ki_boost * error);
-        }
+        if (timon_en_posicion && !sin_reaccion) permitir_integral = false;
+        //DEBUG_print("DEBUG:--\n");
+        //if (permitir_integral) DEBUG_print("DEBUG:permitir_integrar\n");
+        if (permitir_integral) ITerm += (ki_eff * error_eff);
 
         /* Límite integral */
-        if (ITerm > IoutMax) ITerm = IoutMax;
-        else if (ITerm < IoutMin) ITerm = IoutMin;
+        if (ITerm > IoutMaxeff) ITerm = IoutMaxeff;
+        else if (ITerm < IoutMineff) ITerm = IoutMineff;
 
         /* Derivada filtrada */
-        double dInput = (input - lastInput) / (timeChange / SampleTime);
-        static double _kdContrib_prev = 0;
-        _kdContrib = (-kd * dInput) * (1.0 - D_FILTER_ALFA) + _kdContrib_prev * D_FILTER_ALFA;
-        _kdContrib_prev = _kdContrib;
+        double dInput = (input - lastInput);
+        dInput = dInput * ALFA_20 + ALFA_80 * _dInput_prev ;
 
+        _kdContrib = (-kd_eff * dInput) * ALFA_20 + _kdContrib_prev * ALFA_80;
+        _kdContrib_prev = _kdContrib;
         /* Salida PID */
-        double output_pre = _kpContrib + ITerm + _kdContrib;
-        double output = output_pre;
-        if (output > outMax) output = outMax;
-        else if (output < outMin) output = outMin;
-        *myOutput = output;
+        double output_libre = _kpContrib + ITerm + _kdContrib;
+        *myOutput = output_libre;
+        bool saturated = false;
+        if (output_libre > outMaxeff) {
+        	*myOutput = outMaxeff;
+        	saturated = true;
+        } else if (output_libre < outMineff) {
+        	*myOutput = outMineff;
+        	saturated = true;
+        }
+
+        /* Anti-windup */
+        // Código siempre despues de calcular Salida PID
+        // Atención: al_mismo_lado=true en caso de que error_eff y MyOutput tengan signos opuestos!
+        bool al_mismo_lado = !(((error_eff > 0 ? 1 : -1) * (*myOutput > 0 ? 1 : -1)) == 1);
+        clamp_I = ((saturated && al_mismo_lado) || actuator_busy);
+
+        //if (saturated) {
+        //	if (!clamp_I) if (!equal_sign) DEBUG_print("Saturated. Falta equal_sign para Clamp_I\n");
+
+
+
+        int l=8, d=4;
+        char c3[l+3];
+        char c4[l+3];
+        char c5[l+3];
+        //sprintf(DEBUG_buffer,"DEBUG:kd*factor=kd_eff %s*%s=%s\n",dtostrf(kd,l,d,c3),dtostrf(factor,l,d,c4),dtostrf(kd_eff,l,d,c5));
+		//sprintf(DEBUG_buffer,"DEBUG:dInput*-kd_eff=_kdContrib %s*%s=%s\n",dtostrf(dInput,l,d,c3),dtostrf(-kd_eff,l,d,c4),dtostrf(_kdContrib,l,d,c5));
+        //DEBUG_print();
+
+        // --- Implementación de anti-windup por back-calculation ---
+
+        //if (clamp_I) DEBUG_print("DEBUG:clamp_I\n");
+        if (clamp_I && saturated && ITerm!=0) {
+			ITerm = ITerm * 0.99;//ALFA_80;
+			//if (abs(ITerm) < abs(ki_eff)) ITerm = 0;
+			//DEBUG_print("DEBUG:Reduciendo ITerm\n");
+        }
 
         /* Siguiente ciclo */
         lastInput = input;
         lastTime = now;
-
-        /* Anti-windup */
-        bool saturated = (output_pre != output);
-        bool equal_sign = (((error > 0 ? 1 : -1) * (output > 0 ? 1 : -1)) == 1);
-        clamp_I = ((saturated && equal_sign) || actuator_busy);
+        error_prev = error_eff;
+        derr_prev = derr;
+        _dInput_prev = dInput;
 
         return true;
     }
     return false;
 }
+
+// TRUE: El barco está dentro del deadband dinámico
+// FALSE: El barco está fuera del deadband dinámico
+bool PID_ext::calcDeadband(double error, double error_prev)
+{
+
+	double static error_var = 0;
+
+    switch (_type_DB) {
+    case MAXDB:
+    	_deadband = MAX_DEADBAND;
+    	break;
+    case MINDB:
+    	_deadband = MIN_DEADBAND;
+    	break;
+    case AUTODB:
+        // estimar nivel de ruido con diferencia de error
+    	error_var = (ALFA_10 * fabs(error - error_prev) + ALFA_90 * error_var);
+    	_deadband =  error_var * FACTOR_DEADBAND;
+    	_deadband = fmax(MIN_DEADBAND, _deadband);
+    	_deadband = fmin(MAX_DEADBAND, _deadband);
+    	break;
+    }
+    _inDeadband = (fabs(error) <= _deadband);
+    return _inDeadband;
+}
+
+#endif
+
+
+
 
 
 bool PID_ext::resetITerm(float delta) {

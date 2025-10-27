@@ -730,20 +730,18 @@ bool NMEAGPS::parseField(char chr)
 	  #if defined(NMEA_PARSE_HDM)
 		case NMEA_HDM: return parseHDM( chr );
 	  #endif
-	// FIN SPM
 
-      #if defined(NMEAGPS_PARSE_RMC)
+      #if defined(NMEA_PARSE_RMC)
         case NMEA_RMC: return parseRMC( chr );
       #endif
 
-      #if defined(NMEAGPS_PARSE_VTG)
+      #if defined(NMEA_PARSE_VTG)
         case NMEA_VTG: return parseVTG( chr );
       #endif
 
-        // INI SPM
-    	  #if defined(NMEA_PARSE_VWR)
-    		case NMEA_VWR: return parseVWR( chr );
-    	  #endif
+	  #if defined(NMEA_PARSE_VWR)
+		case NMEA_VWR: return parseVWR( chr );
+	  #endif
     	// FIN SPM
 
 

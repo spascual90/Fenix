@@ -293,7 +293,11 @@ void IF_NMEA::refresh_INorder() {
 			//Instruction only valid for IMU ICM20948
 			Load_calibrate_py(INorder.calibrate_py);
 			break;
-
+		case SOG: //SOG received
+			if (!MyPilot->isCalMode()) {
+				received_SOG(INorder.SOG);
+			}
+			break;
 		default:
 	    	 break;
 		}

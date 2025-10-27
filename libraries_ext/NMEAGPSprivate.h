@@ -218,13 +218,15 @@
     bool parseGSA( char chr );
     bool parseGST( char chr );
     bool parseGSV( char chr );
-    bool parseRMC( char chr );
-    bool parseVTG( char chr );
+    //bool parseRMC( char chr );
+    //bool parseVTG( char chr );
     bool parseZDA( char chr );
 
     // INI SPM
     NMEAGPS_VIRTUAL bool parseAPB( char chr )=0;
     NMEAGPS_VIRTUAL bool parseHDM( char chr )=0;
+    NMEAGPS_VIRTUAL bool parseRMC( char chr )=0;
+    NMEAGPS_VIRTUAL bool parseVTG( char chr )=0;
     NMEAGPS_VIRTUAL bool parseVWR( char chr )=0;
     // FIN SPM
 

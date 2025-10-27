@@ -89,11 +89,11 @@ public:
 		#endif
 		// FIN SPM
 
-        #if defined(NMEAGPS_PARSE_RMC) | defined(NMEAGPS_RECOGNIZE_ALL)
+        #if defined(NMEA_PARSE_RMC) | defined(NMEAGPS_PARSE_RMC) | defined(NMEAGPS_RECOGNIZE_ALL)
           NMEA_RMC,
         #endif
 
-        #if defined(NMEAGPS_PARSE_VTG) | defined(NMEAGPS_RECOGNIZE_ALL)
+        #if defined(NMEA_PARSE_VTG) | defined(NMEAGPS_PARSE_VTG) | defined(NMEAGPS_RECOGNIZE_ALL)
           NMEA_VTG,
         #endif
 

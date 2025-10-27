@@ -16,7 +16,7 @@
 //#define NMEAGPS_PARSE_GSA
 //#define NMEAGPS_PARSE_GSV
 //#define NMEAGPS_PARSE_GST
-#define NMEAGPS_PARSE_RMC
+//#define NMEAGPS_PARSE_RMC
 //#define NMEAGPS_PARSE_VTG
 //#define NMEAGPS_PARSE_ZDA
 
@@ -24,6 +24,8 @@
 #define NMEA_PARSE_APB
 #define NMEA_PARSE_HDM
 #define NMEA_PARSE_VWR
+#define NMEA_PARSE_RMC
+#define NMEA_PARSE_VTG
 // FIN SPM
 
 //------------------------------------------------------
@@ -32,7 +34,7 @@
 // to determine when the GPS quiet time begins, and thus
 // when you can perform "some" time-consuming operations.
 
-#define LAST_SENTENCE_IN_INTERVAL NMEAGPS::NMEA_RMC
+#define LAST_SENTENCE_IN_INTERVAL NMEAGPS::NMEA_GLL
 
 // If the NMEA_LAST_SENTENCE_IN_INTERVAL is not chosen 
 // correctly, GPS data may be lost because the sketch

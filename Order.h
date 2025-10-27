@@ -30,6 +30,7 @@ public:
 	s_IMUcal IMUcal;
 	s_FBKcal FBKcal;
 	s_calibrate_py calibrate_py;
+	s_SOG SOG;
 
 	// Is Valid indicates if data received is valid or not
 	bool isValid=NO;

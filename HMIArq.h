@@ -85,6 +85,7 @@ protected:
 	void nextDBConf (void);
 	void received_APB( s_APB APB);
 	void received_HDM( s_HDM HDM);
+	void received_SOG( s_SOG SOG);
 	void received_VWR( s_VWR VWR);
 
 	void Start_Cal(char sensor = '-');

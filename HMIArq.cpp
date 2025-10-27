@@ -30,10 +30,11 @@ void HMIArq::Request_APinfo(s_APinfo & APinfo) {
 
 	APinfo.CTS.Towf_00(MyPilot->getTargetBearing());
 	APinfo.HDM.Towf_00(MyPilot->getCurrentHeading());
-	APinfo.deadband=MyPilot->dbt.getDeadband();
+	// Deadband value
+	APinfo.deadband.Towf_00(MyPilot->getDeadband());
 	APinfo.mode=MyPilot->getCurrentMode();
 	APinfo.rudder=MyPilot->getTargetRudder();
-	APinfo.trim.Towf_00(MyPilot->dbt.getTrim());
+
  }
 
 void HMIArq::Request_IMUcal(s_IMUcal & IMUcal) {
@@ -241,6 +242,10 @@ void HMIArq::received_HDM( s_HDM HDM) {
 	MyPilot->HDMreceived(HDM);
 }
 
+// Speed received
+void HMIArq::received_SOG( s_SOG SOG) {
+	MyPilot->SOGreceived(SOG);
+}
 
 // Wing mode functions
 void HMIArq::received_VWR( s_VWR VWR) {

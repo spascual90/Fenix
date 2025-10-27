@@ -162,6 +162,7 @@ bool emcNMEA::parseAPB( char chr )
 	return ok;
 }
 
+// TODO: HDM obsolete. Parse HDG instead
 // $--HDM,x.x,M*hh<CR><LF>
 // Example: $IIHDM,245.0,M*21
 bool emcNMEA::parseHDM( char chr )
@@ -177,6 +178,56 @@ bool emcNMEA::parseHDM( char chr )
 	return ok;
 }
 
+// TODO: Parse VHW or RMC for speed through water
+//RMC Sentence NMEA 4.1:
+// $GPRMC,125656.00,V,,,,,3.00,,260925,,,N*69
+// $GPRMC,125656.00,V,,,,,,,260925,,,N*74
+// $--RMC,hhmmss.ss,A,ddmm.mm,a,dddmm.mm,a,x.x,x.x,xxxx  ,x.x,a,m*hh (NMEA 2.3)
+// $GPRMC,hhmmss.ss,A,ddmm.mm,a,dddmm.mm,a,4.5,x.x,xxxx  ,x.x,a,m,s*3C
+// SOG = 4.5 Knots
+bool emcNMEA::parseRMC( char chr )
+{
+	bool ok = true;
+
+	switch (fieldIndex) {
+
+//Field Number:
+//1. UTC of position fix, hh is hours, mm is minutes, ss.ss is seconds.
+//2. Status, A = Valid, V = Warning
+//3. Latitude, dd is degrees. mm.mm is minutes.
+//4. N or S
+//5. Longitude, ddd is degrees. mm.mm is minutes.
+//6. E or W
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+	case 6:
+		return ok;
+//7. Speed over ground, knots
+	case 7:
+		parseFloat( INorder.SOG.SOG, chr, 2, INorder.SOG.flag.SOG); break;// SOG value
+//8. Track made good, degrees true
+//9. Date, ddmmyy
+//10. Magnetic Variation, degrees
+//11. E or W
+//12. FAA mode indicator (NMEA 2.3 and later)
+//13. Nav Status (NMEA 4.1 and later) A=autonomous, D=differential, E=Estimated, M=Manual input mode N=not valid, S=Simulator, V = Valid
+	case 8:
+	case 9:
+	case 10:
+	case 11:
+		return ok;
+	case 12:
+		  INorder.SOG.isValid=YES;
+	  	  INorder.set_order(SOG);
+		  break;
+    }
+return ok;
+}
+// TODO: Parse MWV instead of obsolete VWR
+// Obsolete
 // $--VWR,x.x,a,,,,,,*hh<CR><LF>
 // Example: $IIVWR,045.0,L,12.6,N,6.5,M,23.3,K*52
 bool emcNMEA::parseVWR( char chr )
@@ -198,8 +249,28 @@ bool emcNMEA::parseVWR( char chr )
 	          }
 	return ok;
 }
-
-
+//$GPVTG,,,,,3.00,,,,N*2D
+//$GPVTG,,,,,,,,,N*30
+//$--VTG,x.x,T,x.x,M,x.x,N,x.x,K,m*hh<CR><LF> (new version NMEA 2.3)
+bool emcNMEA::parseVTG( char chr )
+{
+	bool ok = true;
+	switch (fieldIndex) {
+	  case 1: return ok;
+	  case 2: return ok;
+	  case 3:
+	  case 4:
+	  case 5: parseFloat( INorder.SOG.SOG, chr, 2, INorder.SOG.flag.SOG); break;// SOG value
+	  case 6:
+	  case 7:
+	  case 8:
+	  case 9:
+	  	  INorder.SOG.isValid=YES;
+	  	  INorder.set_order(SOG);
+		  break;
+	          }
+	return ok;
+}
 bool emcNMEA::classifyPEMC( char chr )
 {
   bool ok = true;
@@ -393,9 +464,9 @@ bool emcNMEA::parsePEMC_07( char chr )
     	case 3: parseInt( INorder.APinfo.rudder , chr ); break;
     	case 4:	parse360( INorder.APinfo.HDM, chr); break;
     	case 5: parse360( INorder.APinfo.CTS, chr); break;
-    	case 6: parseInt( INorder.APinfo.deadband , chr ); break;
+    	case 6: parseFloat( INorder.APinfo.deadband , chr , 2, INorder.APinfo.flag.deadband ); break;
         case 7:
-        	parseFloat( INorder.APinfo.trim , chr , 2, INorder.APinfo.flag.trim );
+        	//parseFloat( INorder.APinfo.trim , chr , 2, INorder.APinfo.flag.trim );
         	INorder.APinfo.isValid=YES;
 
         	break;
@@ -1154,9 +1225,10 @@ void emcNMEA::printPEMC_07(Stream * outStream) {
 		bufferStream->print(',');
 		bufferStream->print(OUTorder.APinfo.CTS.float_00());
 		bufferStream->print(',');
-		bufferStream->print(OUTorder.APinfo.deadband);
-		bufferStream->print(',');
-		bufferStream->print(OUTorder.APinfo.trim.float_00());
+		// TODO: Update I/F Documentation: deadband is float
+		bufferStream->print(OUTorder.APinfo.deadband.float_00());
+		//Obsolete trim but respects message format
+		bufferStream->print(",0.00");
 
 		send( outStream, string2char(output) );
 		output.remove(0);
@@ -1252,6 +1324,7 @@ void emcNMEA::printAPB(Stream * outStream) {
     }
 }
 
+//TODO. Use printDm() function to complete HDG message
 void emcNMEA::printHDG(Stream * outStream) {
 	bufferStream->print ("$APHDG,");
 	bufferStream->print (getHeading(),1);// SPM TODO: Hay que mandar True NO Magnetic
@@ -1261,6 +1334,7 @@ void emcNMEA::printHDG(Stream * outStream) {
 	output.remove(0);
 }
 
+// obsolete
 void emcNMEA::printHDM(Stream * outStream) {
 	bufferStream->print ("$APHDM,");
 	bufferStream->print (getHeading(),1);
@@ -1268,7 +1342,7 @@ void emcNMEA::printHDM(Stream * outStream) {
 	send( outStream, string2char(output) );
 	output.remove(0);
 }
-
+// obsolete
 void emcNMEA::printHDT(Stream * outStream) {
 	bufferStream->print ("$APHDT,");
 	bufferStream->print (getTrue(getHeading()),1);

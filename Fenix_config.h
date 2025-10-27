@@ -112,10 +112,11 @@
 #define DELAY_BUZZBEAT_TIME 50 // Buzzer beat time in msec.
 #define MAX_APB_TIME 10000 // Maximum time of APB data validity
 #define MAX_HDM_TIME 10000 // Maximum time of HDM data validity
+#define MAX_SOG_TIME 10000 // Maximum time of SOG data validity
 #define MAX_VWR_TIME 10000 // Maximum time of VWR data validity
 #define LONG_LOOP_TIME 100 // Loops to update current course, target bearing and calibration status
 #define W_DISPLAY_TIME 2000 // Loops to display Warnings
-
+#define AVDSPEED 5
 // *** ActuatorController.h ***
 
 	#define MIN_SPEED 0
@@ -135,16 +136,6 @@
 # define ATUNE_NOISE 5 // magnetic degrees (input signal noise). Maximum bandwith value recommended
 # define ATUNE_STEP 500 // rudder degrees (D value for output step)
 # define ATUNE_LOOKBACK 50 //mseg look back time (local peaks filtering)
-
-// *** DeadbandTrim.h ***
-
-// Period definition
-#define DELAY_SAMPLING_PERIOD 1000 //mSec long period for evaluation
-#define NUMBER_SAMPLING 10 // number of iterations within long period for evaluation
-
-#define VALUE_MAXDB 5//15 magnetic degrees
-#define VALUE_MINDB 0//5 magnetic degrees
-#define VALUE_MAXTRIM 15 // Rudder degrees
 
 // *** RudderFeedback.h ***
 

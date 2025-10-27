@@ -10,7 +10,7 @@
 #include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
 Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
- : ActuatorManager(gain.Kp.float_00(), gain.Ki.float_00(), gain.Kd.float_00(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback) //maxRudder is the min/max value for PID as well.
+ : ActuatorManager(gain.Kp.float_00(), gain.Ki.float_00(), gain.Kd.float_00(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback, float(ip.avgSpeed) ) //maxRudder is the min/max value for PID as well.
  , BearingMonitor ( ip.headAlign.float_00() )
 {
 	//SET HARDCODED INSTALATION PARAMETERS
@@ -22,7 +22,8 @@ Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
 	_currentMode = STAND_BY; //DON'T USE SetCurrentMode in this constructor
 	//Off course alarm angle OCA
 	setOffCourseAlarm(ip.offcourseAlarm);
-	//TODO:Average cruise speed ACS
+	//Average cruise speed ACS
+	setAvgSpeed (ip.avgSpeed);
 
 }
 
@@ -32,7 +33,7 @@ Autopilot::~Autopilot() {
 
 e_setup_status Autopilot::setup() {
 
-	sprintf(DEBUG_buffer,"!Free memory: %i\n", freeMemory());
+	sprintf(DEBUG_buffer,"!Free memory: %i/8192 bytes\n", freeMemory());
 	DEBUG_print();
 
 	// Autopilot version
@@ -204,7 +205,8 @@ e_working_status Autopilot::compute_Stand_By(){
 e_working_status Autopilot::compute_OperationalMode(void){
 	float PIDerrorPrima = delta180(getTargetBearing(), BearingMonitor::getCurrentHeading());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
-	if (ActuatorManager::Compute(PIDerrorPrima)!=1) return RUNNING_ERROR;
+	// Adapt to actual SOG or SOW speed over water
+	if (ActuatorManager::Compute(PIDerrorPrima, get_boatSpeed())!=1) return RUNNING_ERROR;
 	compute_OCA (PIDerrorPrima);
 	return RUNNING_OK;
 }
@@ -582,8 +584,6 @@ void Autopilot::set_extHeading(s_HDM HDM) {
 
 //evaluate validity extHeading
 bool Autopilot::isValid_HDM (void) {
-	//if ((_extHeading.HDM.isValid) &&
-	//bool prev_isValid = _extHeading.HDM.isValid;
 	_extHeading.HDM.isValid = (millis()-_extHeading.t0)<=MAX_HDM_TIME;
 	//reset value of extHeading if last received is not valid any more
 	if (!_extHeading.HDM.isValid) _extHeading.t0=0;
@@ -598,20 +598,31 @@ bool Autopilot::isValid_HDM (void) {
 	return _extHeading.HDM.isValid;
 }
 
-//bool Autopilot::isValid_HDM (unsigned long &RXtime) {
-//	bool lb_validHDM = isValid_HDM();
-//	if (lb_validHDM) {
-//		DEBUG_print ("lb_validHDM\n");
-//	} else {
-//		DEBUG_print ("lb_validHDM FALSE\n");
-//		_extHeading.t0 =0;
-//	}
-//	RXtime = _extHeading.t0;
-//
-//	//RXtime = lb_validHDM?_extHeading.t0: 0 ;
-//	return lb_validHDM;
-//}
+// EXTERNAL SPEED RECEIVED
+void Autopilot::set_boatSpeed(s_SOG SOG) {
+	_boatSpeed.SOG = SOG;
+	_boatSpeed.t0 = millis();
+	//DEBUG_print ("!ext Speed received\n");
+}
 
+float Autopilot::get_boatSpeed (void) {
+
+	if (isValid_boatSpeed()) {
+		return _boatSpeed.SOG.SOG.float_00();
+	} else {
+		return float (getAvgSpeed());
+	}
+}
+
+//evaluate validity boatSpeed
+bool Autopilot::isValid_boatSpeed (void) {
+	_boatSpeed.SOG.isValid = (millis()-_boatSpeed.t0)<=MAX_SOG_TIME;
+	//reset value of _boatSpeed if last received is not valid any more
+	if (!_boatSpeed.SOG.isValid) {
+		_boatSpeed.t0=0;
+	}
+	return _boatSpeed.SOG.isValid;
+}
 
 // WIND MODE
 void Autopilot::set_windDir(s_VWR VWR) {
@@ -623,6 +634,7 @@ void Autopilot::set_windDir(s_VWR VWR) {
 //evaluate validity windDir
 bool Autopilot::isValid_VWR (void) {
 	_windDir.VWR.isValid = (millis()-_windDir.t0)<=MAX_VWR_TIME;
+	// Last direction/speed remains. Dont reset.
 	return _windDir.VWR.isValid;
 }
 
@@ -683,6 +695,10 @@ void Autopilot::HDMreceived(s_HDM HDM) {
 
 void Autopilot::VWRreceived(s_VWR VWR) {
 	set_windDir(VWR);
+}
+
+void Autopilot::SOGreceived(s_SOG SOG) {
+	set_boatSpeed (SOG);
 }
 
 void Autopilot::computeLongLoop_heading(void) {
@@ -753,21 +769,26 @@ int Autopilot::changeRudder(int delta_rudder) {
 }
 
 void Autopilot::setDBConf (type_DBConfig status) {
-	if (!isCalMode()) dbt.setDBConf (status);
+	if (!isCalMode()) setTypeDB (status);
 }
 
 type_DBConfig Autopilot::nextDBConf (void) {
 	if (!isCalMode()) {
-		return dbt.nextDBConf ();
+		type_DBConfig DBtemp;
+		DBtemp = getTypeDB();
+		//Loops through type_DBConfig values
+		DBtemp = static_cast<type_DBConfig>((DBtemp + 1) % type_DBConfig::LOOP);
+		setTypeDB(DBtemp);
+		return DBtemp;
 	}
-	return dbt.getDBConf();
+	return getTypeDB();
 }
 
 
 void Autopilot::Request_instParam(s_instParam & instParam) {
 	instParam.centerTiller=getDeltaCenterOfRudder();
 	instParam.maxRudder=getMaxRudder();
-	//instParam.avgSpeed=MyPilot->; TODO: ImplementavdSpeed
+	instParam.avgSpeed=getAvgSpeed();
 	instParam.instSide=getInstallationSide();
 	instParam.rudDamping=getErrorFeedback();
 	instParam.magVariation.Towf_00(getDm());
@@ -812,7 +833,7 @@ void Autopilot::Request_PIDgain(s_PIDgain & PIDgain) {
 	PIDgain.gain.Ki.Towf_00(float(PID::GetKi()));
 	PIDgain.gain.Kd.Towf_00(float(PID::GetKd()));
 	PIDgain.sTime= GetSampleTime();
-	PIDgain.DBConfig = dbt.getDBConf();
+	PIDgain.DBConfig = getTypeDB();//getDBConf();
 	PIDgain.flag = {{true, true, true}, true, true};
 	PIDgain.isValid = true;
 
@@ -1177,7 +1198,7 @@ void Autopilot::printWarning(bool instant) {
 		int fmemory = freeMemory();//*100)/8192; //% of free memory in Arduino MEGA (8KB RAM)
 		if (fmemory <500) {
 
-			sprintf(DEBUG_buffer,"!Low memory: %i KB\n", fmemory );
+			sprintf(DEBUG_buffer,"!Low memory: %i/8192 bytes\n", fmemory );
 			DEBUG_print();
 		}
 

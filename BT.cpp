@@ -245,8 +245,8 @@ void BT::updateBT(){
 	_V[AI_KDCONTRIB] = float(MyPilot->getKdContrib());
 	_V[AI_PIDOUT] = float(MyPilot->getOutput());
 	_V[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
-	_V[AI_DEADBAND_VALUE] = MyPilot->dbt.getDeadband();
-	_V[AI_TRIM_VALUE] = MyPilot->dbt.getTrim();
+	_V[AI_DEADBAND_VALUE] = float(MyPilot->getDeadband());
+	//_V[AI_TRIM_VALUE] =
 
 	static uint16_t X = 0;
 	int8_t Y = 0;
@@ -281,7 +281,7 @@ void BT::updateBT(){
 	_V[AI_AUTOTUNE_CYCLE] = MyPilot->getPeakCount();
 	//_V[AI_AUTOTUNE_INPUT] = MyPilot->PID_ATune::getInput();
 
-	_V[AV_LED_DBACTIVE] = MyPilot->dbt.getDeadband(MyPilot->getInput())== true ? 1: 0;
+	_V[AV_LED_DBACTIVE] = MyPilot->isInDeadband()== true ? 1: 0;
 
 	_V[AI_USER_MESSAGE] = MyPilot->getInformation();
 

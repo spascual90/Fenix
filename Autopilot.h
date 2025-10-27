@@ -117,7 +117,8 @@ enum e_info {
 		// Is Valid indicates if data is valid or not
 		bool isValid = false;
 
-		struct {bool mode; bool rudder; bool HDM; bool CTS; bool deadband; bool trim;} flag;
+		//struct {bool mode; bool rudder; bool HDM; bool CTS; bool deadband; bool trim;} flag;
+		struct {bool mode; bool rudder; bool HDM; bool CTS; bool deadband;} flag;
 
 		//	Current Working Mode
 		e_APmode mode;
@@ -128,9 +129,9 @@ enum e_info {
 		//	Course To Steer (CTS)
 		whole_frac CTS;
 		//	Deadband value
-		uint8_t deadband;
+		whole_frac deadband;
 		//	Trim
-		whole_frac trim;
+		//whole_frac trim;
 	} ;
 
 	struct s_PIDgain_flag {
@@ -293,6 +294,19 @@ enum e_info {
 		long t0;
 	} ;
 
+	struct s_SOG {
+			// Is Valid indicates if data is valid or not
+			bool isValid=false;
+			struct {bool SOG;} flag;
+
+			whole_frac SOG;
+	} ;
+
+	struct s_boatSpeed {
+		s_SOG SOG;
+		long t0;
+	} ;
+
 // calibrate.py format
 	struct s_calibrate_py {
 		// Is Valid indicates if data is valid or not
@@ -356,6 +370,8 @@ enum e_info {
 		, CAL_ALL
 		//Load calibration parameters
 		, LOAD_calibrate_py // Load external calibration parameters
+		// SOW received from RMC message
+		, SOG
 	};
 
 	struct  {
@@ -390,7 +406,7 @@ enum e_info {
 			VA_DELTACENTEROFRUDDER, // centerTiller
 			VA_MRA, //maxRudder
 			#endif
-			5, //avdSpeed
+			AVDSPEED, //avdSpeed
 			type_instSide::STARBOARD , //instSide
 			5, //rudDamping
 			{2,50}, //magVariation
@@ -452,6 +468,8 @@ public:
 
 	//EXTERNAL COMPASS MODE
 	void HDMreceived(s_HDM HDM);
+
+	void SOGreceived(s_SOG SOG);
 
 	//WIND MODE
 	void VWRreceived(s_VWR VWR);
@@ -620,7 +638,13 @@ private:
 	s_extHeading _extHeading;
 	void set_extHeading(s_HDM HDM);
 	bool isValid_HDM (void);
-	//bool isValid_HDM (unsigned long &RXtime);
+
+
+	//Boat speed from RMC
+	s_boatSpeed _boatSpeed;
+	void set_boatSpeed(s_SOG SOG);
+	bool isValid_boatSpeed (void);
+	float get_boatSpeed (void);
 
 	//Wind mode
 	s_windDir _windDir;
@@ -671,6 +695,19 @@ private:
 
 	void setOffCourseAlarm(uint8_t offCourseAlarm) {
 		_offCourseAlarm = offCourseAlarm;
+	}
+
+
+	// FUNCTIONAL MODULE: BOAT SPEED
+	uint8_t _avgSpeed;
+
+	uint8_t getAvgSpeed() const {
+		return _avgSpeed;
+	}
+	void setAvgSpeed (uint8_t avgSpeed) {
+		if (avgSpeed == 0) avgSpeed =1;
+		if (avgSpeed > 10) avgSpeed =10;
+		_avgSpeed = avgSpeed;
 	}
 
 	// FUNCTIONAL MODULE: ERROR, WARNING AND INFORMATION DISPLAY

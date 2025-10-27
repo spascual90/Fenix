@@ -7,8 +7,8 @@
 
 #include "ActuatorManager.h"
 
-ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback)
-	: PID_ext(&_Input, &_Output, &_Setpoint, Kp, Ki, Kd, ControllerDirection),
+ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback, float refSpeed)
+	: PID_ext(&_Input, &_Output, &_Setpoint, Kp, Ki, Kd, ControllerDirection, refSpeed),
 	  PID_ATune(&_ATune_Input, &_ATune_Output),
 	  RudderFeedback(MRA, error, deltaCenterOfRudder, minFeedback, maxFeedback)
 {
@@ -62,7 +62,7 @@ void ActuatorManager::SetMode(int Mode)
 void ActuatorManager::startAutoMode(){
 	//turn the PID on
 	SetMode(AUTOMATIC);
-	dbt.StartSampling();
+	//dbt.StartSampling();
 
 
 }
@@ -73,7 +73,7 @@ void ActuatorManager::stopAutoMode(){
 	setTargetRudder(getCurrentRudder());
 }
 
-int ActuatorManager::Compute(float setPoint, float processVariable) {
+int ActuatorManager::Compute(float setPoint, float processVariable, float speed) {
 
 //			PID FACTOR
 //		  1. Target Bearing(TB) is considered the 0 reference (TB' reference system) instead of magnetic North.
@@ -88,38 +88,39 @@ int ActuatorManager::Compute(float setPoint, float processVariable) {
 //			3. In TB reference system,
 //		 		PIDError' = SP'-PV'=0-PV'=-PV'=SP-PV.
 //			Out of deadband: Target Rudder = PIDError'
-//			In deadband: Target Rudder = Autotrim contribution
+//			In deadband: To be defined
 
 		float PIDerrorPrima = setPoint- processVariable;
 		if (PIDerrorPrima>180) PIDerrorPrima -=360;
 		if (PIDerrorPrima<=-180)  PIDerrorPrima +=360;
 
-		return this->Compute(PIDerrorPrima);
+		return this->Compute(PIDerrorPrima, speed);
 }
 
-int ActuatorManager::Compute(float PIDerrorPrima) {
+int ActuatorManager::Compute(float PIDerrorPrima, float speed) {
 
 		static int delta_rudder =0;
 		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 		//setSetpoint(0); If always 0 it is not necessary to update value...
 
-		PID_ext::Compute(delta_rudder);
+		PID_ext::Compute(delta_rudder, speed);
 
-		dbt.calculateDBTrim(PIDerrorPrima, getCurrentRudder());
+		//dbt.calculateDBTrim(PIDerrorPrima, getCurrentRudder());
 
-		delta_rudder = controlActuator (getOutput(), dbt.getDeadband(PIDerrorPrima), int(dbt.getTrim()));
+		//delta_rudder = controlActuator (getOutput(), dbt.getDeadband(PIDerrorPrima), int(dbt.getTrim()));
+		delta_rudder = controlActuator (getOutput());
 
 		return 1;
 	}
 
 int ActuatorManager::Compute_Autotune(float PIDerrorPrima) {
 
-		setATuneInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
+		//setATuneInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 		//setSetpoint(0); If always 0 it is not necessary to update value...
 
-		evaluateAutoTune();
+		//evaluateAutoTune();
 
-		controlActuator (int(_ATune_Output), false, 0);
+		//controlActuator (int(_ATune_Output), false, 0);
 
 		return 1;
 	}
@@ -147,7 +148,7 @@ int ActuatorManager::changeRudder(int delta_rudder) {
 }
 
 //Returns delta btw current and target rudder position
-int ActuatorManager::controlActuator(int target_rudder, boolean deadband, int trim) {
+int ActuatorManager::controlActuator(int target_rudder) {
 	int delta = 0;
 	int feedback = updateCurrentRudder();
 	static int lastStopRudder = getCurrentRudder();
@@ -160,7 +161,7 @@ int ActuatorManager::controlActuator(int target_rudder, boolean deadband, int tr
 	static bool point=false;
 	#endif
 
-	if (deadband) target_rudder = trim;
+	//if (deadband) target_rudder = trim;
 
 	delta = getSpeed()==0?target_rudder - lastStopRudder:target_rudder - getCurrentRudder();
 

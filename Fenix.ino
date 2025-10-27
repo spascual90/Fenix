@@ -1,9 +1,5 @@
 //header TODO
 
-// v0.1 - Initial Beta
-// V0.2
-// PWM and DIR PIN changed to ensure compatibility with LCDKeyPad
-
 
 #include <Arduino.h>
 

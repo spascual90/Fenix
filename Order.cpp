@@ -23,7 +23,9 @@ void SERIALorder::set_order(e_actions order) {
 
 void SERIALorder::reset () {
 	APinfo.isValid=NO;
-	APinfo.flag = {false, false, false, false, false, false};
+	//trim attribute removed
+	//APinfo.flag = {false, false, false, false, false, false};
+	APinfo.flag = {false, false, false, false, false};
 	PIDgain.isValid=NO;
 	PIDgain.flag = {{false,false,false}, false, false};
 	instParam.isValid=NO;

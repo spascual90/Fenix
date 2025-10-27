@@ -44,7 +44,7 @@ public:
 	bool getCheckSGAM(uint8_t &S, uint8_t &G, uint8_t &A, uint8_t &M);
 
 	float getCurrentHeading() {
-		//In EXTERNAL_IMU mode, Heading deviation is not managed by Autopilot but by external device
+		//In EXTERNAL_IMU mode, Heading deviation is considered 0. Correction not managed by Autopilot but by external device
 		return (_IMU_status==EXTERNAL_IMU?reduce360(_heading):reduce360(_heading + _headingDev));
 
 	}
@@ -123,9 +123,9 @@ private:
 
 	float _roll=0;
 	float _pitch=0;
-	float _heading=0;
+	float _heading=0; // Raw magnetic heading value without mag.dev correction nor IMU installation heading correction
 	// Permanent deviation
-	float _headingDev=0;
+	float _headingDev=0; //IMU installation heading correction
 	float _dm = 0; // Magnetic variation
 
 	bool _heading_isValid = false;
