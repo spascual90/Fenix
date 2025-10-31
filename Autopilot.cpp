@@ -707,10 +707,11 @@ void Autopilot::computeLongLoop_heading(void) {
 
 	BearingMonitor::updateHeading(_currentMode == STAND_BY, isValid_HDM(), _extHeading.HDM.HDM.float_00(), _extHeading.t0);
 
-	if (isHeadingFrozen()) setWarning(IMU_LOW);
+	//if (isHeadingFrozen()) setWarning(IMU_LOW);
 
 	//If heading value is not valid in operational mode set STAND BY mode
 	if (!isHeadingValid() and !isCalMode() and getCurrentMode()!=STAND_BY) {
+		//TODO: ESTE WARNING SI NO SE ENCUENTRAN DTOS DE CALIBRACION
 		setWarning(IMU_LOW);
 		setCurrentMode(STAND_BY);
 	}

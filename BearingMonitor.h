@@ -16,6 +16,8 @@
 #include "GPSport.h" // Ports configuration
 #include "IMUDevice.h"
 
+constexpr float HEADING_ALFA = 0.99; //Higher: more stable but slower
+
 enum e_IMU_status {NOT_DETECTED, OPERATIONAL, SIMULATED, CAL_MODE, EXTERNAL_IMU};
 enum e_IMU_cal_status {CAL_NOT_STARTED, CAL_START, CAL_INPROGRESS, CAL_RESULT_RECALIBRATED, CAL_RESULT_NOT_CALIBRATED};
 enum e_IMU_check {CHECK_NOT_STARTED, CHECK_ONGOING, CHECK_FINISHED};
@@ -128,10 +130,8 @@ private:
 	float _headingDev=0; //IMU installation heading correction
 	float _dm = 0; // Magnetic variation
 
-	bool _heading_isValid = false;
-	bool _heading_isFrozen = true;
-	float _heading_alfa = 0.99; //Higher: more stable but slower
-
+	bool _heading_isValid = false; // Availability of heading
+	bool _heading_isFrozen = true; // Quality of heading value
 
 	//Calibration settings
 	e_IMU_status _IMU_status= NOT_DETECTED;

@@ -17,15 +17,6 @@ RudderFeedback::RudderFeedback(int MRA, int error, int deltaCenterOfRudder, int 
 	setMinFeedback(minFeedback, false);
 	setMaxFeedback(maxFeedback, false);
 	setDeltaCenterOfRudder(deltaCenterOfRudder, false);
-//	#else
-//	//setup independent variables
-//	setMRA(VA_MRA, false); // TODO: MRA user configurable
-//
-//	setErrorFeedback(VA_ERROR, false);
-//	setMinFeedback(VA_MINFEEDBACK, false);
-//	setMaxFeedback(VA_MAXFEEDBACK, false);
-//	setDeltaCenterOfRudder(VA_DELTACENTEROFRUDDER, false);
-//	#endif
 
 }
 

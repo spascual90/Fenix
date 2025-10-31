@@ -12,18 +12,11 @@
 
 // All configurations are managed in Fenix_config.h
 #include "Fenix_config.h"
-////rudder inc/dec rate
-//#define RATE_1 10
-//#define RATE_10 30
-//
-//// Maximum time (in millisecs) to answer to user request
-//#define MAX_USER_ANSWER_TIME 5000
 
 enum e_operation {OP_ADD, OP_DEC, OP_MULT, OP_DIV};
 enum e_requestStatus {NO_USER_REQUEST, WAITING_USER_ANSWER, USER_ACCEPTED, USER_REJECTED, REQUEST_TIME_OUT};
 
 static e_requestStatus _requestStatus = NO_USER_REQUEST; // There is a request to user for confirmation to change Waypoint
-//static char _requestDestID[5] ={'-','-','-','-','\0'}; // current request is associated to this WPID TODO: Avoid confirmation of wrong WPID
 static double _requestTime =0; // time when request was launched
 
 class HMIArq {

@@ -1,7 +1,7 @@
 #ifndef FENIX_CONFIG_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.3.5.B1"
+#define ARDUINO_VERSION "v.3.6.B1"
 
 // RELEASE v.2.0.B1
 // RELEASE v.2.1.B1
@@ -48,6 +48,11 @@
 // Implementation of PID improvements: Derivative low-pass filter, Anti-windup, limit ITerm, reset ITerm
 // Implementation of TESTER_IF to report internal time via Serial I/F
 // Improved heading in External HDM mode
+//v.3.6.B1
+// NMEA I/F: Read relative wind and speed information
+// Improvement of PID: Integrative and Derivative, adaptation to boat speed
+// Remove spureous warning 5 (IMU requires calibration)
+
 //DEBUG
 // Defined for Release version
 #define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
@@ -55,14 +60,14 @@
 // Commented for Release version
 //#define PRINT_FREE_MEM
 //#define SHIP_SIM // Uncomment to simulate boat to tune PID
-#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
+//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
-#define TESTER_IF
+//#define TESTER_IF
 
 //Other libraries necessary for printing to serial monitor
 #include "GPSport.h" // Some libraries requires to uncomment this line to print debug messages to serial monitor
-#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
+//#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
 
 // PIN Configuration

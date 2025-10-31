@@ -296,7 +296,7 @@ void BearingMonitor::updateHeading(void){
 	if (delta_yaw_raw<-180) delta_yaw_raw+=360;
 	if (delta_yaw_raw>180) delta_yaw_raw-=360;
 	// Apply low pass filter to the IMU results
-	yaw = reduce360 (yaw*_heading_alfa + (yaw+delta_yaw_raw)* (1-_heading_alfa));
+	yaw = reduce360 (yaw*HEADING_ALFA + (yaw+delta_yaw_raw)* (1-HEADING_ALFA));
 
 	_heading = yaw;
 }

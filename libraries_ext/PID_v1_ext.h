@@ -15,6 +15,8 @@ constexpr double ALFA_80 = 0.8;
 constexpr double ALFA_10 = 0.1;
 constexpr double ALFA_90 = 0.9;
 
+constexpr double MAX_PID_TURN = 100;
+
 #define I_ACTUATOR_BUSY_THRESHOLD 10
 #define D_DERR_UMBRAL 0.5  // grados/ segundo. Velocidad media de cambio del error (rumbo) durante el último segundo < se considera que el rumbo es estable
 #define D_RUDDER_ERROR_UMBRAL 10.0 // x/10 = 1  grado de timón. < se considera que el timón ha llegado a su angulo objetivo
@@ -40,13 +42,12 @@ class PID_ext : public PID {
                                           //   called every time loop() cycles. ON/OFF and
                                           //   calculation frequency can be set using SetMode
                                           //   SetSampleTime respectively
+    void SetMode(int Mode);               // * sets PID to either Manual (0) or Auto (non-0)
     void Initialize (void);
     void SetTunings(double Kp, double Ki, double Kd);
     void SetOutputLimits(double Min, double Max);
-    //MODIFIED SPM
     unsigned long GetSampleTime();
     double getSetpoint();
-    //END SPM MODIF
     bool resetITerm(float delta);
     void resetITerm(void);
 										  

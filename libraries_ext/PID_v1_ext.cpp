@@ -14,13 +14,28 @@ PID_ext::PID_ext(double* Input, double* Output, double* Setpoint,
 }
 
 // overwrite
+/* SetMode(...)****************************************************************
+ * Allows the controller Mode to be set to manual (0) or Automatic (non-zero)
+ * when the transition from manual to auto occurs, the controller is
+ * automatically initialized
+ ******************************************************************************/
+void PID_ext::SetMode(int Mode)
+{
+    bool newAuto = (Mode == AUTOMATIC);
+    if(newAuto && !inAuto)
+    {  /*we just went from manual to auto*/
+        Initialize();
+    }
+    inAuto = newAuto;
+}
+
+// overwrite
 /* Initialize()****************************************************************
  *	does all the things that need to happen to ensure a bumpless transfer
  *  from manual to automatic mode.
  ******************************************************************************/
 void PID_ext::Initialize()
 {
-	DEBUG_print("DEBUG:PID_ext::Initialize()\n");
 	_dInput_prev = 0;
     _kdContrib_prev = 0;
 	PID::Initialize();
@@ -93,32 +108,38 @@ bool PID_ext::Compute(int rudder_error, float speed)
     unsigned long now = millis();
     unsigned long timeChange = (now - lastTime);
 
-    if (timeChange >= SampleTime)
-    {
+    if (timeChange >= SampleTime) {
         /* Entrada y error */
         double input = *myInput;
         double error = *mySetpoint - input;
+
+        /* Deadband: aplica zona muerta proporcional */
+        if (calcDeadband(error, error_prev)) {
+        	return false;
+        }
+
         /* Escalado dinámico de ganancias */
         factor = (getSpeed_ref() / fmax(speed, 1))* ALFA_10 + ALFA_90 * factor;
-        //TODO:SUSTITUIR 350 es el angulo maximo de timon
-        //TODO:100 es el error máximo a considerar (angulo de virada máxima)
-        factor = fmin (factor, abs(350.0/(kp*100.0)));
+        factor = fmin (factor, abs(outMax/(kp*MAX_PID_TURN)));
         double kp_eff = kp * factor;
         double ki_eff = ki * factor;
         double kd_eff = kd / factor;
-        double outMaxeff = fmin (outMax * factor, 350.0);
-        double outMineff = fmax (outMin * factor, -350.0);
+        double outMaxeff = fmin (outMax * factor, outMax);
+        double outMineff = fmax (outMin * factor, outMin);
+        //TODO: Si no se modifica se puede simplificar
         double IoutMaxeff = IoutMax;
         double IoutMineff = IoutMin;
+
         double error_eff = error;
 
-        /* Deadband: aplica zona muerta proporcional */
-        calcDeadband(error, error_prev);
-        if (isInDeadband()) {
-            error_eff = 0.0; // dentro de la banda, no actuamos
-        } else {
-            error_eff = error - _deadband * ((error > 0) ? 1 : -1);
-        }
+        // Si dentro de la banda salimos de compute al principio
+        //if (isInDeadband()) {
+        //    error_eff = 0; // dentro de la banda, no actuamos
+
+        //} else {
+        //    error_eff = error - _deadband * ((error > 0) ? 1 : -1);
+        //}
+        error_eff = error - _deadband * ((error > 0) ? 1 : -1);
 
         _kpContrib = kp_eff * error_eff;
 
@@ -140,7 +161,6 @@ bool PID_ext::Compute(int rudder_error, float speed)
         bool sin_reaccion = ((fabs(derr) < D_DERR_UMBRAL) && (abs (avg_rudder_error) <= D_RUDDER_ERROR_UMBRAL));
 
         /* Condición de integración */
-        //bool permitir_integral = (!clamp_I && !actuator_busy && !(isInDeadband())); actuator_busy es redundante con la definición de clamp_I
         bool permitir_integral = !(clamp_I or isInDeadband());
 
         if (timon_en_posicion && !sin_reaccion) permitir_integral = false;
@@ -176,15 +196,10 @@ bool PID_ext::Compute(int rudder_error, float speed)
         bool al_mismo_lado = !(((error_eff > 0 ? 1 : -1) * (*myOutput > 0 ? 1 : -1)) == 1);
         clamp_I = ((saturated && al_mismo_lado) || actuator_busy);
 
-        //if (saturated) {
-        //	if (!clamp_I) if (!equal_sign) DEBUG_print("Saturated. Falta equal_sign para Clamp_I\n");
-
-
-
-        int l=8, d=4;
-        char c3[l+3];
-        char c4[l+3];
-        char c5[l+3];
+        //int l=8, d=4;
+        //char c3[l+3];
+        //char c4[l+3];
+        //char c5[l+3];
         //sprintf(DEBUG_buffer,"DEBUG:kd*factor=kd_eff %s*%s=%s\n",dtostrf(kd,l,d,c3),dtostrf(factor,l,d,c4),dtostrf(kd_eff,l,d,c5));
 		//sprintf(DEBUG_buffer,"DEBUG:dInput*-kd_eff=_kdContrib %s*%s=%s\n",dtostrf(dInput,l,d,c3),dtostrf(-kd_eff,l,d,c4),dtostrf(_kdContrib,l,d,c5));
         //DEBUG_print();
@@ -193,9 +208,8 @@ bool PID_ext::Compute(int rudder_error, float speed)
 
         //if (clamp_I) DEBUG_print("DEBUG:clamp_I\n");
         if (clamp_I && saturated && ITerm!=0) {
-			ITerm = ITerm * 0.99;//ALFA_80;
-			//if (abs(ITerm) < abs(ki_eff)) ITerm = 0;
-			//DEBUG_print("DEBUG:Reduciendo ITerm\n");
+        	//Reducimos ITerm lentamente
+			ITerm = ITerm * 0.99;
         }
 
         /* Siguiente ciclo */
