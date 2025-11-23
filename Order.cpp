@@ -32,8 +32,10 @@ void SERIALorder::reset () {
 	instParam.flag = {false, false, false, false, false, false};
 	APB.isValid=NO;
 	APB.flag = {false,false,false,false,false,false,false};
-	HDM.isValid=NO;
-	HDM.flag = {false};
+	//HDT.isValid=NO;
+	//HDT.flag = {false};
+	HDG.isValid=NO;
+	HDG.flag = {false};
 	VWR.isValid=NO;
 	VWR.flag = {false,false};
 	calibrate_py.isValid=NO;

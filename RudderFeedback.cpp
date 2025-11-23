@@ -9,7 +9,6 @@
 
 RudderFeedback::RudderFeedback(int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback) {
 
-//	#ifndef VIRTUAL_ACTUATOR
 	//setup independent variables
 	setMRA(MRA, false); // TODO: MRA user configurable
 
@@ -66,6 +65,7 @@ void RudderFeedback::setDeltaCenterOfRudder(int deltaCenterOfRudder, bool recalc
 	//independent variable that can be changed in Standby mode
 	_delta_center_of_rudder = deltaCenterOfRudder;
 	if (recalc) setup(); // recalculating dependent variables
+
 }
 
 e_feedback_status RudderFeedback::IBIT(){

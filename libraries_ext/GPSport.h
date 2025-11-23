@@ -50,13 +50,13 @@
 
 static char DEBUG_buffer[80];
 
-static void DEBUG_print (const char str[]=DEBUG_buffer){
+inline void DEBUG_print (const char str[]=DEBUG_buffer){
 	#ifdef DEBUG_PORT
 	DEBUG_PORT.print(str);
 	#endif
 }
 
-static void DEBUG_print (const __FlashStringHelper *t)
+inline void DEBUG_print (const __FlashStringHelper *t)
 {
 	#ifdef DEBUG_PORT
 	char buf[30] ;
@@ -64,6 +64,74 @@ static void DEBUG_print (const __FlashStringHelper *t)
 	s.print(t) ;
 	DEBUG_print(buf) ;
 	#endif
+}
+
+inline void DEBUG_sprintf(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(DEBUG_buffer, sizeof(DEBUG_buffer), fmt, args);
+    va_end(args);
+    DEBUG_print();
+}
+
+inline void DEBUG_sprintfree(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(DEBUG_buffer, sizeof(DEBUG_buffer), fmt, args);
+    va_end(args);
+    DEBUG_print();
+}
+
+// ======================================================
+//  DEBUG_sprintf : imprime valores int con etiqueta
+// ======================================================
+//DEBUG_sprintf("Error code", getErrorCode());
+//DEBUG_sprintf("Rudder limits", limit_min, limit_center, limit_max);
+
+// --- un valor ---
+inline void DEBUG_sprintf(const char* label, int v1) {
+    DEBUG_sprintf("%s: %i\n", label, v1);
+}
+
+// --- dos valores ---
+inline void DEBUG_sprintf(const char* label, int v1, int v2) {
+    DEBUG_sprintf("%s: %i, %i\n", label, v1, v2);
+}
+
+// --- tres valores ---
+inline void DEBUG_sprintf(const char* label, int v1, int v2, int v3) {
+    DEBUG_sprintf("%s: %i, %i, %i\n", label, v1, v2, v3);
+}
+
+// ======================================================
+//  DEBUG_sprintf : imprime valores float con etiqueta
+// ======================================================
+
+// --- un valor ---
+inline void DEBUG_sprintf(const char* label, float v1, int l = 6, int d = 2) {
+    char c1[l + 3];
+    dtostrf(v1, l, d, c1);
+    DEBUG_sprintf("%s: %s\n", label, c1);
+}
+
+// --- dos valores ---
+inline void DEBUG_sprintf(const char* label, float v1, float v2, int l = 6, int d = 2) {
+    char c1[l + 3];
+    char c2[l + 3];
+    dtostrf(v1, l, d, c1);
+    dtostrf(v2, l, d, c2);
+    DEBUG_sprintf("%s: %s, %s\n", label, c1, c2);
+}
+
+// --- tres valores ---
+inline void DEBUG_sprintf(const char* label, float v1, float v2, float v3, int l = 6, int d = 2) {
+    char c1[l + 3];
+    char c2[l + 3];
+    char c3[l + 3];
+    dtostrf(v1, l, d, c1);
+    dtostrf(v2, l, d, c2);
+    dtostrf(v3, l, d, c3);
+    DEBUG_sprintf("%s: %s, %s, %s\n", label, c1, c2, c3);
 }
 
 static void DEBUG_flush (void){

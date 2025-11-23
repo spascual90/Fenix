@@ -40,11 +40,13 @@ public:
 	void stopAllTX();
 
 	//emcNMEA I/F implementation
-	float getDm() {	return MyPilot->getDm();}
-    float getMagnetic(float value) {return MyPilot->ChangeRef(value, BearingMonitor::TRUEtoMAGNETIC);}
-    float getTrue(float value) {return MyPilot->ChangeRef(value, BearingMonitor::MAGNETICtoTRUE);}
+	float getMagneticVariation() {	return MyPilot->getMagneticVariation();}
+	float getHeadingDev() {	return MyPilot->getHeadingDev();}
+    float toMagnetic(float value) {return MyPilot->ChangeRef(value, BearingMonitor::TRUEtoMAGNETIC);}
+    float toTrue(float value) {return MyPilot->ChangeRef(value, BearingMonitor::MAGNETICtoTRUE);}
 	int getRudder(){return MyPilot->getCurrentRudder();}
-	float getHeading() {return MyPilot->getCurrentHeading();}
+	float getHeadingC() {return MyPilot->getCurrentHeadingC();}
+	float getHeadingT() {return MyPilot->getCurrentHeadingT();}
 	void printPEMC_03(Stream * outStream);
 	void printPEMC_05(Stream * outStream);
 	void printPEMC_07(Stream * outStream);

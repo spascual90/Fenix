@@ -240,7 +240,7 @@ bool PID_ext::calcDeadband(double error, double error_prev)
     	break;
     case AUTODB:
         // estimar nivel de ruido con diferencia de error
-    	error_var = (ALFA_10 * fabs(error - error_prev) + ALFA_90 * error_var);
+    	error_var = (ALFA_001 * fabs(error - error_prev) + ALFA_999 * error_var);
     	_deadband =  error_var * FACTOR_DEADBAND;
     	_deadband = fmax(MIN_DEADBAND, _deadband);
     	_deadband = fmin(MAX_DEADBAND, _deadband);

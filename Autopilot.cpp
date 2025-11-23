@@ -11,13 +11,14 @@
 
 Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
  : ActuatorManager(gain.Kp.float_00(), gain.Ki.float_00(), gain.Kd.float_00(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback, float(ip.avgSpeed) ) //maxRudder is the min/max value for PID as well.
- , BearingMonitor ( ip.headAlign.float_00() )
+ , BearingMonitor (ip.magVariation.float_00(), ip.headAlign.float_00())
 {
 	//SET HARDCODED INSTALATION PARAMETERS
 	// Installation side IS
 	setInstallationSide(ip.instSide); //TODO: implement STAR/PORTBOARD installation
 	//	Magnetic variation DM
-	setDm(ip.magVariation.float_00());
+	//setMagneticVariation(ip.magVariation.float_00());
+	//setHeadingDev (ip.headAlign.float_00());
 	// Active Working mode at start-up is Stand-by.
 	_currentMode = STAND_BY; //DON'T USE SetCurrentMode in this constructor
 	//Off course alarm angle OCA
@@ -28,13 +29,13 @@ Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
 }
 
 Autopilot::~Autopilot() {
-	// TODO Auto-generated destructor stub
+
 }
 
 e_setup_status Autopilot::setup() {
 
 	sprintf(DEBUG_buffer,"!Free memory: %i/8192 bytes\n", freeMemory());
-	DEBUG_print();
+
 
 	// Autopilot version
 	DEBUG_print(F("Fenix Autopilot: "));
@@ -59,7 +60,7 @@ e_setup_status Autopilot::setup() {
 	ActuatorController::setup();
 
 	// Setup Actuator manager
-	ActuatorManager::setup( ATUNE_NOISE, ATUNE_STEP, ATUNE_LOOKBACK );
+	ActuatorManager::setup();
 
 	// Setup rudder feedback
 	e_feedback_status f_status = RudderFeedback::setup(true);
@@ -121,6 +122,9 @@ e_setup_status Autopilot::setup() {
 
 e_working_status Autopilot::Compute() {
 	e_working_status ws = RUNNING_OK;
+
+	// Set the millis value used along this loop for low-time dependant functions
+	setLoopMillis();
 
 #ifdef SHIP_SIM
 	SIM_updateShip(getCurrentRudder());
@@ -203,7 +207,7 @@ e_working_status Autopilot::compute_Stand_By(){
 }
 
 e_working_status Autopilot::compute_OperationalMode(void){
-	float PIDerrorPrima = delta180(getTargetBearing(), BearingMonitor::getCurrentHeading());
+	float PIDerrorPrima = delta180(getTargetBearing(), BearingMonitor::getCurrentHeadingT());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	// Adapt to actual SOG or SOW speed over water
 	if (ActuatorManager::Compute(PIDerrorPrima, get_boatSpeed())!=1) return RUNNING_ERROR;
@@ -212,7 +216,7 @@ e_working_status Autopilot::compute_OperationalMode(void){
 }
 
 e_working_status Autopilot::compute_Autotune(void){
-	float PIDerrorPrima = delta180(getTargetBearing(), BearingMonitor::getCurrentHeading());
+	float PIDerrorPrima = delta180(getTargetBearing(), BearingMonitor::getCurrentHeadingT());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	if (ActuatorManager::Compute_Autotune(PIDerrorPrima)!=1) return RUNNING_ERROR;
 	return RUNNING_OK;
@@ -240,11 +244,11 @@ void Autopilot::computeLongLoop_WindDir(void) {
 
 	// Act in consequence
 	if (_currentMode == WIND_MODE) {
-		if (_windDir.VWR.isValid) {
+		if (_windInfo.VWR.isValid) {
 			// Update course to steer
 			// CTS = HDG + VWR
 
-			setTargetBearing(getCurrentHeading() + getWindDir() - _targetWindDir);
+			setTargetBearing(getCurrentHeadingT() + getWindDir() - _targetWindDir);
 			setNextCourse(getTargetBearing());
 			//sprintf(DEBUG_buffer,"!Target Bearing: %i\n", int(getTargetBearing()));
 			//DEBUG_print();
@@ -360,7 +364,7 @@ bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode, char s
 
 	case STAND_BY:
 		if (newMode == CAL_AUTOTUNE) {
-			setTargetBearing (getCurrentHeading());
+			setTargetBearing (getCurrentHeadingT());
 		}
 
 		if (newMode == CAL_IMU_COMPLETE) {
@@ -383,7 +387,7 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 	}
 
 	_offCourseAlarmIDLE = false; // OCA Alarm deactivated until ship heading gets into OCA angle
-	DEBUG_print(F("OCA Alarm: Deactivated\n"));
+	//DEBUG_print(F("OCA Alarm: Deactivated\n"));
 
 	if (preMode == CAL_IMU_COMPLETE) {
 		if (this->isExternalCalibration()) {
@@ -424,7 +428,7 @@ void Autopilot::setTargetBearing(float targetBearing) {
 		// ...then OCA Alarm is deactivated until ship heading gets into OCA angle
 		if (delta_tb > getOffCourseAlarm()) {
 			_offCourseAlarmIDLE = false;
-			DEBUG_print(F("OCA Alarm: Deactivated\n"));
+			//DEBUG_print(F("OCA Alarm: Deactivated\n"));
 		}
 		// ...then Integral Term of PID is reset
 		//ActuatorManager::PID_ext::resetITerm(delta_tb);
@@ -446,6 +450,17 @@ void Autopilot::setNextCourse(float nextCourse) {
 
 }
 
+bool Autopilot::setMagneticVariation(float magVariation) {
+	// Magnetic Variation is only applicable to internal IMU. When receiving external IMU information this function is not operative
+	if (getCurrentMode() == STAND_BY and  getIMUstatus()!=EXTERNAL_IMU ) {
+		BearingMonitor::setMagneticVariation(magVariation);
+	} else {
+		return false;
+	}
+	return true;
+}
+
+
 bool Autopilot::setHeadingDev(float headingDev) {
 	// Heading Deviation is only applicable to internal IMU. When receiving external IMU information this function is not operative
 	if (getCurrentMode() == STAND_BY and  getIMUstatus()!=EXTERNAL_IMU ) {
@@ -457,11 +472,25 @@ bool Autopilot::setHeadingDev(float headingDev) {
 }
 
 // CALIBRATION MODE
-bool Autopilot::isCalMode(void){
+inline bool Autopilot::isCalMode(void){
 	switch (getCurrentMode()) {
 	case CAL_IMU_COMPLETE:
 	case CAL_FEEDBACK:
 	case CAL_AUTOTUNE:
+		return true;
+	default:
+		return false;
+	}
+
+	return false;
+}
+
+// CALIBRATION MODE
+inline bool Autopilot::isOpsMode(void){
+	switch (getCurrentMode()) {
+	case AUTO_MODE:
+	case TRACK_MODE:
+	case WIND_MODE:
 		return true;
 	default:
 		return false;
@@ -495,7 +524,7 @@ void Autopilot::Start_Stop(e_start_stop type){
 
 		switch (type) {
 		case CURRENT_HEADING:
-			target = getCurrentHeading();
+			target = getCurrentHeadingT();
 			break;
 		case CURRENT_TARGET:
 			target = getNextCourse();
@@ -526,7 +555,7 @@ void Autopilot::Start_Stop(e_start_stop type){
 void Autopilot::Start_Stop_wind(void){
 	float target =-1;
 	e_APmode mode = getCurrentMode();
-	target = getCurrentHeading();
+	target = getCurrentHeadingT();
 	setNextCourse(target);
 	setTargetBearing(target);
 
@@ -576,32 +605,64 @@ void Autopilot::Start_Cancel_AutotunePID(void) {
 }
 
 // EXTERNAL COMPASS MODE
-void Autopilot::set_extHeading(s_HDM HDM) {
-	_extHeading.HDM = HDM;
-	_extHeading.t0 = millis();
-//	DEBUG_print ("!ext Heading received\n"));
+
+void Autopilot::set_extHeading(s_HDG HDG) {
+	_extHeading.HDG = HDG;
+	_extHeading.t0 = getLoopMillis();
+	_extHeading.processed = false;
+	//DEBUG_print F("!ext Heading raw received\n");
 }
 
-//evaluate validity extHeading
-bool Autopilot::isValid_HDM (void) {
-	_extHeading.HDM.isValid = (millis()-_extHeading.t0)<=MAX_HDM_TIME;
-	//reset value of extHeading if last received is not valid any more
-	if (!_extHeading.HDM.isValid) _extHeading.t0=0;
-//	if (prev_isValid!=_extHeading.HDM.isValid){
-//		if (prev_isValid == false) {
-//			DEBUG_print ("!EXT Heading\n"));
-//			} else {
-//			DEBUG_print ("!INT Heading\n"));
-//		}
-//	}
+//evaluate validity extHeading: true is valid; false NOT valid
+void Autopilot::evaluate_changeIMUstatus (void) {
+	bool validExternal;
+	bool changeIMUstatus = false;
 
-	return _extHeading.HDM.isValid;
+	// _extHeading.t0==0 indica que NO se ha recibido ningún mensaje
+	if (_extHeading.t0==0) return false;
+
+	if ((getLoopMillis()-_extHeading.t0)<MAX_HDTG_TIME){
+		if (_extHeading.processed == false) {
+			validExternal=true;
+			changeIMUstatus = true;
+		}
+	} else {
+		//se ha recibido pero ya no es válido: reset value of extHeading
+		_extHeading.t0=0;
+		_extHeading.HDG.isValid= false;
+		_extHeading.processed= false;
+		validExternal=false;
+		changeIMUstatus = true;
+	}
+
+	//decide if changing IMU status and source
+	if (changeIMUstatus == true) {
+		if (getIMUstatus()!=CAL_MODE) {
+			if (validExternal) {
+				if (_currentMode == STAND_BY) setIMUstatus (EXTERNAL_IMU);
+				// Set up external values only once upon reception of message
+				// Compass heading can be obtained from HDG and HDT(assuming certain DV, MV have been applied)
+				set_ext_heading_dt(_extHeading.HDG.heading.float_00()); // Raw magnetic heading value without mag.dev correction nor heading correction
+				set_ext_headingDev(_extHeading.HDG.headingDev.float_00()); // Magnetic Deviation: IMU installation/disturbances heading correction
+				set_ext_magneticVariation(_extHeading.HDG.magneticVariation.float_00()); // Magnetic Variation: Depending on earth zone
+				_extHeading.processed = true;
+
+			} else {
+				//TODO: WARNING ALARM!
+				if (isOpsMode()) {
+					setWarning(LOST_EXT_IMU);
+					setCurrentMode(STAND_BY);
+				}
+				setIMUstatus (OPERATIONAL);
+			}
+		}
+	}
 }
 
 // EXTERNAL SPEED RECEIVED
 void Autopilot::set_boatSpeed(s_SOG SOG) {
 	_boatSpeed.SOG = SOG;
-	_boatSpeed.t0 = millis();
+	_boatSpeed.t0 = getLoopMillis();
 	//DEBUG_print ("!ext Speed received\n");
 }
 
@@ -616,7 +677,7 @@ float Autopilot::get_boatSpeed (void) {
 
 //evaluate validity boatSpeed
 bool Autopilot::isValid_boatSpeed (void) {
-	_boatSpeed.SOG.isValid = (millis()-_boatSpeed.t0)<=MAX_SOG_TIME;
+	_boatSpeed.SOG.isValid = (getLoopMillis()-_boatSpeed.t0)<=MAX_SOG_TIME;
 	//reset value of _boatSpeed if last received is not valid any more
 	if (!_boatSpeed.SOG.isValid) {
 		_boatSpeed.t0=0;
@@ -625,36 +686,44 @@ bool Autopilot::isValid_boatSpeed (void) {
 }
 
 // WIND MODE
-void Autopilot::set_windDir(s_VWR VWR) {
-	_windDir.VWR = VWR;
-	_windDir.t0 = millis();
+void Autopilot::set_windInfo(s_VWR VWR) {
+	_windInfo.VWR = VWR;
+	_windInfo.t0 = getLoopMillis();
 	//DEBUG_print ("!wind received\n"));
+	//sprintf(DEBUG_buffer,"DEBUG:%i.%i\n", _windInfo.VWR.windSpeed.whole, _windInfo.VWR.windSpeed.frac );
+	//DEBUG_print();
+
 }
 
-//evaluate validity windDir
+//evaluate validity windSpeed
 bool Autopilot::isValid_VWR (void) {
-	_windDir.VWR.isValid = (millis()-_windDir.t0)<=MAX_VWR_TIME;
+	_windInfo.VWR.isValid = (getLoopMillis()-_windInfo.t0)<=MAX_VWR_TIME;
 	// Last direction/speed remains. Dont reset.
-	return _windDir.VWR.isValid;
+	return _windInfo.VWR.isValid;
 }
 
 // Return relative wind direction as an int angle between 0 and 359
 //if not valid data available return -1
 int Autopilot::getWindDir(void) {
-	if (_windDir.VWR.isValid) return (_windDir.VWR.windDirLR=='L'?360-_windDir.VWR.windDirDeg.whole:_windDir.VWR.windDirDeg.whole);
+	if (_windInfo.VWR.isValid) return (_windInfo.VWR.windDirLR=='L'?360-_windInfo.VWR.windDirDeg.whole:_windInfo.VWR.windDirDeg.whole);
+	return -1;
+}
+
+float Autopilot::getWindSpeed(void) {
+	if (_windInfo.VWR.isValid) return (_windInfo.VWR.windSpeed.float_00());
 	return -1;
 }
 
 // TRACK MODE
 void Autopilot::setWPactive(s_APB APB) {
 	_WPactive.APB = APB;
-	_WPactive.t0 = millis();
+	_WPactive.t0 = getLoopMillis();
 	//DEBUG_print ("!WPactive valid\n"));
 }
 
 void Autopilot::setWPnext(s_APB APB){
 	_WPnext.APB = APB;
-	_WPnext.t0 = millis();
+	_WPnext.t0 = getLoopMillis();
 	//DEBUG_print ("!WPnext valid\n"));
 
 }
@@ -689,12 +758,15 @@ void Autopilot::APBreceived(s_APB APB) {
 //	DEBUG_print();
 }
 
-void Autopilot::HDMreceived(s_HDM HDM) {
-	set_extHeading(HDM);
-}
+//void Autopilot::HDTreceived(s_HDT HDT) {
+//	set_extHeading(HDT);
+//}
 
+void Autopilot::HDGTreceived(s_HDG HDG) {
+	set_extHeading(HDG);
+}
 void Autopilot::VWRreceived(s_VWR VWR) {
-	set_windDir(VWR);
+	set_windInfo(VWR);
 }
 
 void Autopilot::SOGreceived(s_SOG SOG) {
@@ -702,12 +774,11 @@ void Autopilot::SOGreceived(s_SOG SOG) {
 }
 
 void Autopilot::computeLongLoop_heading(void) {
-	//if HDM messages are received within MAX_HDM_TIME seconds, external compass is valid.
+	//if HDT messages are received within MAX_HDT_TIME seconds, external compass is valid.
 	//only changes compass source (internal/ external) in STAND_BY
 
-	BearingMonitor::updateHeading(_currentMode == STAND_BY, isValid_HDM(), _extHeading.HDM.HDM.float_00(), _extHeading.t0);
-
-	//if (isHeadingFrozen()) setWarning(IMU_LOW);
+	evaluate_changeIMUstatus();
+	BearingMonitor::updateHeading(_extHeading.t0);
 
 	//If heading value is not valid in operational mode set STAND BY mode
 	if (!isHeadingValid() and !isCalMode() and getCurrentMode()!=STAND_BY) {
@@ -719,7 +790,7 @@ void Autopilot::computeLongLoop_heading(void) {
 
 void Autopilot::computeLongLoop_WP(void) {
 	//evaluate validity WPactive
-	if ((_WPactive.APB.isValid) && ((millis()-_WPactive.t0)>MAX_APB_TIME)) {
+	if ((_WPactive.APB.isValid) && ((getLoopMillis()-_WPactive.t0)>MAX_APB_TIME)) {
 			_WPactive.APB.isValid = false;
 			_WPactive.APB.destID[0]= '-';
 			_WPactive.APB.destID[1]= '-';
@@ -730,7 +801,7 @@ void Autopilot::computeLongLoop_WP(void) {
 
 	}
 
-	if ((_WPnext.APB.isValid) && ((millis()-_WPnext.t0)>MAX_APB_TIME)) {
+	if ((_WPnext.APB.isValid) && ((getLoopMillis()-_WPnext.t0)>MAX_APB_TIME)) {
 			_WPnext.APB.isValid = false;
 			_WPnext.APB.destID[0]= '-';
 			_WPnext.APB.destID[1]= '-';
@@ -792,7 +863,7 @@ void Autopilot::Request_instParam(s_instParam & instParam) {
 	instParam.avgSpeed=getAvgSpeed();
 	instParam.instSide=getInstallationSide();
 	instParam.rudDamping=getErrorFeedback();
-	instParam.magVariation.Towf_00(getDm());
+	instParam.magVariation.Towf_00(getMagneticVariation());
 	instParam.headAlign.Towf_00(getHeadingDev());
 	instParam.minFeedback=getMinFeedback();
 	instParam.maxFeedback=getMaxFeedback();
@@ -809,15 +880,20 @@ void Autopilot::buzzer_tone_start (unsigned long frequency, int duration) {
 #endif
 }
 
+void Autopilot::setDeltaCenterOfRudder(int deltaCenterOfRudder, bool recalc) {
+	//independent variable that can be changed in Standby mode
+	if(getCurrentMode() == STAND_BY)  RudderFeedback::setDeltaCenterOfRudder(deltaCenterOfRudder, recalc);
+}
+
 bool Autopilot::Change_instParam (s_instParam instParam) {
 	bool rt = false;
 	if (getCurrentMode() == STAND_BY) { //ONLY ALLOWED IN STAND_BY MODE
 		if (instParam.flag.centerTiller) setDeltaCenterOfRudder(instParam.centerTiller);
 		//TODO: change MRA
-		//TODO: change average cruise speed
+		if (instParam.flag.avgSpeed) setAvgSpeed(instParam.avgSpeed);
 		//TODO: change installation side
 		if (instParam.flag.rudDamping) setErrorFeedback(instParam.rudDamping);
-		if (instParam.flag.magVariation) setDm(instParam.magVariation.float_00());
+		if (instParam.flag.magVariation) setMagneticVariation(instParam.magVariation.float_00());
 		if (instParam.flag.headAlign) setHeadingDev(instParam.headAlign.float_00());
 		if (instParam.flag.minFeedback and instParam.flag.maxFeedback) {
 			setMinFeedback(instParam.minFeedback, false);
@@ -855,8 +931,8 @@ void Autopilot::buzzer_setup() {
 
 // Initial buzzer test
 void Autopilot::buzzer_IBIT() {
-	sprintf(DEBUG_buffer,"Buzzer test on PIN %i ...\n", get_PIN_BUZZER());
-	DEBUG_print();
+	//DEBUG_sprintf("Buzzer test on PIN %i ...\n", get_PIN_BUZZER());
+	DEBUG_sprintfree("Buzzer test on PIN %i ...\n", get_PIN_BUZZER());
 
 	// Performs an initial test of the buzzer
 	tone(PIN_BUZZER, 1000, 1000); // Send 1KHz sound signal...
@@ -902,13 +978,13 @@ void Autopilot::buzzer_play() {
 
 void Autopilot::BuzzReset() {
 	_Buzz=true;
-	_DelayBuzzStart = millis();
+	_DelayBuzzStart = getLoopMillis();
 }
 
 bool Autopilot::IsBuzzTime () {
 	// returns false if timer is ON and still RUNNING
 	// returns true if timer is OFF or is ON but arrived to the limit TIME
-	if ( !_Buzz or ( (millis() -_DelayBuzzStart) < DELAY_BUZZBEAT_TIME) ) {
+	if ( !_Buzz or ( (getLoopMillis() -_DelayBuzzStart) < DELAY_BUZZBEAT_TIME) ) {
 		return false;}
 	return true;
 }
@@ -927,7 +1003,7 @@ bool Autopilot::compute_OCA (float delta) {
 	if (abs(delta) < _offCourseAlarm) {
 		if (!_offCourseAlarmIDLE) {
 			_offCourseAlarmIDLE = true; // Alarm in Stand By
-			DEBUG_print(F("OCA Alarm: Stand by\n"));
+			//DEBUG_print(F("OCA Alarm: Stand by\n"));
 		}
 		if (sb_offCourse ==true) {
 			// reset static values
@@ -943,12 +1019,12 @@ bool Autopilot::compute_OCA (float delta) {
 	// change detected and alarm in Stand by-->start counting
 	if (_offCourseAlarmIDLE == true and l_offCourse == true and sb_offCourse == false) {
 		sb_offCourse = true;
-		sd_offCourseStartTime = millis();
+		sd_offCourseStartTime = getLoopMillis();
 	}
 
 	if (_offCourseAlarmIDLE == true and
 		_offCourseAlarmActive == false and
-		(millis()-sd_offCourseStartTime)>_offCourseMaxTime) {
+		(getLoopMillis()-sd_offCourseStartTime)>_offCourseMaxTime) {
 
 		_offCourseAlarmActive = true;
 		setWarning(OUT_OF_COURSE);
@@ -963,8 +1039,8 @@ bool Autopilot::compute_OCA (float delta) {
 
 //EEPROM FUNCTIONAL MODULE
 void Autopilot::EEPROM_setup() {
-	sprintf(DEBUG_buffer,"EEPROM V%i\n", EE_address.ver);
-	DEBUG_print();
+	DEBUG_sprintf("EEPROM V", EE_address.ver);
+
 	if (!EEload_instParam()) {
 		DEBUG_print(F("!W:Could not load Inst.Param"));
 		DEBUG_print(F(". Restoring default.\n"));
@@ -1012,7 +1088,7 @@ char Autopilot::EEload_ReqCal (void)
 
 	EEPROM.get(EE_address.Flag, sensor); // G, A, M or - Require Calibration Flag to force calibration
 	if (sensor =='G' or sensor =='A' or sensor =='M' or sensor =='-') {
-		sprintf(DEBUG_buffer,"!Cal.Flag: %c\n", sensor);
+		DEBUG_sprintf("!Cal.Flag: %c\n", sensor);
 		DEBUG_print(DEBUG_buffer);
 		return char(sensor);
 	}
@@ -1095,7 +1171,6 @@ bool Autopilot::EEload_instParam (void){
 				instParam.flag.maxRudder && instParam.flag.offcourseAlarm && instParam.flag.rudDamping &&
 				instParam.flag.minFeedback && instParam.flag.maxFeedback;
 		if (Loaded) Change_instParam (instParam);
-		DEBUG_print();
 
     }
 	return Loaded;
@@ -1187,11 +1262,11 @@ void Autopilot::printWarning(bool instant) {
 		_lost_W = false;
 	}
 
-	if ( (instant == true) or (millis() - lastWprint) > W_DISPLAY_TIME ) {
+	if ( (instant == true) or (getLoopMillis() - lastWprint) > W_DISPLAY_TIME ) {
 
 		if (_warning!=NO_WARNING and prev_warning!=_warning) {
-			sprintf(DEBUG_buffer,"!WARNING Code: %i\n", _warning);
-			DEBUG_print();
+			DEBUG_sprintf("!WARNING Code", _warning);
+
 			buzzer_Warning();
 			prev_warning = _warning;
 			_pending_W = false;
@@ -1199,12 +1274,12 @@ void Autopilot::printWarning(bool instant) {
 		int fmemory = freeMemory();//*100)/8192; //% of free memory in Arduino MEGA (8KB RAM)
 		if (fmemory <500) {
 
-			sprintf(DEBUG_buffer,"!Low memory: %i/8192 bytes\n", fmemory );
-			DEBUG_print();
+			DEBUG_sprintfree("!Low memory: %i/8192 bytes\n", fmemory );
+
 		}
 
 		// reset counter
-		lastWprint = millis();
+		lastWprint = getLoopMillis();
 	}
 	return;
 }
@@ -1214,7 +1289,7 @@ void Autopilot::print_PIDFrontend() {
 
 	int l=6, d=2;
 	char c3[l+3];
-	if ( (millis() - lastPIDprint) > 1000 ) {
+	if ( (getLoopMillis() - lastPIDprint) > 1000 ) {
 	DEBUG_print(F("PID "));
 	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID_ext::getSetpoint(),l,d,c3)));
 	  DEBUG_print();
@@ -1240,7 +1315,7 @@ void Autopilot::print_PIDFrontend() {
 	  DEBUG_print(F("Direct\n"));
 
 		// reset counter
-		lastPIDprint = millis();
+		lastPIDprint = getLoopMillis();
 	}
 
 }

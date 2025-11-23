@@ -16,7 +16,21 @@
 // All configurations are managed in Fenix_config.h
 #include "Fenix_config.h"
 
-float inline reduce360 (float value) {if (value<0) value+= 360;return fmod (value, 360.0);}
+inline float reduce360 (float value) {
+	value = fmod (value, 360.0f);
+	if (value<0) value+= 360.0f;
+	return value;
+}
+
+inline float reduce180(float value) {
+    // Normalizar primero al rango [0, 360)
+	value = fmod (value, 360.0f);
+	if (value<0) value+= 360.0f;
+    // Convertir a rango [-180, 180)
+    if (value >= 180.0f) value -= 360.0f;
+
+    return value;
+}
 
 #if defined (BNO055_INTERNAL_FUSION) or defined(BNO055_EXTERNAL_FUSION)
 	#define IMUDEVICE_ID 1

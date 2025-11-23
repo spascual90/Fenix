@@ -52,6 +52,13 @@
 // NMEA I/F: Read relative wind and speed information
 // Improvement of PID: Integrative and Derivative, adaptation to boat speed
 // Remove spureous warning 5 (IMU requires calibration)
+//v.4.0.B1
+// First compatibility with new version of Fenix App.5.0
+// Enhances configuration flexibility for installation parameters.
+// Major refactor to Autopilot and related modules for improved handling of external heading, wind, and speed data.
+// Adds support for HDG: true heading, magnetic variation, and heading deviation, and updates data structures and method signatures to reflect these changes.
+// Updates Bluetooth interface, and improves millis-based timing for external data validity checks.
+
 
 //DEBUG
 // Defined for Release version
@@ -60,10 +67,11 @@
 // Commented for Release version
 //#define PRINT_FREE_MEM
 //#define SHIP_SIM // Uncomment to simulate boat to tune PID
-//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
+#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
-//#define TESTER_IF
+#define TESTER_IF
+//#define FREQ_MONITOR
 
 //Other libraries necessary for printing to serial monitor
 #include "GPSport.h" // Some libraries requires to uncomment this line to print debug messages to serial monitor
@@ -116,7 +124,7 @@
 
 #define DELAY_BUZZBEAT_TIME 50 // Buzzer beat time in msec.
 #define MAX_APB_TIME 10000 // Maximum time of APB data validity
-#define MAX_HDM_TIME 10000 // Maximum time of HDM data validity
+#define MAX_HDTG_TIME 10000 // Maximum time of HDT/HDG data validity
 #define MAX_SOG_TIME 10000 // Maximum time of SOG data validity
 #define MAX_VWR_TIME 10000 // Maximum time of VWR data validity
 #define LONG_LOOP_TIME 100 // Loops to update current course, target bearing and calibration status

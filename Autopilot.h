@@ -40,7 +40,8 @@ enum e_warning {
 	IMU_LOW,
 	WP_INVALID,
 	NO_WIND_DATA,
-	IMU_NOTFOUND
+	IMU_NOTFOUND,
+	LOST_EXT_IMU
 };
 
 // Information codes
@@ -92,16 +93,16 @@ enum e_info {
 		// Is Valid indicates if data is valid or not
 		bool isValid = false;
 
-		//struct {bool mode; bool rudder; bool HDM; bool CTS; bool deadband; bool trim;} flag;
-		struct {bool mode; bool rudder; bool HDM; bool CTS; bool deadband;} flag;
+		//struct {bool mode; bool rudder; bool HDT; bool CTS; bool deadband; bool trim;} flag;
+		struct {bool mode; bool rudder; bool HDT; bool CTS; bool deadband;} flag;
 
 		//	Current Working Mode
 		e_APmode mode;
 		//	Current Rudder Position
 		int16_t rudder;
-		//	Heading Magnetic (HDM)
-		whole_frac HDM;
-		//	Course To Steer (CTS)
+		//	Heading True (HDT)
+		whole_frac HDT;
+		//	Course To Steer (CTS) TRUE
 		whole_frac CTS;
 		//	Deadband value
 		whole_frac deadband;
@@ -136,7 +137,7 @@ enum e_info {
 
 		//Centered Tiller Position:
 		//Indicates the linear actuator position when the tiller is aligned with the hull.
-		//This is the 0� reference for Trimming function.
+		//This is the 0 reference for Trimming function.
 		//	Centered Tiller Position
 		int16_t centerTiller;
 
@@ -171,15 +172,15 @@ enum e_info {
 
 		//	Magnetic Variation
 		//Level of magnetic variation present at the boat's current position. Used by the autopilot when information is not received from external sources.
-		whole_frac magVariation; //(-45�;+45�)
+		whole_frac magVariation; //(-45;+45)
 
 		//	Heading alignment
 		//Installation of magnetic compass may not be aligned with boat's steering compass, or a known transit bearing.
-		whole_frac headAlign; //	(-180�, 180�)
+		whole_frac headAlign; //	(-180, 180)
 
 		//	Off course alarm angle
 		//Angle of Off course alarm. This alarm warns if the AP is unable to maintain its course when mode <> STANDY.
-		uint8_t offcourseAlarm; //	(10�;30�).
+		uint8_t offcourseAlarm; //	(10;30).
 
 		//minimum/maximum values read on feedback (without error protection)
 		uint16_t minFeedback;
@@ -215,7 +216,7 @@ enum e_info {
 		bool isValid=false;
 		struct {bool XTE; bool dirSteer; bool alarmCircle; bool alarmPerp; bool BOD; bool destID; bool BTW; bool CTS;} flag;
 
-		// Cross Track Error (XTE) Magnitude - Minimum distance to route. MAGNETIC
+		// Cross Track Error (XTE) Magnitude - Minimum distance to route
 		whole_frac XTE;
 		//	Direction to steer
 		char dirSteer;
@@ -223,13 +224,13 @@ enum e_info {
 		char alarmCircle;
 		//	Perpendicular Alarm
 		char alarmPerp;
-		// Bearing Origin to Next Waypoint (BOD). MAGNETIC
+		// Bearing Origin to Next Waypoint (BOD). TRUE
 		whole_frac BOD;
 		// Destination Waypoint ID
 		char destID[5] ={'-','-','-','-','\0'};
-		// Bearing, present position To Next Waypoint (BTW/BRG). MAGNETIC
+		// Bearing, present position To Next Waypoint (BTW/BRG). TRUE
 		whole_frac BTW;
-		// Course To Steer to Next Waypoint (CTS). MAGNETIC
+		// Course To Steer to Next Waypoint (CTS). TRUE
 		whole_frac CTS;
 	} ;
 
@@ -239,32 +240,50 @@ enum e_info {
 	} ;
 
 
-	struct s_HDM {
+//	struct s_HDT {
+//			// Is Valid indicates if data is valid or not
+//			bool isValid=false;
+//			struct {bool HDT;} flag;
+//
+//			whole_frac HDT;
+//	} ;
+
+	struct s_HDG {
 			// Is Valid indicates if data is valid or not
 			bool isValid=false;
-			struct {bool HDM;} flag;
+			struct {bool heading;bool headingDev;bool magneticVariation;} flag;
 
-			whole_frac HDM;
+			whole_frac heading; // C External Compass heading // (0,360)
+			whole_frac headingDev; // (-180,+180)
+			whole_frac magneticVariation;// (-180,+180)
+
 	} ;
+	//enum e_lastHD {HDT,HDG, None};
 
 	struct s_extHeading {
-		s_HDM HDM;
-		long t0;
+		//s_HDT HDT;
+		s_HDG HDG; // compass heading+headingAlign+magVar
+		//e_lastHD lastMessage = None;
+		long t0 = 0;
+		bool processed = false;
 	} ;
 
 	struct s_VWR {
 		// Is Valid indicates if data is valid or not
 		bool isValid=false;
-		struct {bool windDirDeg; bool windDirLR;} flag;
+		struct {bool windDirDeg; bool windDirLR; bool windSpeed;} flag;
 
 		//	Wind direction magnitude in degrees
 		whole_frac windDirDeg;
 
 		//	Wind direction Left/Right of bow
 		char windDirLR;
+
+		// Relative wind speed
+		whole_frac windSpeed;
 	} ;
 
-	struct s_windDir {
+	struct s_windInfo {
 		s_VWR VWR;
 		long t0;
 	} ;
@@ -360,18 +379,21 @@ enum e_info {
 		long PIDgain=125;
 	} EE_address;
 
-//HARDCODED gain and installation parameters
-	static s_gain const HC_GAIN ={{8,0}, {0,1}, {1,0}};
-	static s_PIDgain_flag const HC_FLAG ={true, true, true} ;
+	//HARDCODED gain and installation parameters
+	// {3,50} = 3.50 Cuidado: {3,5} = 3.05
+	// {0,05} = 0.05
+	constexpr s_gain const HC_GAIN ={{3,50}, {0,10}, {3,0}};
+	//static s_gain const HC_GAIN ={{8,0}, {0,1}, {1,0}};
+	constexpr s_PIDgain_flag const HC_FLAG ={true, true, true} ;
 
-	static s_PIDgain const HC_PIDGAIN ={
+	constexpr s_PIDgain const HC_PIDGAIN ={
 			true, //isValid
 			HC_GAIN,
 			HC_FLAG,true, true, // flag
 			100, // sampleTime
 			AUTODB} ; //DBConfig type
 
-	static s_instParam const HC_INSTPARAM ={
+	constexpr s_instParam const HC_INSTPARAM ={
 			true, //isValid
 			{true, true, true, true, true, true, true, true, true, true}, // flag
 			#ifndef VIRTUAL_ACTUATOR
@@ -409,21 +431,21 @@ public:
 	e_working_status Compute();
 	bool setCurrentMode(e_APmode = STAND_BY, char sensor = '-');
 
-	e_APmode getCurrentMode() const {
+	inline e_APmode getCurrentMode() const {
 		return _currentMode;
 	}
 	String getCurrentModeStr() const {
 		return _status[_currentMode];
 	}
-	float getTargetBearing() const {
+	inline float getTargetBearing() const {
 		return _targetBearing;
 	}
 
 	void setTargetBearing(float targetBearing);
 
 
-	bool isExtHeading() const {
-		return _extHeading.HDM.isValid;
+	inline bool isExtHeading() const {
+		return _extHeading.HDG.isValid;
 	}
 
 	float getNextCourse(void);
@@ -432,6 +454,7 @@ public:
 	void Request_PIDgain(s_PIDgain & PIDgain);
 	void Request_instParam(s_instParam & instParam);
 	bool Change_instParam (s_instParam instParam);
+	void setDeltaCenterOfRudder(int deltaCenterOfRudder = 0, bool recalc = true);
 	void Start_Stop(e_start_stop type);
 	void Start_Stop_wind(void);
 	void Enter_Exit_FBK_Calib(void);
@@ -442,13 +465,14 @@ public:
 	void APBreceived(s_APB APB);
 
 	//EXTERNAL COMPASS MODE
-	void HDMreceived(s_HDM HDM);
-
+	//void HDTreceived(s_HDT HDT);
+	void HDGTreceived(s_HDG HDG);
 	void SOGreceived(s_SOG SOG);
 
 	//WIND MODE
 	void VWRreceived(s_VWR VWR);
 	int getWindDir(void);
+	float getWindSpeed(void);
 
 	//OVERLOADED FUNCTIONS
 	int changeRudder(int delta_rudder);
@@ -456,6 +480,7 @@ public:
                     double);         	  //   constructor, this function gives the user the option
                                           //   of changing tunings during runtime for Adaptive control
     bool setHeadingDev(float headingDev = 0);
+    bool setMagneticVariation(float magVariation = 0);
 	void setDBConf (type_DBConfig status);
 	type_DBConfig nextDBConf (void);
 
@@ -472,6 +497,7 @@ public:
 	bool EEsave_PIDgain(bool HC=false);
 	bool EEload_PIDgain ();
 	bool isCalMode(void);
+	bool isOpsMode(void);
 	bool isExternalCalibration(void);
 
 	bool EEload_CHECK (long address);
@@ -485,16 +511,6 @@ public:
 	void buzzer_Information();
 	void buzzer_Beep();
 
-//	const s_APB& getAPB() const {
-//		return _APB;
-//	}
-//
-//	void setAPB(const s_APB& apb);
-//	void setAPB(bool isValid);
-//	void setNextAPB(const s_APB& apb);
-//	s_APB getAPB(void) {
-//		return _APB;
-//	}
 
 	// FUNCTIONAL MODULE: IMU
 	void Start_Cal(char sensor = '-');
@@ -522,6 +538,20 @@ public:
 		return _offCourseAlarmActive;
 	}
 
+	// FUNCTIONAL MODULE: BOAT SPEED
+	uint8_t getAvgSpeed() const {
+		return _avgSpeed;
+	}
+	void setAvgSpeed (uint8_t avgSpeed) {
+		//DEBUG_sprintf("DEBUG:setAvgSpeed:%i\n", avgSpeed);
+		if (avgSpeed == 0) avgSpeed =1;
+		if (avgSpeed > 10) avgSpeed =10;
+		_avgSpeed = avgSpeed;
+	}
+
+	//Boat speed from RMC
+	float get_boatSpeed (void);
+
 // FUNCTIONAL MODULE: ERROR HANDLING
 
 	e_error getError() const {
@@ -530,8 +560,7 @@ public:
 
 	void setError(e_error error = NO_ERROR) {
 		_error = error;
-		sprintf(DEBUG_buffer,"!ERROR Code: %i\n", _error);
-		DEBUG_print();
+		DEBUG_sprintf("!ERROR Code:", _error);
 		buzzer_Error();
 	}
 
@@ -561,16 +590,35 @@ public:
 
 	void setInformation(e_info information = NO_MESSAGE) {
 		_information = information;
-		sprintf(DEBUG_buffer,"!INFORMATION Code: %i\n", _information);
-		DEBUG_print();
+		DEBUG_sprintf("!INFORMATION Code", _information);
+
 		buzzer_Information();
 	}
 
 	void print_PIDFrontend (void);
+
+	inline long getLoopMillis() const {
+		return _loop_millis;
+	}
+
+	void setLoopMillis(void) {
+		static int8_t counter =0;
+		_loop_millis = millis();
+		#ifdef FREQ_MONITOR
+			static long ini_millis = millis();
+			if (counter++ == 100 ) {
+				float temp = 1000.0f/(_loop_millis-ini_millis)*100.0f ;//1000 ms/s. 100 times per cycle
+				DEBUG_sprintf("!Loop.Freq", int(temp));
+				ini_millis = _loop_millis;
+				counter=0;
+			}
+		#endif
+	}
+
 private:
 	e_APmode _currentMode= STAND_BY; // current working mode
-	float _targetBearing= 0; // target vessel bearing
-	float _nextCourse= 0; // Next course in STDBY/ AUTO Mode
+	float _targetBearing= 0; // target vessel bearing TRUE ANGLE
+	float _nextCourse= 0; // Next course in STDBY/ AUTO Mode  TRUE ANGLE
 	String _status[5] = { "STAND BY", "FOLLOW BEARING", "CALIBRATING" };
 	char _sensor = '-';
 	char* deblank(char* input)
@@ -611,20 +659,19 @@ private:
 
 	//External compass mode
 	s_extHeading _extHeading;
-	void set_extHeading(s_HDM HDM);
-	bool isValid_HDM (void);
-
+	void evaluate_changeIMUstatus (void);
+	void set_extHeading(s_HDG HDG);
 
 	//Boat speed from RMC
 	s_boatSpeed _boatSpeed;
 	void set_boatSpeed(s_SOG SOG);
 	bool isValid_boatSpeed (void);
-	float get_boatSpeed (void);
+
 
 	//Wind mode
-	s_windDir _windDir;
+	s_windInfo _windInfo;
 	int _targetWindDir; // Target wind direction relative to heading
-	void set_windDir(s_VWR VWR);
+	void set_windInfo(s_VWR VWR);
 	bool isValid_VWR (void);
 
 
@@ -676,14 +723,8 @@ private:
 	// FUNCTIONAL MODULE: BOAT SPEED
 	uint8_t _avgSpeed;
 
-	uint8_t getAvgSpeed() const {
-		return _avgSpeed;
-	}
-	void setAvgSpeed (uint8_t avgSpeed) {
-		if (avgSpeed == 0) avgSpeed =1;
-		if (avgSpeed > 10) avgSpeed =10;
-		_avgSpeed = avgSpeed;
-	}
+	// FUNCTIONAL MODE: MILLIS
+	long _loop_millis;
 
 	// FUNCTIONAL MODULE: ERROR, WARNING AND INFORMATION DISPLAY
 	e_info _information = NO_MESSAGE;

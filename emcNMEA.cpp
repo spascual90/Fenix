@@ -86,8 +86,6 @@ emcNMEA::decode_t emcNMEA::decode( char c )
 bool emcNMEA::parseField(char chr)
 {
   if (nmeaMessage >= (nmea_msg_t) EXT_FIRST_MSG) {
-	//sprintf(DEBUG_buffer, "parseField:%i\n", nmeaMessage);
-	//DEBUG_print();
     switch (nmeaMessage) {
       //Initial entry point for all PEMC messages.
       //Parse messages without parameters (eg.00, 09, 10)
@@ -123,6 +121,7 @@ bool emcNMEA::parseField(char chr)
   } else
 
     // Delegate
+	//DEBUG_sprintf("&", int(nmeaMessage), int(chr));
     return NMEAGPS::parseField(chr);
 
 
@@ -147,14 +146,14 @@ bool emcNMEA::parseAPB( char chr )
 	  case 6: parseAlarmCircle( chr ); break;// Alarm: A - Activated, other - no alarm.
 	  case 7: parseAlarmPerp( chr ); break;// Alarm: A - Activated, other - no alarm
 	  case 8: parse360(INorder.APB.BOD, chr); break;  // Angle: Magnitude, Reference (M/T)
-	  case 9: parseAngleRef(INorder.APB.BOD, chr); break;
+	  case 9: parseAngleRef(INorder.APB.BOD, chr); break; // Convert to T if received M
 	  case 10: parseWPID( INorder.APB.destID, chr ); break;// WP ID: Up to 4 characters, rest ignored
-	  case 11: parse360( INorder.APB.BTW, chr); break;
+	  case 11: parse360( INorder.APB.BTW, chr); break; // Convert to T if received M
 	  case 12: parseAngleRef(INorder.APB.BTW, chr); break;
 	  //APB received by AvNav=12 decimals and OpenCPN=2 decimals
 	  //numbesr below 13 decimals will be valid
 	  case 13:parse360( INorder.APB.CTS, chr);  break; // Angle: Magnitude, Reference (M/T)
-	  case 14: parseAngleRef(INorder.APB.CTS, chr);
+	  case 14: parseAngleRef(INorder.APB.CTS, chr); // Convert to T if received M
 		  INorder.APB.isValid=YES;
 	  	  INorder.set_order(REQ_TRACK);
 	  	  break;
@@ -162,16 +161,38 @@ bool emcNMEA::parseAPB( char chr )
 	return ok;
 }
 
-// TODO: HDM obsolete. Parse HDG instead
-// $--HDM,x.x,M*hh<CR><LF>
-// Example: $IIHDM,245.0,M*21
-bool emcNMEA::parseHDM( char chr )
+// $--HDT,x.x,T*hh<CR><LF>
+// Example: $IIHDT,245.0,M*
+bool emcNMEA::parseHDT( char chr )
 {
 	bool ok = true;
 	switch (fieldIndex) {
-	  case 1: parseFloat( INorder.HDM.HDM, chr, 2, INorder.HDM.flag.HDM); break; //Heading magnetic value
+	  case 1:
+		  parseFloat( INorder.HDG.heading, chr, 2, INorder.HDG.flag.heading); //Heading assumes True value
+		  INorder.HDG.flag.headingDev=false; //Magnetic Deviation, degrees: unknown
+		  INorder.HDG.flag.magneticVariation=false; //Magnetic Variation degrees: unknown
+		  break;
 	  case 2:
-		  INorder.HDM.isValid=YES;
+		  INorder.HDG.isValid=YES;
+	  	  INorder.set_order(EXT_HEADING);
+		  break;
+	          }
+	return ok;
+}
+
+// $--HDG,x.x,x.x,a,x.x,a*hh<CR><LF>
+// Example: $IIHDG,90.0,10.0,E,2.5,E*46
+
+bool emcNMEA::parseHDG( char chr )
+{
+	bool ok = true;
+	switch (fieldIndex) {
+	  case 1: parseFloat( INorder.HDG.heading, chr, 2, INorder.HDG.flag.heading); break; //Magnetic Sensor heading in degrees
+	  case 2: parseFloat( INorder.HDG.headingDev, chr, 2, INorder.HDG.flag.headingDev); break; //Magnetic Deviation, degrees
+	  case 3: parseEW(INorder.HDG.headingDev, chr); break; //Magnetic Deviation direction, E = Easterly, W = Westerly
+	  case 4: parseFloat( INorder.HDG.magneticVariation, chr, 2, INorder.HDG.flag.magneticVariation); break; //Magnetic Variation degrees
+	  case 5: parseEW(INorder.HDG.magneticVariation, chr);//Magnetic Variation direction, E = Easterly, W = Westerly
+		  INorder.HDG.isValid=YES;
 	  	  INorder.set_order(EXT_HEADING);
 		  break;
 	          }
@@ -233,18 +254,35 @@ return ok;
 bool emcNMEA::parseVWR( char chr )
 {
 	bool ok = true;
+	static whole_frac windSpeed;
+	static bool flag = false;
 	switch (fieldIndex) {
 	  case 1: parseFloat( INorder.VWR.windDirDeg, chr, 2, INorder.VWR.flag.windDirDeg); break; //Wind direction magnitude in degrees
 	  case 2: parseWindDir(chr); break;  // Wind direction Left/Right of bow: R/L
-	  case 3: return ok; //Speed
-	  case 4: return ok; //N = Knots
-	  case 5: return ok; //Speed
-	  case 6: return ok; //M = Meters Per Second
-	  case 7: return ok; //Speed
-	  case 8: //K = Kilometers Per Hour
-		  // TODO: If last field is empty Message is not recognized
+	  case 3: parseFloat( windSpeed, chr, 2, flag); break; //Speed, knots
+	  case 4: if (chr=='N' and flag) {
+  	  	  INorder.VWR.windSpeed = windSpeed; // Speed in Knots. No need conversion
+  	  	  INorder.VWR.flag.windSpeed=true;
 		  INorder.VWR.isValid=YES;
 	  	  INorder.set_order(RELATIVE_WIND);
+	  	  }//N = Knots
+	  	  	  break;
+	  case 5: parseFloat( windSpeed, chr, 2, flag); break; //Speed in m/s
+	  case 6: if (chr=='M' and flag) {
+		  	  	  INorder.VWR.windSpeed.Towf_00(windSpeed.float_00()*1.94384); //M = Meters Per Second , converted to knots
+		  	  	  INorder.VWR.flag.windSpeed=true;
+				  INorder.VWR.isValid=YES;
+			  	  INorder.set_order(RELATIVE_WIND);
+	  	  	  }
+	  	  	  break;
+	  case 7: parseFloat( windSpeed, chr, 2, flag); break; //Speed in km/h
+	  case 8:if (chr=='K') {
+		  	  	  INorder.VWR.windSpeed.Towf_00(windSpeed.float_00()*0.539957); //M = Meters Per Second , converted to knots
+		  	  	  INorder.VWR.flag.windSpeed=true;
+				  INorder.VWR.isValid=YES;
+			  	  INorder.set_order(RELATIVE_WIND);
+	  	  	  } //K = Kilometers Per Hour
+		  // TODO: If last field is empty Message is not recognized
 		  break;
 	          }
 	return ok;
@@ -462,7 +500,7 @@ bool emcNMEA::parsePEMC_07( char chr )
     switch (fieldIndex) {
     	case 2: parseAPmode( chr ); break;
     	case 3: parseInt( INorder.APinfo.rudder , chr ); break;
-    	case 4:	parse360( INorder.APinfo.HDM, chr); break;
+    	case 4:	parse360( INorder.APinfo.HDT, chr); break;
     	case 5: parse360( INorder.APinfo.CTS, chr); break;
     	case 6: parseFloat( INorder.APinfo.deadband , chr , 2, INorder.APinfo.flag.deadband ); break;
         case 7:
@@ -758,8 +796,8 @@ bool emcNMEA::parseAngleRef( whole_frac & angle, char chr)
     	//Compatibility with AvNav also '' instead of 'T'
         if (chr == 'M'||chr == 'T'||chr == ',') {
 
-    		if (chr == 'T'||chr == ',') { // If T convert to M as angles are always stored in Magnetic.
-    			angle.Towf_00(getMagnetic(angle.float_00()));
+    		if (chr == 'M') { // If M convert to T as target angles are stored in True.
+    			angle.Towf_00(toTrue(angle.float_00()));
 
     		}
         }
@@ -806,6 +844,32 @@ bool emcNMEA::parseSide( char chr,  bool & field_informed )
   return true;
 
 } // parseSide
+
+bool emcNMEA::parseEW( whole_frac &variable, char chr)
+{
+
+    if (chrCount == 0) {
+
+        // First char can only be 'E' or 'W'
+    	switch (chr) {
+
+    	case 'E': break;
+    	case 'W':
+        	variable.frac  = -variable.frac;
+        	variable.whole = -variable.whole;
+    	break;
+
+    	default:
+          sentenceInvalid();
+        }
+
+        // Second char can only be ','
+      } else if ((chrCount > 1) || (chr != ',')) {
+        sentenceInvalid();
+    }
+
+  return true;
+} // parseEW
 
 bool emcNMEA::parseDeadbandType( char chr )
 {
@@ -1221,7 +1285,7 @@ void emcNMEA::printPEMC_07(Stream * outStream) {
 		bufferStream->print(',');
 		bufferStream->print(OUTorder.APinfo.rudder);
 		bufferStream->print(',');
-		bufferStream->print(OUTorder.APinfo.HDM.float_00());
+		bufferStream->print(OUTorder.APinfo.HDT.float_00());
 		bufferStream->print(',');
 		bufferStream->print(OUTorder.APinfo.CTS.float_00());
 		bufferStream->print(',');
@@ -1324,28 +1388,43 @@ void emcNMEA::printAPB(Stream * outStream) {
     }
 }
 
-//TODO. Use printDm() function to complete HDG message
+//$--HDG,x.x,x.x,a,x.x,a*hh<CR><LF>
+//Field Number:
+//Magnetic Sensor heading in degrees
+//Magnetic Deviation, degrees
+//Magnetic Deviation direction, E = Easterly, W = Westerly
+//Magnetic Variation degrees
+//Magnetic Variation direction, E = Easterly, W = Westerly
+//Checksum
+
 void emcNMEA::printHDG(Stream * outStream) {
 	bufferStream->print ("$APHDG,");
-	bufferStream->print (getHeading(),1);// SPM TODO: Hay que mandar True NO Magnetic
-	bufferStream->print (",");
-	printDm();
+	bufferStream->print (getHeadingC() ,1);
+	bufferStream->print(",");
+	bufferStream->print(abs(getHeadingDev()),1);
+	bufferStream->print(",");
+	bufferStream->print((getHeadingDev())>0?("E"):("W"));
+	bufferStream->print(",");
+	bufferStream->print(abs(getMagneticVariation()),1);
+	bufferStream->print(",");
+	bufferStream->print((getMagneticVariation())>0?("E"):("W"));
+
 	send( outStream, string2char(output) );
 	output.remove(0);
 }
 
 // obsolete
-void emcNMEA::printHDM(Stream * outStream) {
-	bufferStream->print ("$APHDM,");
-	bufferStream->print (getHeading(),1);
-	bufferStream->print (",M");
-	send( outStream, string2char(output) );
-	output.remove(0);
-}
-// obsolete
+//void emcNMEA::printHDM(Stream * outStream) {
+//	bufferStream->print ("$APHDM,");
+//	bufferStream->print (getHeadingM(),1);
+//	bufferStream->print (",T");
+//	send( outStream, string2char(output) );
+//	output.remove(0);
+//}
+
 void emcNMEA::printHDT(Stream * outStream) {
 	bufferStream->print ("$APHDT,");
-	bufferStream->print (getTrue(getHeading()),1);
+	bufferStream->print (getHeadingT(),1);
 	bufferStream->print (",T");
 	send( outStream, string2char(output) );
 	output.remove(0);
@@ -1366,20 +1445,6 @@ void emcNMEA::printMemory(Stream * outStream) {
 	bufferStream->print (" KB");
 	send( outStream, string2char(output) );
 	output.remove(0);
-}
-
-void emcNMEA::printDm() {
-		//	Compass Variation and Deviation
-		//	Note that magnetic compass are also subject to their own errors due to magnetic interferences of metals around; this is called DEVIATION (ES: Desv�o).
-		//	For an state of the art 6DOF IMU, this error is detected and corrected on the fly. For instance, only acelerometer is used when magnetometer is not reliable.
-		//	The assumption of this specification is IMU Deviation is 0.
-
-		float dm=getDm();
-		bufferStream->print(",");
-		bufferStream->print(",");
-		bufferStream->print(abs(dm),1);
-		bufferStream->print(",");
-		bufferStream->print((dm)>0?("E"):("W"));
 }
 
 char* emcNMEA::string2char(String command){

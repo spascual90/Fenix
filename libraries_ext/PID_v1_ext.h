@@ -9,12 +9,20 @@
 //reset I term for changes higher than I_MAX_DELTA
 #define I_MAX_DELTA 40.0
 // low-pass filter for derivative contribution. ALFA 0: No filter. ALFA 1: All filtered
+
+constexpr double ALFA_01 = 0.01;
+constexpr double ALFA_99 = 0.99;
+constexpr double ALFA_001 = 0.001;
+constexpr double ALFA_999 = 0.999;
+
 constexpr double ALFA_20 = 0.2;
 constexpr double ALFA_80 = 0.8;
 
 constexpr double ALFA_10 = 0.1;
 constexpr double ALFA_90 = 0.9;
 
+
+//Maximo angulo de giro considerado por PID. (ie. si se comanda angulo mayor se considera 100)
 constexpr double MAX_PID_TURN = 100;
 
 #define I_ACTUATOR_BUSY_THRESHOLD 10

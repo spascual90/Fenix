@@ -30,7 +30,7 @@ ActuatorManager::~ActuatorManager() {
 }
 
 
-void ActuatorManager::setup(double aTuneNoise, double aTuneStep, double aTuneLookBack){
+void ActuatorManager::setup(void){
 	int feedback = updateCurrentRudder();
 	bool out_min = feedback < getLimitMinFeedback();
 	bool out_max = feedback > getLimitMaxFeedback();
@@ -45,7 +45,7 @@ void ActuatorManager::setup(double aTuneNoise, double aTuneStep, double aTuneLoo
 		DEBUG_print(F("W: L.actuator over limit\n"));
 	}
 
-	setupAutoTune(aTuneNoise, aTuneStep, aTuneLookBack);
+	//setupAutoTune(aTuneNoise, aTuneStep, aTuneLookBack);
 
 }
 
@@ -62,8 +62,6 @@ void ActuatorManager::SetMode(int Mode)
 void ActuatorManager::startAutoMode(){
 	//turn the PID on
 	SetMode(AUTOMATIC);
-	//dbt.StartSampling();
-
 
 }
 
@@ -104,10 +102,6 @@ int ActuatorManager::Compute(float PIDerrorPrima, float speed) {
 		//setSetpoint(0); If always 0 it is not necessary to update value...
 
 		PID_ext::Compute(delta_rudder, speed);
-
-		//dbt.calculateDBTrim(PIDerrorPrima, getCurrentRudder());
-
-		//delta_rudder = controlActuator (getOutput(), dbt.getDeadband(PIDerrorPrima), int(dbt.getTrim()));
 		delta_rudder = controlActuator (getOutput());
 
 		return 1;
@@ -152,6 +146,9 @@ int ActuatorManager::controlActuator(int target_rudder) {
 	int delta = 0;
 	int feedback = updateCurrentRudder();
 	static int lastStopRudder = getCurrentRudder();
+	static bool wait_after_change = false;
+	static e_dir lastDir= EXTEND;
+	static unsigned long change_time = 0;
 	bool out_min = feedback < getLimitMinFeedback();
 	bool out_max = feedback > getLimitMaxFeedback();
 
@@ -161,13 +158,29 @@ int ActuatorManager::controlActuator(int target_rudder) {
 	static bool point=false;
 	#endif
 
-	//if (deadband) target_rudder = trim;
-
 	delta = getSpeed()==0?target_rudder - lastStopRudder:target_rudder - getCurrentRudder();
+
+	unsigned long ahora = millis();
+	if (getDir()!=lastDir and wait_after_change==false) {
+		wait_after_change=true;
+		change_time = ahora;
+		#ifdef DEBUG
+		DEBUG_print(F("S"));
+		#endif
+	}
+	lastDir = getDir();
+
+	if (((ahora-change_time) > ACTUATOR_STOP_TIME) and (wait_after_change==true)) {
+		wait_after_change=false;
+		#ifdef DEBUG
+		DEBUG_print(F("G"));
+		#endif
+	}
 
 	if ((abs(delta)<toRudder(getErrorFeedback ())) or
 		(out_min and getDir()==RETRACT) or
-		(out_max and getDir()==EXTEND)) { //WHATEVER SPEED, IF DELTA IS SMALL OR ACTUATOR ARRIVES TO LIMIT STOP ACTUATOR
+		(out_max and getDir()==EXTEND) or
+		(wait_after_change==true)) { //WHATEVER SPEED, IF DELTA IS SMALL OR ACTUATOR ARRIVES TO LIMIT STOP ACTUATOR
 
 			if (getSpeed()!=0) {
 				setSpeed (0);
@@ -190,7 +203,7 @@ int ActuatorManager::controlActuator(int target_rudder) {
 	e_dir dir = delta==abs(delta)?EXTEND:RETRACT;
 
 	#ifdef DEBUG
-	DEBUG_print((dir==EXTEND?">":"<")));
+	DEBUG_print((dir==EXTEND?">":"<"));
 	delay(10);
 	point=false;
 	#endif

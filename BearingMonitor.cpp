@@ -23,7 +23,8 @@
 	#include "DevICM20948.h"
 #endif
 
-BearingMonitor::BearingMonitor(float headingDev = 0) {
+BearingMonitor::BearingMonitor(float magneticVariation = 0, float headingDev = 0) {
+	setMagneticVariation(magneticVariation);
 	setHeadingDev( headingDev);
 }
 
@@ -77,7 +78,8 @@ e_IMU_status BearingMonitor::IMU_setup(long EE_address){
 }
 
 void BearingMonitor::IBIT(){
-
+	DEBUG_sprintf("Magnet.Var", getMagneticVariation());
+	DEBUG_sprintf("Heading Dev.", getHeadingDev());
 	_imuDevice->IBIT();
 }
 
@@ -237,7 +239,11 @@ void BearingMonitor::displayCalStatus(void)
 	DEBUG_flush();
 }
 
-e_IMU_status BearingMonitor::updateHeading(bool changeSourceEnabled, bool validExternal, float HDMExternal, unsigned long HDM_RXtime){
+// True = Magnetic + Magnetic Variation (ie. earth zone)
+// Magnetic = Compass + Magnetic Deviation (eg. heading deviation, soft/hard magnet)
+//headingExternal: Compass heading
+//headingT: True heading
+e_IMU_status BearingMonitor::updateHeading(unsigned long NMEA_RXtime){
 #ifdef SHIP_SIM
 	_heading = _SIMheading;
 	_heading_isValid = true;
@@ -245,35 +251,21 @@ e_IMU_status BearingMonitor::updateHeading(bool changeSourceEnabled, bool validE
 	return SIMULATED;
 #else
 	static bool sb_ext_reset = true;
-	//decide if changing IMU status and source
-	if (changeSourceEnabled and _IMU_status!=CAL_MODE) {
-		if (validExternal) {
-			_IMU_status = EXTERNAL_IMU;
-		} else {
-			if (_internalIMU_status == INT_DETECTED) {
-				_IMU_status = OPERATIONAL;
-			} else {
-				_IMU_status = NOT_DETECTED;
-			}
-		}
-	}
-
-
 	//update heading based on IMU status
 	switch (_IMU_status) {
 	case OPERATIONAL:
 	case CAL_MODE:
-		updateHeading();
+		updateHeadingINT();
 		sb_ext_reset = true;
-
 		break;
+
 	case EXTERNAL_IMU:
-		if (HDM_RXtime!=0) {
-			updateHeading(HDMExternal, HDM_RXtime, sb_ext_reset);
+		if (NMEA_RXtime!=0) {
+			updateHeadingEXT(NMEA_RXtime, sb_ext_reset);
 			sb_ext_reset= false;
 		}
-
 		break;
+
 	case NOT_DETECTED:
 		break;
 	}
@@ -283,10 +275,9 @@ e_IMU_status BearingMonitor::updateHeading(bool changeSourceEnabled, bool validE
 #endif
 }
 
-
-void BearingMonitor::updateHeading(void){
-	if (_IMU_status == EXTERNAL_IMU) return;
-
+// function for internal IMU only
+// if (_IMU_status == EXTERNAL_IMU) use updateHeading(float HDT, unsigned long HDT_RXtime, bool firstTime)
+void BearingMonitor::updateHeadingINT(void){
 	_heading_isFrozen=false;
 	_heading_isValid=true;
 	float yaw = _heading;
@@ -299,55 +290,55 @@ void BearingMonitor::updateHeading(void){
 	yaw = reduce360 (yaw*HEADING_ALFA + (yaw+delta_yaw_raw)* (1-HEADING_ALFA));
 
 	_heading = yaw;
+	updateHeadingT();
 }
 
-e_IMU_status BearingMonitor::updateHeading(float HDM, unsigned long HDM_RXtime, bool firstTime){
-	static float prev_HDM=0;
+// Function for external IMU only. For internal IMU use updateHeading(void) instead
+e_IMU_status BearingMonitor::updateHeadingEXT(unsigned long HDT_RXtime, bool firstTime){
+	static float prev_ext_heading=0;
 	static float pendiente =0;
 	static unsigned long prev_tiempo = 0;
-	static unsigned long prev_HDM_RXtime = 0;
+	static unsigned long prev_HDT_RXtime = 0;
 
 	_heading_isValid = true;
 	_heading_isFrozen = false; //in external mode, there is no info of heading quality
 
-	if (HDM_RXtime==0) return _IMU_status;
+	if (HDT_RXtime==0) return _IMU_status;
 
 	unsigned long tiempo = millis();
 
-	//sprintf(DEBUG_buffer,"RXtime, prev:%ld,%ld\n", HDM_RXtime, prev_HDM_RXtime);
+	//sprintf(DEBUG_buffer,"RXtime, prev:%ld,%ld\n", HDT_RXtime, prev_HDT_RXtime);
 	//DEBUG_print();
 
 	if (firstTime) {
 		//DEBUG_print("First time\n");
-		_heading = HDM;
-		prev_HDM=HDM;
-		prev_tiempo = HDM_RXtime;
-		prev_HDM_RXtime = HDM_RXtime;
+		_heading = _ext_heading_dt;
+		prev_ext_heading=_ext_heading_dt;
+		prev_tiempo = HDT_RXtime;
+		prev_HDT_RXtime = HDT_RXtime;
 		pendiente=0;
 	}
 
-	if (prev_HDM_RXtime!=HDM_RXtime) {
-		//DEBUG_print("HDM Update\n");
+	if (prev_HDT_RXtime!=HDT_RXtime) {
+		//DEBUG_print("HDG Update\n");
 		//ajustamos heading al valor recibido
-		_heading = HDM;
-		//Calculamos pendiente cada vez que se reciba un nuevo mensaje HDM
-		double deltaHDM = deltaAngle(prev_HDM, HDM);
-		pendiente = ((deltaHDM)*1000.0)/(HDM_RXtime-prev_HDM_RXtime);
-		prev_HDM = HDM;
-		prev_HDM_RXtime = HDM_RXtime;
+		_heading = _ext_heading_dt;
+		//Calculamos pendiente cada vez que se reciba un nuevo mensaje HDT
+		double deltaHDT = deltaAngle(prev_ext_heading, _ext_heading_dt);
+		pendiente = ((deltaHDT)*1000.0)/(HDT_RXtime-prev_HDT_RXtime);
+		prev_ext_heading = _ext_heading_dt;
+		prev_HDT_RXtime = HDT_RXtime;
 
 	} else {
-		//DEBUG_print("Extrapolate\n");
 		// Extrapolamos heading con la última pendiente calculada
 		_heading += (pendiente*(tiempo-prev_tiempo))/1000.0;
 		_heading = reduce360(_heading);
 		prev_tiempo = tiempo;
 	}
-//	int l=9, d=4;
-//	char c3[l+3];
-//	char c4[l+3];
-//	sprintf(DEBUG_buffer,"Heading,pendiente:%s,%s\n", dtostrf(_heading,0,d,c3),dtostrf(pendiente,0,d,c4));
-//	DEBUG_print();
+
+	updateHeadingT();
+	//DEBUG_sprintf("total,hDev, mVar", _totalDev, _ext_headingDev, _ext_magneticVariation);
+
 
 	return _IMU_status;
 }
@@ -398,15 +389,15 @@ void BearingMonitor::refreshCalStatus(void)
     _calMagn = mag;
 }
 
-bool BearingMonitor::getCalibrationStatus(void) {
-	refreshCalStatus();
-	return (_calSys==3);
-}
 
 // calibrate.py external programme to calibrate A and M
 bool BearingMonitor::set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor) {
 	//ICM20948AHRS_setOffsets(G_offset[3]);
 	_imuDevice->set_calibrate_py_offsets(B, Ainv, sensor);
+	if (sensor=='G') _calGyro=3;
+	if (sensor=='A') _calAccel=3;
+	if (sensor=='M') _calMagn=3;
+	if (_calGyro + _calAccel +_calMagn == 9) _calSys ==3;
 	return true;
 }
 

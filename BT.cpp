@@ -155,9 +155,13 @@ void BT::triggerAction () {
      case BT_USER_REQUEST_REJECTED:
     	 userRequestAnswer (false);
 		 break;
-     case BT_SET_HEADALIGN:
-    	 Set_Headalign();
+     case BT_SET_HEADING_DEV:
+    	 Set_HeadingDev();
     	 break;
+
+     case BT_RESET_HEADING_DEV:
+   		MyPilot->setHeadingDev(0);
+     	break;
      case BT_SET_VWR:
      	switch (currentMode) {
      	case AUTO_MODE:
@@ -207,16 +211,18 @@ void BT::triggerAction () {
 
 
 // AUTOTUNE PANEL
-    case BT_START_AUTOTUNE:
-    	if (currentMode == STAND_BY ) Start_Cancel_AutotunePID();
-    	break;
+//    case BT_START_AUTOTUNE:
+//    	if (currentMode == STAND_BY ) Start_Cancel_AutotunePID();
+//    	break;
+//
+//    case BT_STOP_AUTOTUNE:
+//    	if (currentMode == CAL_AUTOTUNE) {
+//    		MyPilot->stopAutoTune();
+//    		MyPilot->setCurrentMode(STAND_BY);
+//    	}
+//    	break;
 
-    case BT_STOP_AUTOTUNE:
-    	if (currentMode == CAL_AUTOTUNE) {
-    		MyPilot->stopAutoTune();
-    		MyPilot->setCurrentMode(STAND_BY);
-    	}
-    	break;
+
 
     case BT_RESTORE_PID:
     	if (currentMode == STAND_BY) {
@@ -236,25 +242,24 @@ void BT::updateBT(){
 
 	//VIRTUAL PIN IN APP (FLOAT)
 	_V[AI_NEXT_CTS] = float(MyPilot->getNextCourse());
-	_V[AI_HEADING] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeading():888);
+	_V[AI_HEADING] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeadingT():888); // TRUE angle
 	_V[AI_CTS] = MyPilot->getTargetBearing();
 	_V[AI_DELTA] = MyPilot->getInput();
 	_V[AI_RUDDER] = MyPilot->getCurrentRudder();
-	_V[AI_KPCONTRIB] = float (MyPilot->getKpContrib());
-	_V[AI_ITERM] = float (MyPilot->getITerm());
-	_V[AI_KDCONTRIB] = float(MyPilot->getKdContrib());
 	_V[AI_PIDOUT] = float(MyPilot->getOutput());
 	_V[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
 	_V[AI_DEADBAND_VALUE] = float(MyPilot->getDeadband());
-	//_V[AI_TRIM_VALUE] =
+	_V[AI_MAGNETIC_VARIATION] = MyPilot->getMagneticVariation();
+	_V[AI_HEAD_ALIGN] = MyPilot->getHeadingDev();
 
-	static uint16_t X = 0;
-	int8_t Y = 0;
-	uint8_t Z = 0;
-	MyPilot->getCheckXYZ(X,Y,Z);
-	_V[AI_IMU_X] = X;
-	_V[AI_IMU_Y] = Y;
-	_V[AI_IMU_Z] = Z;
+
+//	static uint16_t X = 0;
+//	int8_t Y = 0;
+//	uint8_t Z = 0;
+//	MyPilot->getCheckXYZ(X,Y,Z);
+//	_V[AI_IMU_X] = X;
+//	_V[AI_IMU_Y] = Y;
+//	_V[AI_IMU_Z] = Z;
 
 	static uint16_t fbk_min, fbk_max;
 	MyPilot->getFBKcalStatus(fbk_min, fbk_max);
@@ -273,16 +278,10 @@ void BT::updateBT(){
 	_V[AI_KP] = MyPilot->PID::GetKp();
 	_V[AI_KI] = MyPilot->PID::GetKi();
 	_V[AI_KD] = MyPilot->PID::GetKd();
-
-	_V[AI_RECOM_KP] = MyPilot->PID_ATune::GetKp();
-	_V[AI_RECOM_KI] = MyPilot->PID_ATune::GetKi();
-	_V[AI_RECOM_KD] = MyPilot->PID_ATune::GetKd();
-
-	_V[AI_AUTOTUNE_CYCLE] = MyPilot->getPeakCount();
-	//_V[AI_AUTOTUNE_INPUT] = MyPilot->PID_ATune::getInput();
-
+	_V[AI_SPEED_REF] = float(MyPilot->getAvgSpeed()) ;
+	_V[AI_SOG] = MyPilot->get_boatSpeed();
+	_V[AI_WIND_SPEED] = float(MyPilot->getWindSpeed()) ;
 	_V[AV_LED_DBACTIVE] = MyPilot->isInDeadband()== true ? 1: 0;
-
 	_V[AI_USER_MESSAGE] = MyPilot->getInformation();
 
 //	Information codes (0 TO 7)
@@ -343,6 +342,31 @@ void BT::updateSpecialBT() {
 		_V[AI_DELTA_TARGET] = 0;
 	}
 
+	// Manual change of avg.speed
+	int16_t valueAvgSpeed = int16_t(_V[VD_USER_AVG_SPEED]);
+	if (valueAvgSpeed!=0) {
+		Change_AvgSpeed(valueAvgSpeed);
+		// Reset value in app
+		_V[VD_USER_AVG_SPEED] = 0;
+
+	}
+
+	// Manual change of rudder center
+	int16_t valueCenterRudder = int16_t(_V[VD_USER_CENTER_RUDDER]);
+	if (valueCenterRudder!=0) {
+		Change_CenterRudder(valueCenterRudder);
+		// Reset value in app
+		_V[VD_USER_CENTER_RUDDER] = 0;
+
+	}
+
+	// Manual change of Mag.Variation
+	float magneticVariation = _V[VD_USER_MAGNETIC_VARIATION];
+	if (magneticVariation!=0) {
+		Change_magneticVariation(magneticVariation);
+		// Reset value in app
+		_V[VD_USER_MAGNETIC_VARIATION] = 0;
+	}
 
 	// Manual change of PID parameters
 	s_PIDgain_flag change;
@@ -378,5 +402,6 @@ void BT::updateSpecialBT() {
 		if (change.Kp) _V[VD_USER_KP]= 0;
 		if (change.Ki) _V[VD_USER_KI]= 0;
 		if (change.Kd) _V[VD_USER_KD]= 0;
+
 	}
 }

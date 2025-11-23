@@ -54,6 +54,7 @@ public:
     //.......................................................................
     // NMEA standard message types (aka "sentences")
 
+    // IMPORTANT: ENUM SHALL BE IN ALPHABETICAL ORDER!!!
     enum nmea_msg_t {
         NMEA_UNKNOWN,
 
@@ -84,9 +85,14 @@ public:
         #endif
 
 		// INI SPM
-		#if defined(NMEA_PARSE_HDM) | defined(NMEAGPS_RECOGNIZE_ALL)
-		  NMEA_HDM,
+		#if defined(NMEA_PARSE_HDG) | defined(NMEAGPS_RECOGNIZE_ALL)
+		  NMEA_HDG,
 		#endif
+
+		#if defined(NMEA_PARSE_HDT) | defined(NMEAGPS_RECOGNIZE_ALL)
+		  NMEA_HDT,
+		#endif
+
 		// FIN SPM
 
         #if defined(NMEA_PARSE_RMC) | defined(NMEAGPS_PARSE_RMC) | defined(NMEAGPS_RECOGNIZE_ALL)
@@ -110,6 +116,7 @@ public:
 
         NMEAMSG_END // a bookend that tells how many enums there were
       };
+    // IMPORTANT: ENUM SHALL BE IN ALPHABETICAL ORDER!!!
 
     CONST_CLASS_DATA nmea_msg_t NMEA_FIRST_MSG = (nmea_msg_t) (NMEA_UNKNOWN+1);
     CONST_CLASS_DATA nmea_msg_t NMEA_LAST_MSG  = (nmea_msg_t) (NMEAMSG_END-1);

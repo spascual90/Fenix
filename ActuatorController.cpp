@@ -44,7 +44,6 @@ int ActuatorController::cal_FBK_move(e_dir dir){
 }
 
 e_dir ActuatorController::setDir(e_dir dir) {
-	//static unsigned long t0;
 	if (dir!=_currentDirection) {
 		_currentDirection = dir;
 		digitalWrite(PIN_DIR,_currentDirection);   // set DIR to EXTEND or RETRACT

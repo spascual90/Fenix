@@ -37,8 +37,7 @@ void IF_NMEA::setup(){
 	#ifndef TXNMEA
 		DEBUG_print ("Debug: No NMEA TX\n");
 	#endif
-	sprintf(DEBUG_buffer, "Dm =%s\n", dtostrf(getDm(),l,d,c4));
-	DEBUG_print();
+
 #else
 	DEBUG_print ( "NMEA int... Not defined\n" );
 #endif
@@ -73,20 +72,24 @@ void IF_NMEA::refresh(){
 					printMemory(& gpsPort);
 				#endif
 				printRSA(& gpsPort);
-				#ifdef TESTER_IF
-					TESTER_sincroTime();
-				#endif
+				//#ifdef TESTER_IF
+				//	TESTER_sincroTime();
+				//#endif
 
 				TXNext();
 				break;
 			case 1:
-				// Only transmits HDM/HDG when no valid HDM message has been received.
+				// Only transmits HDT/HDG when no valid HDT message has been received.
 				if (MyPilot->isHeadingValid() and !MyPilot->isExtHeading()) printHDG(& gpsPort);
 				TXNext();
 				break;
 			case 2:
-				// Only transmits HDM/HDG when no valid HDM message has been received.
-				if (MyPilot->isHeadingValid() and !MyPilot->isExtHeading()) printHDM(& gpsPort);
+				// HDT Deprecated
+				//// Only transmits HDM/HDG when no valid HDM message has been received.
+				//if (MyPilot->isHeadingValid() and !MyPilot->isExtHeading()) printHDM(& gpsPort);
+				#ifdef TESTER_IF
+				TESTER_sincroTime();
+				#endif
 				TXNext();
 				break;
 			default:
@@ -213,12 +216,12 @@ void IF_NMEA::refresh_INorder() {
 			}
 			break;
 
-		case EXT_HEADING: //HDM received
+			break;
+		case EXT_HEADING: //HDG/HDT received
 			if (!MyPilot->isCalMode()) {
-				received_HDM(INorder.HDM);
+				received_HDGT(INorder.HDG);
 			}
 			break;
-
 		case RELATIVE_WIND: //VWR received
 			if (!MyPilot->isCalMode()) {
 				received_VWR(INorder.VWR);

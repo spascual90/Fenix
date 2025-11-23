@@ -29,7 +29,7 @@ void HMIArq::Request_instParam(s_instParam & instParam) {
 void HMIArq::Request_APinfo(s_APinfo & APinfo) {
 
 	APinfo.CTS.Towf_00(MyPilot->getTargetBearing());
-	APinfo.HDM.Towf_00(MyPilot->getCurrentHeading());
+	APinfo.HDT.Towf_00(MyPilot->getCurrentHeadingT());
 	// Deadband value
 	APinfo.deadband.Towf_00(MyPilot->getDeadband());
 	APinfo.mode=MyPilot->getCurrentMode();
@@ -89,6 +89,21 @@ void HMIArq::Change_PID_rel (s_PIDgain_flag change, e_operation op, float value 
 	MyPilot->SetTunings (Kp, Ki, Kd);
     MyPilot->buzzer_Beep();
 
+}
+
+void HMIArq::Change_AvgSpeed(int16_t valueAvgSpeed) {
+	MyPilot->setAvgSpeed(valueAvgSpeed);
+	MyPilot->buzzer_Beep();
+}
+
+void HMIArq::Change_CenterRudder(int16_t valueCenterRudder) {
+	MyPilot->setDeltaCenterOfRudder(valueCenterRudder);
+	MyPilot->buzzer_Beep();
+}
+
+void HMIArq::Change_magneticVariation(float value_MagneticVariation) {
+	MyPilot->setMagneticVariation(value_MagneticVariation);
+	MyPilot->buzzer_Beep();
 }
 
 void HMIArq::operation (e_operation op, float &K, float value) {
@@ -223,7 +238,7 @@ void HMIArq::Set_NextCourse_delta(int delta){
 }
 
 void HMIArq::Set_Tacking(int delta){
-	Set_NextCourse (MyPilot->getCurrentHeading() + delta);
+	Set_NextCourse (MyPilot->getCurrentHeadingT() + delta);
 }
 
 void HMIArq::Set_NewDeltaCourse(float newDCourse){
@@ -231,15 +246,18 @@ void HMIArq::Set_NewDeltaCourse(float newDCourse){
 	  MyPilot->buzzer_Beep();
 }
 
-void HMIArq::Set_Headalign(){
-	//MyPilot->setHeadingDev(MyPilot->getTargetBearing() - MyPilot->getCurrentHeading() + MyPilot->getHeadingDev());
-	MyPilot->setHeadingDev(MyPilot->getNextCourse() - MyPilot->getCurrentHeading() + MyPilot->getHeadingDev());
+void HMIArq::Set_HeadingDev(){
+	MyPilot->setHeadingDev(MyPilot->getNextCourse() - MyPilot->getCurrentHeadingT() + MyPilot->getHeadingDev());
+	MyPilot->setNextCourse(0);
 	MyPilot->buzzer_Beep();
 }
 
 // External Compass mode functions
-void HMIArq::received_HDM( s_HDM HDM) {
-	MyPilot->HDMreceived(HDM);
+//void HMIArq::received_HDT( s_HDT HDT) {
+//	MyPilot->HDTreceived(HDT);
+//}
+void HMIArq::received_HDGT( s_HDG HDG) {
+	MyPilot->HDGTreceived(HDG);
 }
 
 // Speed received

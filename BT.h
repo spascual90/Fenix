@@ -5,7 +5,7 @@
 #include "BTArq.h"
 #include "HMIArq.h"
 
-#define FENIX_APP_COMPATIBILITY "v.4.X"
+#define FENIX_APP_COMPATIBILITY "v.5.X"
 
 //Virtuino App V6 - Virtual memory button offset (c_BTN_V)
 
@@ -41,18 +41,18 @@ enum e_BT_push_button {
 		, BT_TACK_STARBOARD=	9
 		, BT_DEC_TARGET_10=	10
 		, BT_TACK_PORTBOARD=	11
-		, BT_RESET_PID= 	12
+		, BT_RESET_PID= 	12 // DEPRECATED?
 		, BT_START_STOP_TARGET=	13
-		, BT_SET_HEADALIGN =14
+		, BT_SET_HEADING_DEV =14
 		, BT_START_IMU_CAL=15
 		, BT_START_STOP_FBK_CAL=16
 		, BT_SAVE_IMU_CAL=17
 		, BT_SAVE_FBK_CAL=18
 		, BT_SET_VWR = 19
-		, BT_START_AUTOTUNE = 20
-		, BT_APPLY_AUTOTUNE_PID = 21
+		, BT_RESET_HEADING_DEV = 20
+		, BT_APPLY_AUTOTUNE_PID = 21 // DEPRECATED
 		, BT_RESTORE_PID = 22
-		, BT_STOP_AUTOTUNE = 23
+		, BT_STOP_AUTOTUNE = 23 // DEPRECATED
 		, BT_SET_DBCONF = 24
 		, BT_SAVE_PID = 25
 
@@ -75,15 +75,15 @@ enum e_BT_AI_PIN {
 , AI_PIDOUT=	8
 , AI_DELTA_CRUDDER=	9
 , AI_DEADBAND_VALUE = 10
-, AI_TRIM_VALUE = 11
+, AI_MAGNETIC_VARIATION = 11
 , AI_KP = 12
 , AI_KI = 13
 , AI_KD = 14
 , AI_FBK_MIN = 15
 , AI_FBK_MAX = 16
-, AI_IMU_X = 17
-, AI_IMU_Y = 18
-, AI_IMU_Z = 19
+, VD_USER_CENTER_RUDDER = 17 //, AI_IMU_X = 17
+, VD_USER_MAGNETIC_VARIATION = 18 //, AI_IMU_Y = 18
+, AI_HEAD_ALIGN = 19 //AI_IMU_Z = 19
 , AI_DELTA_TARGET = 20		// Special AI PINS rotary regulator (user defined)
 , AI_USER_MESSAGE = 21		// Special AI PINS
 , AV_LED_DBACTIVE = 22		// Special AV PINS
@@ -97,15 +97,15 @@ enum e_BT_AI_PIN {
 , AV_LED_IMU_CAL_SYS = 30	// Special AV PINS
 , AI_INV_HDG = 31 // img:compass5 (compass heading bow, not north!)
 , AI_DELTA_VWR = 32 // img: vwr01 (wind dir rel to bow - white cloud)
-, AI_RECOM_KP = 33
-, AI_RECOM_KI = 34
-, AI_RECOM_KD = 35
-, AI_AUTOTUNE_CYCLE = 36
+, AI_SPEED_REF = 33 // Ref.speed for PID tunning
+, AI_SOG = 34 // Current speed
+, AI_WIND_SPEED = 35 // Wind speed
+, VD_USER_AVG_SPEED = 36
 , VD_USER_KP = 37
 , VD_USER_KI = 38
 , VD_USER_KD = 39
-//, AI_AUTOTUNE_INFO = 37
-//, AI_AUTOTUNE_INPUT = 38
+// máximo el valor de c_BTN_V -1 o cambiar el valor de los botones en la App
+
 
 
 , MAX_AI = VD_USER_KD +1

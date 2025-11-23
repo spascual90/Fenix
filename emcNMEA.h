@@ -60,11 +60,13 @@ public:
     emcNMEA () ;
 
     //Class I/F
-    virtual float getDm(void) = 0;
-    virtual float getMagnetic(float value) = 0;
-    virtual float getTrue(float value) = 0;
+    virtual float getMagneticVariation(void) = 0;
+    virtual float getHeadingDev(void) = 0;
+    virtual float toMagnetic(float value) = 0;
+    virtual float toTrue(float value) = 0;
     virtual int getRudder(void) = 0;
-    virtual float getHeading(void) = 0;
+    virtual float getHeadingC(void) = 0;
+    virtual float getHeadingT(void) = 0;
 
     bool parseIntAuto( uint16_t &val, uint8_t chr, bool & field_informed);
     bool parseIntAuto( int8_t &val, uint8_t chr, bool & field_informed);
@@ -85,7 +87,8 @@ protected:
     void sentenceUnrecognized() ;
     NMEAGPS_VIRTUAL decode_t decode( char c ) override;
     NMEAGPS_VIRTUAL bool parseAPB( char chr );
-    NMEAGPS_VIRTUAL bool parseHDM( char chr );
+    NMEAGPS_VIRTUAL bool parseHDT( char chr );
+    NMEAGPS_VIRTUAL bool parseHDG( char chr );
     NMEAGPS_VIRTUAL bool parseVWR( char chr );
     NMEAGPS_VIRTUAL bool parseRMC( char chr );
     NMEAGPS_VIRTUAL bool parseVTG( char chr );
@@ -93,7 +96,8 @@ protected:
     bool parse180(whole_frac & angle, char chr );
     bool parse180( whole_frac & angle, char chr, bool & field_informed);
     bool parseAngleRef( whole_frac & angle, char chr);
-    bool parseSide( char chr,  bool & field_informed );
+    bool parseSide(char chr,  bool & field_informed);
+    bool parseEW(whole_frac & variable, char chr);
     bool parseDeadbandType( char chr );
     bool parseAPmode( char chr );
     bool parseDirSteer( char chr );
@@ -151,14 +155,11 @@ protected:
     void printPEMC_13(Stream * outStream);
 
     void printAPB(Stream * outStream);
+    //void printHDM(Stream * outStream);
     void printHDG(Stream * outStream);
-    void printHDM(Stream * outStream);
     void printHDT(Stream * outStream);
     void printRSA(Stream * outStream);
     void printMemory(Stream * outStream);
-
-	void printDm();
-
 
 	SERIALorder INorder; // Order parsed after reception
     SERIALorder OUTorder; // Order compiled before sending

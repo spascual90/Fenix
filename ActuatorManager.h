@@ -19,13 +19,6 @@
 #include "Fenix_config.h"
 
 // All configurations are managed in Fenix_config.h
-////for DEBUGGING
-////#include "GPSport.h"
-////#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
-////#define DEBUG
-//// ACTUATOR PARAMETERS
-//#define SPEED_CRUISE 255
-
 
 // INSTALATION PARAMETERS: POSSIBLE VALUES
 
@@ -33,6 +26,8 @@
 #define RUD_B_MIN 0.2 	//Fast boats
 #define RUD_B_MED 1 	//Cruisers
 #define RUD_B_MAX 1.5 	//Sailing
+
+#define ACTUATOR_STOP_TIME 500 //stop time between changes of direction
 
 // TODO: Installation side always STARBOARD. Implement PORTBOARD
 // Installation side
@@ -44,7 +39,7 @@ class ActuatorManager: public PID_ext, public PID_ATune,
 public:
 	ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback, float refSpeed);
 	virtual ~ActuatorManager();
-	void setup(double aTuneNoise, double aTuneStep, double aTuneLookBack);
+	void setup(void);
 	void startAutoMode();
 	void stopAutoMode();
 	int Compute(float setPoint, float processVariable, float speed);

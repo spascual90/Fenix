@@ -111,11 +111,16 @@ bool DevICM20948::EEload_Calib(long int &eeAddress)
 
 	} else {
 		DEBUG_print(F("!Found Calibration data...\n"));
-		_gyro=3;
-		_accel=3;
-		_mag=3;
+		eeAddress += sizeof(id_IMU);
+		uint16_t calStat;
+		EEPROM.get(eeAddress, calStat);
+		_mag   = calStat / 100;          // quita decenas y unidades
+		_gyro  = (calStat / 10) % 10;    // toma solo la decena
+		_accel = calStat % 10;           // toma la unidad
+		//DEBUG_sprintf("Gyro, Acc, Mag",int(_gyro),int(_accel),int(_mag));
+
 	//ICM20948: Cargar valores de variables calibración
-	eeAddress += sizeof(id_IMU);
+	eeAddress += sizeof(calStat);
 	EEPROM.get(eeAddress, G_offset);
 	eeAddress += sizeof(G_offset);
 	EEPROM.get(eeAddress, A_B);
@@ -138,12 +143,15 @@ bool DevICM20948::EEsave_Calib( long &eeAddress){
 	bool DataStored = false;
  	//DATA TO SAVE
 	long id_IMU;
+	// Calibration status
+	uint16_t calStat;
 	// Variables calibración ICM20948
 	float G_offset[3];
 	float A_B[3];
 	float A_Ainv[3][3];
 	float M_B[3];
 	float M_Ainv[3][3];
+
 
 	DEBUG_print(F("!Saving Calibration..."));
 
@@ -152,7 +160,12 @@ bool DevICM20948::EEsave_Calib( long &eeAddress){
 	EEPROM.put(eeAddress, id_IMU);
 
 	eeAddress += sizeof(id_IMU);
-    //Calib
+    //Calib Status
+	calStat =  _mag*100 + _gyro*10 + _accel;
+	//DEBUG_sprintf("Gyro, Acc, Mag",int(_gyro),int(_accel),int(_mag));
+	EEPROM.put(eeAddress, calStat);
+	eeAddress += sizeof(calStat);
+
     //ICM20948: Recibir valores de variables calibración
     ICM20948AHRS_getOffsets(G_offset, A_B, A_Ainv, M_B,  M_Ainv);
 	//ICM20948: Grabar valores de variables calibración
@@ -168,8 +181,9 @@ bool DevICM20948::EEsave_Calib( long &eeAddress){
     //eeAddress += sizeof(M_Ainv);
 
     DataStored = true;
+    DEBUG_print(F("Ok\n"));
+	displaySensorOffsets();
 
-	DEBUG_print(F("Ok\n"));
 
     return DataStored;
 
@@ -191,6 +205,9 @@ void DevICM20948::displaySensorOffsets(void){
 	float A_Ainv[3][3];
 	float M_B[3];
 	float M_Ainv[3][3];
+
+	// Calibration status
+	DEBUG_sprintf("Gyro, Acc, Mag",int(_gyro),int(_accel),int(_mag));
 
 	ICM20948AHRS_getOffsets(G_offset, A_B, A_Ainv, M_B,  M_Ainv);
 
@@ -336,8 +353,6 @@ bool DevICM20948::IMU_Cal_Loop(void){
 	return ret;
 }
 
-
-
 void DevICM20948::Cal_NextSensor(void) {
 	// Fuerza a cambiar de sensor llegando al fin del conteo
 	if (_sensor_count!= 0) _sensor_count = SENSOR_LOOPS -1;
@@ -355,37 +370,18 @@ bool DevICM20948::IMU_Cal_stopRequest(void) {
 	return true;
 }
 
-//void DevICM20948::displayRaw_gyroOffsets(float *gyro) {
-//	sprintf(DEBUG_buffer,"Gyro offsets: %i \t %i \t %i\n", gyro[0],gyro[1],gyro[2]);
-//	DEBUG_print(DEBUG_buffer);
-//	DEBUG_flush();
-//  }
-
 void DevICM20948::displayRaw_sensorOffsets(int16_t *raw_sensor) {
 	sprintf(DEBUG_buffer,"%i,%i,%i\n",raw_sensor[0],raw_sensor[1],raw_sensor[2]);
 	DEBUG_print(DEBUG_buffer);
 	DEBUG_flush();
   }
 
-//void DevICM20948::displayRaw_SumOffsets(int16_t **acc_mag) {
-//	int i=0;
-//	DEBUG_print(F("Accelerometer raw data:\n"));
-//	for (i=0; i<SENSOR_LOOPS; i++){
-//		sprintf(DEBUG_buffer,"%i,%i,%i\n",acc_mag[i][0],acc_mag[i][1],acc_mag[i][2]);
-//		DEBUG_print(DEBUG_buffer);
-//		DEBUG_flush();
-//	}
-//
-//	DEBUG_print(F("Magnet raw data:\n"));
-//	for (i=0; i<SENSOR_LOOPS; i++){
-//		sprintf(DEBUG_buffer,"%i,%i,%i\n",acc_mag[i][3],acc_mag[i][4],acc_mag[i][5]);
-//		DEBUG_print(DEBUG_buffer);
-//		DEBUG_flush();
-//	}
-//  }
-
 bool DevICM20948::set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor) {
 	ICM20948AHRS_setoffsets2(B, Ainv, sensor);
+	if (sensor=='M') _mag=3;
+	if (sensor=='G') _gyro=3;
+	if (sensor=='A') _accel=3;
+
 	displaySensorOffsets();
 
 	return true;

@@ -388,6 +388,7 @@ void NMEAGPS::storeFix()
 
 //----------------------------------------------------------------
 // NMEA Sentence strings (alphabetical)
+// IMPORTANT: ENUM SHALL BE IN ALPHABETICAL ORDER!!!
 // INI SPM
 #if defined(NMEA_PARSE_APB) | defined(NMEAGPS_RECOGNIZE_ALL)
   static const char apb[] __PROGMEM =  "APB";
@@ -409,8 +410,11 @@ void NMEAGPS::storeFix()
   static const char gsv[] __PROGMEM =  "GSV";
 #endif
   // INI SPM
-  #if defined(NMEA_PARSE_HDM) | defined(NMEAGPS_RECOGNIZE_ALL)
-    static const char hdm[] __PROGMEM =  "HDM";
+#if defined(NMEA_PARSE_HDG) | defined(NMEAGPS_RECOGNIZE_ALL)
+    static const char hdg[] __PROGMEM =  "HDG";
+#endif
+  #if defined(NMEA_PARSE_HDT) | defined(NMEAGPS_RECOGNIZE_ALL)
+    static const char hdt[] __PROGMEM =  "HDT";
   #endif
   // FIN SPM
 #if defined(NMEAGPS_PARSE_RMC) | defined(NMEAGPS_RECOGNIZE_ALL)
@@ -429,6 +433,7 @@ static const char vwr[] __PROGMEM =  "VWR";
   static const char zda[] __PROGMEM =  "ZDA";
 #endif
 
+  // IMPORTANT: ENUM SHALL BE IN ALPHABETICAL ORDER!!!
 static const char * const std_nmea[] __PROGMEM =
   {
 	// INI SPM
@@ -452,11 +457,15 @@ static const char * const std_nmea[] __PROGMEM =
       gsv,
     #endif
 	// INI SPM
-	#if defined(NMEA_PARSE_HDM) | defined(NMEAGPS_RECOGNIZE_ALL)
-	  hdm,
+	#if defined(NMEA_PARSE_HDG) | defined(NMEAGPS_RECOGNIZE_ALL)
+	  hdg,
 	#endif
-	// FIN SPM
 
+	#if defined(NMEA_PARSE_HDT) | defined(NMEAGPS_RECOGNIZE_ALL)
+	  hdt,
+	#endif
+
+	// FIN SPM
     #if defined(NMEAGPS_PARSE_RMC) | defined(NMEAGPS_RECOGNIZE_ALL)
       rmc,
     #endif
@@ -726,10 +735,14 @@ bool NMEAGPS::parseField(char chr)
         case NMEA_GSV: return parseGSV( chr );
       #endif
 
-	// INI SPM
-	  #if defined(NMEA_PARSE_HDM)
-		case NMEA_HDM: return parseHDM( chr );
+	  // INI SPM
+	  #if defined(NMEA_PARSE_HDG)
+		case NMEA_HDG: return parseHDG( chr );
 	  #endif
+	  #if defined(NMEA_PARSE_HDT)
+		case NMEA_HDT: return parseHDT( chr );
+	  #endif
+
 
       #if defined(NMEA_PARSE_RMC)
         case NMEA_RMC: return parseRMC( chr );

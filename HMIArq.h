@@ -58,7 +58,7 @@ protected:
 
 	void Accept_Next(void);
 	void Set_NewDeltaCourse(float newDCourse);
-	void Set_Headalign();
+	void Set_HeadingDev();
 	void Enter_Exit_FBK_Calib();
 	void Start_Cancel_AutotunePID();
 
@@ -73,11 +73,15 @@ protected:
 	void Change_PID(s_PIDgain_flag, s_gain);
 	void Change_PID_rel (s_PIDgain_flag change, e_operation op, float value );
 	void Apply_PIDrecom();
+	void Change_AvgSpeed(int16_t AvgSpeed);
+	void Change_CenterRudder(int16_t AvgSpeed);
 	bool Change_instParam (s_instParam instParam);
+	void Change_magneticVariation(float value_magneticVariation);
 	void setDBConf (type_DBConfig status);
 	void nextDBConf (void);
 	void received_APB( s_APB APB);
-	void received_HDM( s_HDM HDM);
+	//void received_HDT( s_HDT HDT);
+	void received_HDGT( s_HDG HDG);
 	void received_SOG( s_SOG SOG);
 	void received_VWR( s_VWR VWR);
 
