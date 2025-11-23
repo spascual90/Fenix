@@ -1,7 +1,7 @@
 #ifndef FENIX_CONFIG_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.3.6.B1"
+#define ARDUINO_VERSION "v.4.0.B1"
 
 // RELEASE v.2.0.B1
 // RELEASE v.2.1.B1
@@ -54,11 +54,10 @@
 // Remove spureous warning 5 (IMU requires calibration)
 //v.4.0.B1
 // First compatibility with new version of Fenix App.5.0
-// Enhances configuration flexibility for installation parameters.
+// Deprecated IMU: Only compatible with IMU Sparkfun ICM20948. Other IMU discontinued: Pololu MinIMU9V5
+// Enhances configuration flexibility for installation parameters from Fenix App.
 // Major refactor to Autopilot and related modules for improved handling of external heading, wind, and speed data.
-// Adds support for HDG: true heading, magnetic variation, and heading deviation, and updates data structures and method signatures to reflect these changes.
-// Updates Bluetooth interface, and improves millis-based timing for external data validity checks.
-
+// Adds support for HDG: true heading, magnetic variation, and heading deviation.
 
 //DEBUG
 // Defined for Release version
@@ -67,10 +66,10 @@
 // Commented for Release version
 //#define PRINT_FREE_MEM
 //#define SHIP_SIM // Uncomment to simulate boat to tune PID
-#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
+//#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
-#define TESTER_IF
+//#define TESTER_IF
 //#define FREQ_MONITOR
 
 //Other libraries necessary for printing to serial monitor
