@@ -24,9 +24,9 @@ bool DevBNO055Int::IMU_setup(long EE_address){
 
    int errcode;
 	if ((errcode = _imu->IMUInit()) < 0) {
-		sprintf(DEBUG_buffer,"IMU %s. Error Code: %i\n",_imu->IMUName(), errcode);
-		DEBUG_print(DEBUG_buffer);
-		DEBUG_flush();
+		//sprintf(DEBUG_buffer,"IMU %s. Error Code: %i\n",_imu->IMUName(), errcode);
+		////DEBUG_print(DEBUG_buffer);
+		//DEBUG_flush();
 		return false;
 	}
 
@@ -35,12 +35,12 @@ bool DevBNO055Int::IMU_setup(long EE_address){
 
 void DevBNO055Int::IBIT(void){
 
-	DEBUG_print(F("IMU int... Started\n"));
-	sprintf(DEBUG_buffer,"HW: %s\nSDA,SCL=%i,%i\n", IMUName(), get_PIN_SDA(),get_PIN_SCL());
-	DEBUG_print(F("Internal Fusion Mode\n"));
+	////DEBUG_print(F("IMU int... Started\n"));
+	//sprintf(DEBUG_buffer,"HW: %s\nSDA,SCL=%i,%i\n", IMUName(), get_PIN_SDA(),get_PIN_SCL());
+	////DEBUG_print(F("Internal Fusion Mode\n"));
 
-	DEBUG_print(DEBUG_buffer);
-	DEBUG_flush();
+	////DEBUG_print(DEBUG_buffer);
+	//DEBUG_flush();
 }
 
 float DevBNO055Int::updateHeading(void){
@@ -62,25 +62,25 @@ bool DevBNO055Int::EEload_Calib(long int & eeAddress)
 	EEPROM.get(eeAddress, EE_ID);
 	// Look for unique ID reported by IMU
 	ID = get_IMUdeviceID();
-	sprintf(DEBUG_buffer,"IMU Sensor ID: %i\n",ID);
-	DEBUG_print(DEBUG_buffer);
+	////sprintf(DEBUG_buffer,"IMU Sensor ID: %i\n",ID);
+	//////DEBUG_print(DEBUG_buffer);
 
 	if (EE_ID != ID) {
-		DEBUG_print(F("!WARNING: No Calibration Data for this sensor found!\n"));
-		sprintf(DEBUG_buffer,"ID found: %i\n",EE_ID);
-		DEBUG_print(DEBUG_buffer);
+		////DEBUG_print(F("!WARNING: No Calibration Data for this sensor found!\n"));
+		////sprintf(DEBUG_buffer,"ID found: %i\n",EE_ID);
+		////DEBUG_print(DEBUG_buffer);
 
 		return false;
 	}
-	DEBUG_print(F("!Found Calibration data..."));
+	////DEBUG_print(F("!Found Calibration data..."));
 	eeAddress += sizeof(ID);
 	EEPROM.get(eeAddress, calibrationData);
 	//displaySensorOffsets(calibrationData);
 
 	if (_imu->setSensorOffsets(calibrationData)){
-		DEBUG_print(F("Ok\n"));
+		////DEBUG_print(F("Ok\n"));
 	} else {
-		DEBUG_print(F("Error. Not restored\n"));
+		////DEBUG_print(F("Error. Not restored\n"));
 	}
 
 	//displaySensorOffsets();
@@ -93,7 +93,7 @@ bool DevBNO055Int::EEsave_Calib( long &eeAddress){
 	long ID;
 	adafruit_bno055_offsets_t Calib;
 
-	DEBUG_print(F("!Saving Calibration..."));
+	//////DEBUG_print(F("!Saving Calibration..."));
 
 	//ID
     ID = get_IMUdeviceID();
@@ -104,9 +104,9 @@ bool DevBNO055Int::EEsave_Calib( long &eeAddress){
 	if (_imu->getSensorOffsets(Calib)) {
 		EEPROM.put(eeAddress, Calib);
 	    DataStored = true;
-		DEBUG_print(F("Ok\n"));
+		////DEBUG_print(F("Ok\n"));
 	} else {
-		DEBUG_print(F("Error. Not saved\n"));
+		////DEBUG_print(F("Error. Not saved\n"));
 	}
     return DataStored;
 }
@@ -118,7 +118,7 @@ bool DevBNO055Int::IMU_startCalibration(bool completeCal) {
 }
 
 void DevBNO055Int::displaySensorOffsets(void){
-	DEBUG_print(F("Sensor offsets are internal.\n"));
+	//////DEBUG_print(F("Sensor offsets are internal.\n"));
     return;
 }
 

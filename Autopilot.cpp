@@ -210,7 +210,8 @@ e_working_status Autopilot::compute_OperationalMode(void){
 	float PIDerrorPrima = delta180(getTargetBearing(), BearingMonitor::getCurrentHeadingT());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	// Adapt to actual SOG or SOW speed over water
-	if (ActuatorManager::Compute(PIDerrorPrima, get_boatSpeed())!=1) return RUNNING_ERROR;
+	float predicted = BearingMonitor::predictYawDelta(5.0);
+	if (ActuatorManager::Compute(PIDerrorPrima, get_boatSpeed(), predicted)!=1) return RUNNING_ERROR;
 	compute_OCA (PIDerrorPrima);
 	return RUNNING_OK;
 }

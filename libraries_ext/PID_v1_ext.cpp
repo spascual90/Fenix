@@ -124,6 +124,7 @@ bool PID_ext::Compute(int rudder_error, float speed)
         double kp_eff = kp * factor;
         double ki_eff = ki * factor;
         double kd_eff = kd / factor;
+
         double outMaxeff = fmin (outMax * factor, outMax);
         double outMineff = fmax (outMin * factor, outMin);
         //TODO: Si no se modifica se puede simplificar
@@ -177,7 +178,7 @@ bool PID_ext::Compute(int rudder_error, float speed)
         dInput = dInput * ALFA_20 + ALFA_80 * _dInput_prev ;
 
         _kdContrib = (-kd_eff * dInput) * ALFA_20 + _kdContrib_prev * ALFA_80;
-        _kdContrib_prev = _kdContrib;
+
         /* Salida PID */
         double output_libre = _kpContrib + ITerm + _kdContrib;
         *myOutput = output_libre;
@@ -276,6 +277,10 @@ void PID_ext::resetITerm(void) {
 
 	double PID_ext::getKpContrib() {
 		return _kpContrib;
+	}
+
+	double PID_ext::getKanticipContrib() {
+		return _kanticipContrib;
 	}
 
     unsigned long PID_ext::GetSampleTime() {

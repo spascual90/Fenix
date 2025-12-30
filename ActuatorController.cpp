@@ -20,26 +20,26 @@ ActuatorController::~ActuatorController() {
 
 
 void ActuatorController::setup(){
+	//TODO: REMOVE
 	setDir(RETRACT);
 	setDir(EXTEND);
 	setSpeed(MAX_SPEED);
 	setSpeed(MIN_SPEED);
+	//
 	IBIT();
 }
 void ActuatorController::IBIT(){
 	DEBUG_print(F("Linear actuator... Started\n"));
-	sprintf(DEBUG_buffer,"PWM,DIR=%i,%i\n",get_PIN_PWM(),get_PIN_DIR());
-	DEBUG_print();
-	setSpeed(MAX_SPEED);
-	delay (100);
-	setSpeed(MIN_SPEED);
+	DEBUG_sprintf("PWM,DIR",get_PIN_PWM(),get_PIN_DIR());
+	cal_FBK_move(EXTEND);
+
 }
 
 int ActuatorController::cal_FBK_move(e_dir dir){
-	setDir(dir);
-	setSpeed(MAX_SPEED);
+	digitalWrite(PIN_DIR,dir);
+	analogWrite(PIN_PWM, MAX_SPEED);
 	delay (1000);
-	setSpeed(MIN_SPEED);
+	analogWrite(PIN_PWM, MIN_SPEED);
 	return 1;
 }
 
@@ -52,9 +52,21 @@ e_dir ActuatorController::setDir(e_dir dir) {
 	return _currentDirection;
 }
 
-int ActuatorController::setSpeed(int speed) {
-	if ((speed >=MIN_SPEED and speed<=MAX_SPEED) and (speed!=_currentSpeed)) {
-		_currentSpeed = speed;
+constexpr double ALFA_05 = 0.05;
+constexpr double ALFA_95 = 0.95;
+
+// inmediate = true apply speed imediatelly
+int ActuatorController::setSpeed(int speed, bool inmediate) {
+	//if ((speed >=MIN_SPEED and speed<=MAX_SPEED) and (speed!=_currentSpeed)) {
+	if (speed!=_currentSpeed) {
+		if (inmediate) {
+			_currentSpeed= speed;
+		} else {
+			if (speed ==0 and _currentSpeed < 30) _currentSpeed=0;
+			if (speed ==MAX_SPEED and _currentSpeed > 220) _currentSpeed=MAX_SPEED;
+			_currentSpeed = int (float(speed) * ALFA_05 + float (_currentSpeed) * ALFA_95);
+		}
+		//DEBUG_sprintf("_currentSpeed", _currentSpeed);
 		analogWrite(PIN_PWM, _currentSpeed);
 	}
 

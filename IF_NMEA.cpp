@@ -359,10 +359,15 @@ void IF_NMEA::TESTER_sincroTime(void) {
 		char c3[l+3];
 		char c4[l+3];
 		char c5[l+3];
+		char c6[l+3];
 
 		if ((millis() -DelayCalcStart) < 100) return;
 
-		sprintf(DEBUG_buffer,"#%ld,%s,%s,%s\n", millis(),dtostrf(MyPilot->getKpContrib(),0,d,c3),dtostrf(MyPilot->getITerm(),0,d,c4),dtostrf(MyPilot->getKdContrib(),0,d,c5));
+		sprintf(DEBUG_buffer,"#%ld,%s,%s,%s,%s\n",
+				millis(),dtostrf(MyPilot->getKpContrib(),0,d,c3),
+				dtostrf(MyPilot->getITerm(),0,d,c4),
+				dtostrf(MyPilot->getKdContrib(),0,d,c5),
+				dtostrf(MyPilot-> getKanticipContrib(),0,d,c6));
 		DEBUG_print();
 		DEBUG_flush();
 		DelayCalcStart = millis();

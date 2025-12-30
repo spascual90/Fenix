@@ -182,8 +182,11 @@ void BT::triggerAction () {
     case BT_SAVE_PID:
     	Save_PIDgain();
     	break;
-    case BT_APPLY_AUTOTUNE_PID:
-    	Apply_PIDrecom();
+//    case BT_APPLY_AUTOTUNE_PID:
+//    	Apply_PIDrecom();
+//    	break;
+    case BT_SET_CENTER_RUDDER:
+    	//TODO: When pressed update rudder center to current rudder position
     	break;
 
     case BT_SET_DBCONF:

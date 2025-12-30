@@ -72,7 +72,7 @@ protected:
 
 	void Change_PID(s_PIDgain_flag, s_gain);
 	void Change_PID_rel (s_PIDgain_flag change, e_operation op, float value );
-	void Apply_PIDrecom();
+	//void Apply_PIDrecom();
 	void Change_AvgSpeed(int16_t AvgSpeed);
 	void Change_CenterRudder(int16_t AvgSpeed);
 	bool Change_instParam (s_instParam instParam);

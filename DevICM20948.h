@@ -23,7 +23,10 @@
 //External variables and functions implemented in ICM20948AHRS.cpp and ICM20948Calibrate.cpp
 TwoWire* ICM20948AHRS_setup(bool orientation = true); // true: COMPONENTS ON TOP false: COMPONENTS BOTTOM
 float ICM20948AHRS_loop(void); //Main Loop
-//void ICM20948AHRS_calibration_setup(void);
+float ICM20948AHRS_predictYawDelta(float dt);
+float get_filtered_psi_dot(void);
+float get_yaw_accel (void);
+
 int16_t* ICM20948AHRS_calibration_loop(char sensor);
 
 struct s_offset {int16_t x, y, z;};
@@ -46,7 +49,8 @@ public:
     bool EEload_Calib(long int &eeaddress);
     bool EEsave_Calib(long int &eeaddress);
     void displaySensorOffsets(void);
-    float updateHeading();
+    float updateHeading(void);
+    float predictYawDelta(float dt);
     bool IMU_Cal_Loop(void);
     bool getCalibrationStatus(uint8_t &system, uint8_t &gyro, uint8_t &accel, uint8_t &mag);
     bool IMU_Cal_stopRequest(void);

@@ -42,8 +42,8 @@ public:
 	void setup(void);
 	void startAutoMode();
 	void stopAutoMode();
-	int Compute(float setPoint, float processVariable, float speed);
-	int Compute(float PIDerrorPrima, float speed);
+	int Compute(float setPoint, float processVariable, float speed, float predictedYaw);
+	int Compute(float PIDerrorPrima, float speed, float predictedYaw);
 	int Compute_Autotune(float PIDerrorPrima);
 	int compute_VA(void);
 	int controlActuator (int target);
@@ -66,7 +66,7 @@ public:
 		_Setpoint = setpoint;
 	}
 
-	int getTargetRudder() const {
+	inline int getTargetRudder() const {
 		return _targetRudder;
 	}
 
@@ -74,7 +74,7 @@ public:
 
 		if (targetRudder > getMaxRudder())  {targetRudder = getMaxRudder();}
 		else if (targetRudder < getMinRudder()) {targetRudder = getMinRudder();}
-
+		//DEBUG_sprintf("_targetRudder",_targetRudder);
 		_targetRudder = targetRudder;
 	}
 

@@ -180,6 +180,7 @@ protected:
 		updateTotalDev ();
 	}
 
+	float predictYawDelta(float dt);
 
 private:
 	IMUDevice *_imuDevice;

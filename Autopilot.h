@@ -398,7 +398,7 @@ enum e_info {
 			{true, true, true, true, true, true, true, true, true, true}, // flag
 			#ifndef VIRTUAL_ACTUATOR
 			0, // centerTiller
-			512, //maxRudder
+			350,//512, //maxRudder
 			#else
 			VA_DELTACENTEROFRUDDER, // centerTiller
 			VA_MRA, //maxRudder

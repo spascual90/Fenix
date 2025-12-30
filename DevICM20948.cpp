@@ -36,6 +36,19 @@ float DevICM20948::updateHeading(void){
 	return ICM20948AHRS_loop();
 }
 
+float DevICM20948::predictYawDelta(float dt){
+	float DYaw = ICM20948AHRS_predictYawDelta(dt);
+	float psi_dot = get_filtered_psi_dot();
+	float yaw_accel = get_yaw_accel();
+	//DEBUG_sprintf("psi_dot,yaw_accel,DYaw", psi_dot*1000, yaw_accel*1000, DYaw*100);
+	//plot3(NeoSerial, int(psi_dot*1000), int(yaw_accel*1000), int(DYaw*100));
+	//plot1(NeoSerial, int(DYaw)*10);
+	//delay(40);
+	return DYaw;
+	//return ICM20948AHRS_predictYawDelta(dt);
+}
+
+
 
 bool DevICM20948::EEload_Calib(long int &eeAddress)
 {

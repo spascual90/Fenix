@@ -71,7 +71,7 @@ void ActuatorManager::stopAutoMode(){
 	setTargetRudder(getCurrentRudder());
 }
 
-int ActuatorManager::Compute(float setPoint, float processVariable, float speed) {
+int ActuatorManager::Compute(float setPoint, float processVariable, float speed, float predictedYaw) {
 
 //			PID FACTOR
 //		  1. Target Bearing(TB) is considered the 0 reference (TB' reference system) instead of magnetic North.
@@ -92,10 +92,10 @@ int ActuatorManager::Compute(float setPoint, float processVariable, float speed)
 		if (PIDerrorPrima>180) PIDerrorPrima -=360;
 		if (PIDerrorPrima<=-180)  PIDerrorPrima +=360;
 
-		return this->Compute(PIDerrorPrima, speed);
+		return this->Compute(PIDerrorPrima, speed, predictedYaw);
 }
 
-int ActuatorManager::Compute(float PIDerrorPrima, float speed) {
+int ActuatorManager::Compute(float PIDerrorPrima, float speed, float predictedYaw) {
 
 		static int delta_rudder =0;
 		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
@@ -103,6 +103,8 @@ int ActuatorManager::Compute(float PIDerrorPrima, float speed) {
 
 		PID_ext::Compute(delta_rudder, speed);
 		delta_rudder = controlActuator (getOutput());
+		PID_ext::setKanticipContrib(predictedYaw/100.0);
+		//predictedYaw
 
 		return 1;
 	}
@@ -142,76 +144,195 @@ int ActuatorManager::changeRudder(int delta_rudder) {
 }
 
 //Returns delta btw current and target rudder position
-int ActuatorManager::controlActuator(int target_rudder) {
-	int delta = 0;
-	int feedback = updateCurrentRudder();
-	static int lastStopRudder = getCurrentRudder();
-	static bool wait_after_change = false;
-	static e_dir lastDir= EXTEND;
-	static unsigned long change_time = 0;
-	bool out_min = feedback < getLimitMinFeedback();
-	bool out_max = feedback > getLimitMaxFeedback();
+//int ActuatorManager::controlActuator(int target_rudder) {
+//	int delta = 0;
+//	int feedback = updateCurrentRudder();
+//	static int lastStopRudder = getCurrentRudder();
+//	static bool wait_after_change = false;
+//	static e_dir lastDir= EXTEND;
+//	static unsigned long change_time = 0;
+//	bool out_min = feedback < getLimitMinFeedback();
+//	bool out_max = feedback > getLimitMaxFeedback();
+//	unsigned long ahora;
+//	//if (out_min) DEBUG_print(F("Out of LimitMinFeedback. Recalibrate linear actuator\n"));
+//	//if (out_max) DEBUG_print(F("Out of LimitMaxFeedback. Recalibrate linear actuator\n"));
+//	#ifdef DEBUG
+//	static bool point=false;
+//	#endif
+//
+//	delta = getSpeed()==0?target_rudder - lastStopRudder:target_rudder - getCurrentRudder();
+//	e_dir dir = delta==abs(delta)?EXTEND:RETRACT;
+//	ahora = millis();
+//
+//	if (((ahora-change_time) > ACTUATOR_STOP_TIME) and (wait_after_change==true)) {
+//		wait_after_change=false;
+//		#ifdef DEBUG
+//		DEBUG_print(F("G"));
+//		#endif
+//	}
+//	bool limite = (out_min and dir==RETRACT) or (out_max and dir==EXTEND);
+//	if ((abs(delta)<toRudder(getErrorFeedback ())) or
+//		limite or
+//		(wait_after_change==true)) { //WHATEVER SPEED, IF DELTA IS SMALL OR ACTUATOR ARRIVES TO LIMIT STOP ACTUATOR
+//		//DEBUG_print(F("_"));
+//			if (getSpeed()!=0) {
+//				setSpeed (0, limite);
+//				lastStopRudder=getCurrentRudder();
+//				#ifdef DEBUG
+//				sprintf(DEBUG_buffer,"|%i\n",lastStopRudder);
+//				DEBUG_print(DEBUG_buffer);
+//				delay(10);
+//				point=false;
+//			} else if (!point) {
+//				point=true;
+//				DEBUG_print(F("."));
+//				delay(10);
+//				#endif
+//			}
+//
+//		return delta;
+//	}
+//
+//	if (dir!=lastDir and wait_after_change==false) {
+//		wait_after_change=true;
+//		change_time = ahora;
+//		#ifdef DEBUG
+//		DEBUG_print(F("S"));
+//		#endif
+//		lastDir = dir;
+//		return delta;
+//	}
+//
+//	#ifdef DEBUG
+//	DEBUG_print((dir==EXTEND?">":"<"));
+//	delay(10);
+//	point=false;
+//	#endif
+//
+//	if (dir!=getDir()) setDir(dir);
+//	if (getSpeed()!=SPEED_CRUISE) setSpeed (SPEED_CRUISE);
+//
+//	return delta;
+//}
 
-	//if (out_min) DEBUG_print(F("Out of LimitMinFeedback. Recalibrate linear actuator\n"));
-	//if (out_max) DEBUG_print(F("Out of LimitMaxFeedback. Recalibrate linear actuator\n"));
+int ActuatorManager::controlActuator(int target_rudder_deg)
+{
+    // --- Estado actual ---
+    int feedback = updateCurrentRudder();
+    int current = getCurrentRudder();
+    int delta = target_rudder_deg - current;
+
+    static unsigned long t_last_dir_change = 0;
+    static e_dir last_direction = EXTEND;
+    static bool waiting_after_change = false;
+
+    const int deadband = toRudder(getErrorFeedback());
+    const unsigned long change_delay = ACTUATOR_STOP_TIME; // 300–500 ms típico
+    const int slow_threshold = 10;   // grados para entrar en modo SLOW
+    const int stop_threshold = toRudder(getErrorFeedback ());   // en este rango paramos
+
+    unsigned long now = millis();
+
+    bool min_limit = feedback < getLimitMinFeedback();
+    bool max_limit = feedback > getLimitMaxFeedback();
+
+
+    // --- 1. Dirección deseada ---
+    e_dir desired_dir = (delta >= 0 ? EXTEND : RETRACT);
+
+    // --- 2. Protección por límites físicos ---
+    if ((desired_dir == RETRACT && min_limit) ||
+        (desired_dir == EXTEND  && max_limit))
+    {
+    	#ifdef DEBUG
+    	DEBUG_print("2.\n");
+    	delay(10);
+    	#endif
+
+        setSpeed(0, true);
+        return delta;
+    }
+
+    // --- 3. Deadband: parar para evitar hunting ---
+    if (abs(delta) <= stop_threshold)
+    {
+		//#ifdef DEBUG
+		//DEBUG_print("3.\n");
+		//delay(10);
+		//#endif
+
+        setSpeed(0, true);
+        return delta;
+    }
+
+    // --- 4. Cambio de dirección protegido ---
+    if (desired_dir != last_direction)
+    {
+
+        if (!waiting_after_change)
+        {
+			#ifdef DEBUG
+			DEBUG_print("4.!w\n");
+			delay(10);
+			#endif
+
+            waiting_after_change = true;
+            t_last_dir_change = now;
+            setSpeed(0, true);
+            return delta;
+        }
+    }
+
+    if (waiting_after_change)
+    {
+        if (now - t_last_dir_change < change_delay)
+        {
+			#ifdef DEBUG
+			DEBUG_print("4.w\n");
+			delay(10);
+			#endif
+            setSpeed(0, true);
+            return delta;
+        }
+        else
+        {
+            waiting_after_change = false;
+            last_direction = desired_dir;
+        }
+    }
+
+    // --- 5. Elegir velocidad según magnitud del error ---
+    int speed_cmd;
+
+    if (abs(delta) > slow_threshold)
+        speed_cmd = SPEED_CRUISE;   // error grande - mover rápido
+    else
+        speed_cmd = SPEED_CRUISE/2;     // error pequeño - aproximación suave
+
+    // --- 6. Aplicar dirección y velocidad con rampas ---
+    if (getDir() != desired_dir)
+        setDir(desired_dir);
+
+    // Rampa de velocidad real: suavizar pasos
+    int current_speed = getSpeed();
+    int new_speed = current_speed;
+
+    if (speed_cmd > current_speed)
+        new_speed = current_speed + 10;  // rampa de aceleración
+    else if (speed_cmd < current_speed)
+        new_speed = current_speed - 10;  // rampa de frenado
+
+    // Limitar velocidad final
+    new_speed = constrain(new_speed, 0, SPEED_CRUISE);
+
 	#ifdef DEBUG
-	static bool point=false;
-	#endif
-
-	delta = getSpeed()==0?target_rudder - lastStopRudder:target_rudder - getCurrentRudder();
-
-	unsigned long ahora = millis();
-	if (getDir()!=lastDir and wait_after_change==false) {
-		wait_after_change=true;
-		change_time = ahora;
-		#ifdef DEBUG
-		DEBUG_print(F("S"));
-		#endif
-	}
-	lastDir = getDir();
-
-	if (((ahora-change_time) > ACTUATOR_STOP_TIME) and (wait_after_change==true)) {
-		wait_after_change=false;
-		#ifdef DEBUG
-		DEBUG_print(F("G"));
-		#endif
-	}
-
-	if ((abs(delta)<toRudder(getErrorFeedback ())) or
-		(out_min and getDir()==RETRACT) or
-		(out_max and getDir()==EXTEND) or
-		(wait_after_change==true)) { //WHATEVER SPEED, IF DELTA IS SMALL OR ACTUATOR ARRIVES TO LIMIT STOP ACTUATOR
-
-			if (getSpeed()!=0) {
-				setSpeed (0);
-				lastStopRudder=getCurrentRudder();
-				#ifdef DEBUG
-				sprintf(DEBUG_buffer,"|%i\n",lastStopRudder);
-				DEBUG_print(DEBUG_buffer);
-				delay(10);
-				point=false;
-			} else if (!point) {
-				point=true;
-				DEBUG_print(F("."));
-				delay(10);
-				#endif
-			}
-
-		return delta;
-	}
-
-	e_dir dir = delta==abs(delta)?EXTEND:RETRACT;
-
-	#ifdef DEBUG
-	DEBUG_print((dir==EXTEND?">":"<"));
+	DEBUG_print("6.\n");
 	delay(10);
-	point=false;
 	#endif
 
-	if (dir!=getDir()) setDir(dir);
-	if (getSpeed()!=SPEED_CRUISE) setSpeed (SPEED_CRUISE);
+    setSpeed(new_speed, true);
 
-	return delta;
+    return delta;
 }
 
 void ActuatorManager::ResetTunings(){

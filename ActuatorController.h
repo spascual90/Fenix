@@ -34,7 +34,7 @@ public:
 	ActuatorController();
 	virtual ~ActuatorController();
 
-	int setSpeed (int);
+	int setSpeed (int, bool inmediate = false);
 	e_dir setDir (e_dir);
 
 	e_dir getDir() const {

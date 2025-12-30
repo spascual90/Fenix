@@ -1,7 +1,7 @@
 #ifndef FENIX_CONFIG_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.4.0.B1"
+#define ARDUINO_VERSION "v.4.1.B1"
 
 // RELEASE v.2.0.B1
 // RELEASE v.2.1.B1
@@ -58,6 +58,12 @@
 // Enhances configuration flexibility for installation parameters from Fenix App.
 // Major refactor to Autopilot and related modules for improved handling of external heading, wind, and speed data.
 // Adds support for HDG: true heading, magnetic variation, and heading deviation.
+//v4.1.B1
+// Updates interfaces and debug output to support new predictive features
+// Refactors actuator control for smoother direction changes and speed ramping
+// Adjusts configuration and rudder limits for improved control
+// Info: TESTER_IF introduces predictive yaw delta calculation using IMU data for information only. Doesnt change PID logic
+// Deprecated: Deprecates unused PID autotune application
 
 //DEBUG
 // Defined for Release version
@@ -71,10 +77,10 @@
 //#define DEBUG
 //#define TESTER_IF
 //#define FREQ_MONITOR
+//#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
 //Other libraries necessary for printing to serial monitor
 #include "GPSport.h" // Some libraries requires to uncomment this line to print debug messages to serial monitor
-//#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
 
 // PIN Configuration

@@ -31,9 +31,8 @@
 //
 //// ADDITIONAL RUDDER PARAMETERS
 //// Parameters for rudder
-//#define DEFAULT_MRA 512 // MRA = ABS_MIN_RUDDER Value in degrees *10
+//#define DEFAULT_MRA 350 // MRA = ABS_MIN_RUDDER Value in degrees *10
 //#define RUDDER_LENGHT 1023 // Value in degrees *10
-
 //Rudder status
 enum e_rudderStatus {EXTENDED, CENTERED, RETRACTED};
 enum e_feedback_status {FEEDBACK_OK, OK_VIRTUAL, ERROR_TOO_BIG};

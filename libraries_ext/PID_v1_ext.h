@@ -63,6 +63,11 @@ class PID_ext : public PID {
   //Display functions ****************************************************************
 	double getKdContrib();
 	double getKpContrib();
+	double getKanticipContrib();
+
+	void setKanticipContrib(double kanticipContrib) {
+		kanticipContrib=_kanticipContrib;
+	}
 
 	float getSpeed_ref() const {
 		return _speed_ref;
@@ -92,6 +97,7 @@ class PID_ext : public PID {
   private:
     //SPM INI
     double _kpContrib, _kdContrib;
+    double _kanticipContrib;
     //Limit I contribution to PID
     double IoutMin, IoutMax;
     // speed reference for PID performance

@@ -103,16 +103,9 @@ e_feedback_status RudderFeedback::IBIT(){
 int RudderFeedback::updateCurrentRudder() {
 	int Feedback = getFeedback();
 
-
 	//Transforms actuator feedback into rudder metrics based on RUDDERFEEDBACK.H PARAMETERS
 	_currentRudder = toRudder(Feedback-getLimitMinFeedback())+getMinRudder(); // (+MIN_RUDDER)
-//	sprintf(DEBUG_buffer,"_currentRudder: %i\n", _currentRudder);
-//	DEBUG_print();
-
-
-//#ifdef VIRTUAL_ACTUATOR
-//	_currentRudder = 0;
-//#endif
+	//DEBUG_sprintf("_currentRudder", _currentRudder);
 
 	return Feedback;
 }

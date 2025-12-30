@@ -70,6 +70,11 @@ unsigned long lastPrint = 0; // Keep track of print time
 static float q[4] = {1.0, 0.0, 0.0, 0.0};
 static float yaw, pitch, roll; //Euler angle output
 
+// --- START: add yaw-rate and yaw-acceleration calculation ---
+static float filtered_psi_dot = 0.0f;  // filtered yaw rate (rad/s)
+static float filtered_yaw_accel = 0.0f;// filtered yaw angular acceleration (rad/s^2)
+
+
 ////Gyro default scale 250 dps. Convert to radians/sec subtract offsets
 //float G_offset[3] = {240.7, 227.7, -4.8};
 ////Accel scale: divide by 16604.0 to normalize
@@ -113,6 +118,31 @@ extern bool ICM20948AHRS_setup(bool orientation = false)
   }
   return true;
 }
+
+// Returns predicted yaw delta (degrees) after dt_future seconds
+float ICM20948AHRS_predictYawDelta(float dt_future= 1) {
+    // filtered_psi_dot: yaw rate (rad/s)
+    // yaw_accel: yaw acceleration (rad/s^2)
+
+    float delta_yaw_rad =
+          filtered_psi_dot * dt_future
+        + 0.5f * filtered_yaw_accel * dt_future * dt_future;
+
+    // Convert to degrees
+    float delta_yaw_deg = delta_yaw_rad * 180.0f / PI;
+
+    return delta_yaw_deg;
+}
+
+float get_filtered_psi_dot (void) {
+	return filtered_psi_dot;
+}
+
+float get_yaw_accel (void) {
+	return filtered_yaw_accel;
+}
+
+
 
 float ICM20948AHRS_loop()
 {
@@ -171,6 +201,36 @@ float ICM20948AHRS_loop()
       pitch = asin(2.0 * (q[0] * q[2] - q[1] * q[3]));
       yaw   = atan2((q[1] * q[2] + q[0] * q[3]), 0.5 - ( q[2] * q[2] + q[3] * q[3]));
 
+      // Compute body rates p,q,r from GAxyz (these are already scaled in get_scaled_IMU)
+      float p = GAxyz[0]; // roll rate (rad/s)
+      float q = GAxyz[1]; // pitch rate (rad/s)
+      float r = GAxyz[2]; // yaw rate about body Z (rad/s)
+
+      // Avoid division by near-zero cos(pitch)
+      float cos_pitch = cos(pitch);
+      if (fabs(cos_pitch) < 1e-3f) cos_pitch = (cos_pitch >= 0) ? 1e-3f : -1e-3f;
+
+      // Convert body rates to Euler yaw rate (psi_dot) using standard transform:
+      // psi_dot = (sin(roll)/cos(pitch)) * q + (cos(roll)/cos(pitch)) * r
+      float psi_dot = (sin(roll) / cos_pitch) * q + (cos(roll) / cos_pitch) * r;
+
+      // Simple exponential filter for yaw rate to reduce noise (alpha between 0..1, smaller=>more smoothing)
+      #define PSI_DOT_ALPHA 0.90f
+
+      float last_psi_dot = filtered_psi_dot;
+      filtered_psi_dot = PSI_DOT_ALPHA * filtered_psi_dot + (1.0f - PSI_DOT_ALPHA) * psi_dot;
+
+      // Compute yaw angular acceleration (difference divided by dt) with small safeguard
+      float dt_local = deltat;
+      if (dt_local <= 0.0f) dt_local = 1e-6f;
+
+      // original: // if ((deltat-deltat_avg) > 0.03) { ...
+       // if ((deltat-deltat_avg) > 0.03) { ...
+
+      // New: compute yaw acceleration
+	  #define YAW_ACCEL 0.95f
+      filtered_yaw_accel = filtered_yaw_accel*YAW_ACCEL + (1.0f-YAW_ACCEL)* (filtered_psi_dot - last_psi_dot) / dt_local;
+
       // to degrees
       yaw   *= 180.0 / PI;
       pitch *= 180.0 / PI;
@@ -183,45 +243,42 @@ float ICM20948AHRS_loop()
       if (yaw < 0) yaw += 360.0;
       if (yaw >= 360.0) yaw -= 360.0;
 
+      ICM20948AHRS_predictYawDelta();
   }
   return yaw;
 }
 
-// Returns a heading (in degrees) given an acceleration vector a due to gravity, a magnetic vector m, and a facing vector p.
-// applies magnetic declination
-int get_heading(float acc[3], float mag[3], float p[3], float magdec)
-{
-float W[3], N[3]; //derived direction vectors
-// cross "Up" (acceleration vector, g) with magnetic vector (magnetic north + inclination) with  to produce "West"
-vector_cross(acc, mag, W);
-vector_normalize(W);
-
-// cross "West" with "Up" to produce "North" (parallel to the ground)
-//vector_cross(W, acc, N);
-vector_normalize(N);
-
-// compute heading in horizontal plane, correct for local magnetic declination in degrees
-
-float h = -atan2(vector_dot(W, p), vector_dot(N, p)) * 180 / M_PI; //minus: conventional nav, heading increases North to East
-int heading = round(h + magdec);
-heading = (heading + 720) % 360; //apply compass wrap
-return heading;
-}
+//// Returns a heading (in degrees) given an acceleration vector a due to gravity, a magnetic vector m, and a facing vector p.
+//// applies magnetic declination
+//int get_heading(float acc[3], float mag[3], float p[3], float magdec){
+//	float W[3], N[3]; //derived direction vectors
+//	// cross "Up" (acceleration vector, g) with magnetic vector (magnetic north + inclination) with  to produce "West"
+//	vector_cross(acc, mag, W);
+//	vector_normalize(W);
+//
+//	// cross "West" with "Up" to produce "North" (parallel to the ground)
+//	//vector_cross(W, acc, N);
+//	vector_normalize(N);
+//
+//	// compute heading in horizontal plane, correct for local magnetic declination in degrees
+//
+//	float h = -atan2(vector_dot(W, p), vector_dot(N, p)) * 180 / M_PI; //minus: conventional nav, heading increases North to East
+//	int heading = round(h + magdec);
+//	heading = (heading + 720) % 360; //apply compass wrap
+//	return heading;
+//}
 
 // vector math
-float vector_dot(float a[3], float b[3])
-{
+float vector_dot(float a[3], float b[3]){
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 // basic vector operations
-void vector_cross(float a[3], float b[3], float out[3])
-{
+void vector_cross(float a[3], float b[3], float out[3]){
   out[0] = a[1] * b[2] - a[2] * b[1];
   out[1] = a[2] * b[0] - a[0] * b[2];
   out[2] = a[0] * b[1] - a[1] * b[0];
 }
-void vector_normalize(float a[3])
-{
+void vector_normalize(float a[3]){
   float mag = sqrt(vector_dot(a, a));
   a[0] /= mag;
   a[1] /= mag;
@@ -549,4 +606,3 @@ extern int16_t* ICM20948AHRS_calibration_loop(char sensor) {
     }
     return gyro_acc_mag;
 }
-

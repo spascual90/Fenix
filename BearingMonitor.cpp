@@ -257,6 +257,7 @@ e_IMU_status BearingMonitor::updateHeading(unsigned long NMEA_RXtime){
 	case CAL_MODE:
 		updateHeadingINT();
 		sb_ext_reset = true;
+		predictYawDelta(0.2);
 		break;
 
 	case EXTERNAL_IMU:
@@ -291,6 +292,10 @@ void BearingMonitor::updateHeadingINT(void){
 
 	_heading = yaw;
 	updateHeadingT();
+}
+
+float BearingMonitor::predictYawDelta(float dt) {
+	return _imuDevice->predictYawDelta(dt);
 }
 
 // Function for external IMU only. For internal IMU use updateHeading(void) instead

@@ -141,14 +141,14 @@ bool HMIArq::Change_instParam (s_instParam instParam) {
 
 }
 
-void HMIArq::Apply_PIDrecom(){
-	if (MyPilot->CopyToPIDAutoTune()) {
-		MyPilot->buzzer_Beep();
-		MyPilot->setCurrentMode(STAND_BY);
-	} else {
-		DEBUG_print ("!PID recommendation not available\n");
-	}
-}
+//void HMIArq::Apply_PIDrecom(){
+//	if (MyPilot->CopyToPIDAutoTune()) {
+//		MyPilot->buzzer_Beep();
+//		MyPilot->setCurrentMode(STAND_BY);
+//	} else {
+//		DEBUG_print ("!PID recommendation not available\n");
+//	}
+//}
 
 
 void HMIArq::ResetPID(){

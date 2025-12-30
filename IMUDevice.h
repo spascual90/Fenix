@@ -75,11 +75,14 @@ public:
     virtual bool EEsave_Calib(long int &eeaddress);
     virtual void displaySensorOffsets(void);
     virtual float updateHeading();
+    virtual float predictYawDelta(float dt);
     virtual bool IMU_Cal_Loop(void);
     virtual bool getCalibrationStatus(uint8_t &system, uint8_t &gyro, uint8_t &accel, uint8_t &mag);
     virtual bool IMU_Cal_stopRequest(void);
     virtual bool set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor);
 
+    //virtual float get_filtered_psi_dot(void);
+    //virtual float get_yaw_accel (void);
 
     //I2C Configuration
     int get_PIN_SDA() {return PIN_SDA;}
