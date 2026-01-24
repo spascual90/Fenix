@@ -144,7 +144,7 @@ e_working_status Autopilot::Compute() {
 	ActuatorManager::compute_VA();
 	#endif
 	// Updates current rudder just once each loop. Stores value for later use.
-	if (updateCurrentRudder()<0) return RUNNING_ERROR;
+	if (!updateCurrentRudder()) return RUNNING_ERROR;
 
 	switch (_currentMode) {
 	case AUTO_MODE:
@@ -471,6 +471,17 @@ bool Autopilot::setHeadingDev(float headingDev) {
 	}
 	return true;
 }
+
+bool Autopilot::setMaxRudder(int16_t value_maxRudder, bool recalc) {
+	RudderFeedback::setMaxRudder(value_maxRudder, recalc);
+}
+
+
+bool Autopilot::setFbkError(int16_t value_FbkError, bool recalc) {
+	RudderFeedback::setErrorFeedback(value_FbkError, recalc);
+}
+
+
 
 // CALIBRATION MODE
 inline bool Autopilot::isCalMode(void){
@@ -874,6 +885,8 @@ void Autopilot::Request_instParam(s_instParam & instParam) {
 }
 
 void Autopilot::buzzer_tone_start (unsigned long frequency, int duration) {
+	// If alarm is active prevails
+	if (_offCourseAlarmActive) return;
 #ifdef BUZZER
 	_buzzFrec = frequency;
 	_buzzDur = duration;
@@ -890,7 +903,8 @@ bool Autopilot::Change_instParam (s_instParam instParam) {
 	bool rt = false;
 	if (getCurrentMode() == STAND_BY) { //ONLY ALLOWED IN STAND_BY MODE
 		if (instParam.flag.centerTiller) setDeltaCenterOfRudder(instParam.centerTiller);
-		//TODO: change MRA
+		//MRA
+		if (instParam.flag.maxRudder) setMRA(instParam.maxRudder);
 		if (instParam.flag.avgSpeed) setAvgSpeed(instParam.avgSpeed);
 		//TODO: change installation side
 		if (instParam.flag.rudDamping) setErrorFeedback(instParam.rudDamping);
@@ -1006,12 +1020,11 @@ bool Autopilot::compute_OCA (float delta) {
 			_offCourseAlarmIDLE = true; // Alarm in Stand By
 			//DEBUG_print(F("OCA Alarm: Stand by\n"));
 		}
-		if (sb_offCourse ==true) {
+		if (sb_offCourse ==true)
+		{
 			// reset static values
 			sb_offCourse=false; // in course, stop counting
-			_offCourseAlarmActive = false;
-			buzzer_noTone(); // shut down alarm
-			setWarning();
+			set_OCA(false);
 		}
 		return _offCourseAlarmActive;
 
@@ -1021,20 +1034,34 @@ bool Autopilot::compute_OCA (float delta) {
 	if (_offCourseAlarmIDLE == true and l_offCourse == true and sb_offCourse == false) {
 		sb_offCourse = true;
 		sd_offCourseStartTime = getLoopMillis();
+		//DEBUG_print(F("OCA Alarm: Start counting\n"));
 	}
 
 	if (_offCourseAlarmIDLE == true and
 		_offCourseAlarmActive == false and
-		(getLoopMillis()-sd_offCourseStartTime)>_offCourseMaxTime) {
+		(getLoopMillis()-sd_offCourseStartTime)>_offCourseMaxTime)
+	{
+		set_OCA();
+	}
+	return _offCourseAlarmActive;
+}
 
-		_offCourseAlarmActive = true;
+void Autopilot::set_OCA (bool set) {
+	if (set)
+	{
+		// INI: These instructions always in this order
 		setWarning(OUT_OF_COURSE);
 		buzzer_tone_start (1000, 1023);
-
-
+		_offCourseAlarmActive = true;
+		// END: These two instructions always in this order
+		//DEBUG_print(F("OCA Alarm: Alarm!\n"));
+	} else
+	{
+		_offCourseAlarmActive = false;
+		buzzer_noTone(); // shut down alarm
+		setWarning(NO_WARNING);
+		//DEBUG_print(F("OCA Alarm: Stopped\n"));
 	}
-
-	return _offCourseAlarmActive;
 }
 
 
@@ -1265,22 +1292,21 @@ void Autopilot::printWarning(bool instant) {
 
 	if ( (instant == true) or (getLoopMillis() - lastWprint) > W_DISPLAY_TIME ) {
 
-		if (_warning!=NO_WARNING and prev_warning!=_warning) {
+		if (prev_warning!=_warning) {
 			DEBUG_sprintf("!WARNING Code", _warning);
 
 			buzzer_Warning();
 			prev_warning = _warning;
 			_pending_W = false;
+			// reset counter
+			lastWprint = getLoopMillis();
 		}
 		int fmemory = freeMemory();//*100)/8192; //% of free memory in Arduino MEGA (8KB RAM)
 		if (fmemory <500) {
 
 			DEBUG_sprintfree("!Low memory: %i/8192 bytes\n", fmemory );
-
 		}
 
-		// reset counter
-		lastWprint = getLoopMillis();
 	}
 	return;
 }

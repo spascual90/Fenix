@@ -42,6 +42,11 @@ public:
 	RudderFeedback(int MRA = DEFAULT_MRA, int error = DEFAULT_ERROR_FEEDBACK, int deltaCenterOfRudder=0, int minFeedback=D_MIN_FEEDBACK, int maxFeedback=D_MAX_FEEDBACK);
 	virtual ~RudderFeedback();
 
+	uint16_t readFeedback() const;
+
+	uint16_t getCurrentFeedback () const {
+		return _currentFeedback;
+	}
 	int getErrorFeedback () const {
 		return _errorFeedback;
 	}
@@ -54,8 +59,6 @@ public:
 
 	e_rudderStatus getRudderStatus() const;
 
-	int getFeedback() const;
-
 	int getDeltaCenterOfRudder() const {
 		return _delta_center_of_rudder;
 	}
@@ -63,6 +66,12 @@ public:
 
 	int getCenterOfRudder() const {
 		return _center_of_rudder;
+	}
+
+
+	// MIN_RUDDER = -MRA; MAX_RUDDER = MRA-1
+	int getMRA() const {
+		return _MRA;
 	}
 
 	int getMinRudder() const {
@@ -114,9 +123,10 @@ protected:
 	void setMinFeedback (int min_feedback = 0, bool recalc = true);
 	void setMaxFeedback (int max_feedback = D_MAX_FEEDBACK, bool recalc = true);
 	void setMRA (int MRA = DEFAULT_MRA, bool recalc = true);
+	void setMaxRudder (int maxRudder = DEFAULT_MRA -1, bool recalc = true);
 	e_feedback_status setup(bool b_ibit=false); // b_ibit=true->performs IBIT at the end
 	e_feedback_status IBIT();
-	int updateCurrentRudder();
+	bool updateCurrentRudder();
 	int toRudder(int feedback) {
 		return feedback*_ratio;
 	};
@@ -137,6 +147,7 @@ private:
 
 #else
 	//independent variables
+	uint16_t _currentFeedback; // Actuator feedback
 	int _errorFeedback = DEFAULT_ERROR_FEEDBACK;
 	int _min_feedback = D_MIN_FEEDBACK;//A number between 0 and 1023.
 	int _max_feedback = D_MAX_FEEDBACK;//A number between 0 and 1023.

@@ -101,6 +101,16 @@ void HMIArq::Change_CenterRudder(int16_t valueCenterRudder) {
 	MyPilot->buzzer_Beep();
 }
 
+void HMIArq::Change_MaxRudder(int16_t value_MaxRudder) {
+	MyPilot->setMaxRudder(value_MaxRudder);
+	MyPilot->buzzer_Beep();
+}
+
+void HMIArq::Change_FbkError(int16_t value_FbkError) {
+	MyPilot->setFbkError(value_FbkError);
+	MyPilot->buzzer_Beep();
+}
+
 void HMIArq::Change_magneticVariation(float value_MagneticVariation) {
 	MyPilot->setMagneticVariation(value_MagneticVariation);
 	MyPilot->buzzer_Beep();

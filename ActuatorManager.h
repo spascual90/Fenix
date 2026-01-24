@@ -27,7 +27,7 @@
 #define RUD_B_MED 1 	//Cruisers
 #define RUD_B_MAX 1.5 	//Sailing
 
-#define ACTUATOR_STOP_TIME 500 //stop time between changes of direction
+#define ACTUATOR_STOP_TIME 1800 //stop time between changes of direction
 
 // TODO: Installation side always STARBOARD. Implement PORTBOARD
 // Installation side

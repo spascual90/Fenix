@@ -10,8 +10,7 @@
 RudderFeedback::RudderFeedback(int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback) {
 
 	//setup independent variables
-	setMRA(MRA, false); // TODO: MRA user configurable
-
+	setMRA(MRA, false);
 	setErrorFeedback(error, false);
 	setMinFeedback(minFeedback, false);
 	setMaxFeedback(maxFeedback, false);
@@ -29,8 +28,9 @@ e_feedback_status RudderFeedback::setup(bool b_ibit){
 	setLimitMinFeedback(_min_feedback);
 	setLimitMaxFeedback(_max_feedback);
 	_feedback_lenght = _limit_max_feedback-_limit_min_feedback;
-	_ratio = RUDDER_LENGHT/float(_feedback_lenght);
-	_center_of_rudder = (RUDDER_LENGHT / 2) + 1 + getMinRudder() + getDeltaCenterOfRudder() ;
+	int rudder_lenght = (_MRA*2) -1;
+	_ratio = rudder_lenght/float(_feedback_lenght);
+	_center_of_rudder = (rudder_lenght / 2) + 1 + getMinRudder() + getDeltaCenterOfRudder() ;
 	updateCurrentRudder();
 
 	if (b_ibit) ret = IBIT();
@@ -38,30 +38,56 @@ e_feedback_status RudderFeedback::setup(bool b_ibit){
 }
 
 void RudderFeedback::setErrorFeedback (int error, bool recalc) {
+	// always in limits
+	error=max(error,1);
+	error=min(error,10);
+
+
 	_errorFeedback = error;
 	if (recalc) setup(); // recalculating dependent variables
 }
 
 void RudderFeedback::setMinFeedback(int minFeedback, bool recalc) {
+	// always positive
+	minFeedback=abs(minFeedback);
+	// always in limits
+	minFeedback=min(minFeedback,1023);
+
 	//independent variable that can be changed in Standby mode
 	_min_feedback = minFeedback;
 	if (recalc) setup(); // recalculating dependent variables
 }
 
 void RudderFeedback::setMaxFeedback(int maxFeedback, bool recalc) {
+	// always positive
+	maxFeedback=abs(maxFeedback);
+	// always in limits
+	maxFeedback=min(maxFeedback,1023);
 	//independent variable that can be changed in Standby mode
 	_max_feedback = maxFeedback;
 	if (recalc) setup(); // recalculating dependent variables
 }
 
 void RudderFeedback::setMRA(int MRA, bool recalc) {
+	// always positive
+	MRA=abs(MRA);
+	// always in limits
+	MRA=min(MRA,511);
+
 	//independent variable that can be changed in Standby mode
 	_MRA = MRA;
 	if (recalc) setup(); // recalculating dependent variables
 }
 
+// alternative to setMRA
+void RudderFeedback::setMaxRudder(int maxRudder, bool recalc) {
+	setMRA(maxRudder+1, recalc);
+}
 
 void RudderFeedback::setDeltaCenterOfRudder(int deltaCenterOfRudder, bool recalc) {
+	// positive or negative
+	// always in limits
+	deltaCenterOfRudder=min(deltaCenterOfRudder,510);
 	//independent variable that can be changed in Standby mode
 	_delta_center_of_rudder = deltaCenterOfRudder;
 	if (recalc) setup(); // recalculating dependent variables
@@ -77,7 +103,7 @@ e_feedback_status RudderFeedback::IBIT(){
 
 	// Check feedback parameters
 	updateCurrentRudder();
-	sprintf(DEBUG_buffer,"Feedback status: %i (L:%i, min:%i, Max:%i)\n", getFeedback(), _feedback_lenght, getLimitMinFeedback(), getLimitMaxFeedback() );
+	sprintf(DEBUG_buffer,"Feedback status: %i (L:%i, min:%i, Max:%i)\n", getCurrentFeedback(), _feedback_lenght, getLimitMinFeedback(), getLimitMaxFeedback() );
 	DEBUG_print();
 	sprintf(DEBUG_buffer,"Rudder parameters: Ratio: %s\n", dtostrf(_ratio,l,d,c4));
 	DEBUG_print();
@@ -100,17 +126,17 @@ e_feedback_status RudderFeedback::IBIT(){
 
 }
 
-int RudderFeedback::updateCurrentRudder() {
-	int Feedback = getFeedback();
+bool RudderFeedback::updateCurrentRudder() {
+	_currentFeedback = readFeedback();
 
 	//Transforms actuator feedback into rudder metrics based on RUDDERFEEDBACK.H PARAMETERS
-	_currentRudder = toRudder(Feedback-getLimitMinFeedback())+getMinRudder(); // (+MIN_RUDDER)
+	_currentRudder = toRudder(_currentFeedback-getLimitMinFeedback())+getMinRudder(); // (+MIN_RUDDER)
 	//DEBUG_sprintf("_currentRudder", _currentRudder);
 
-	return Feedback;
+	return true;
 }
 
-int RudderFeedback::getFeedback() const {
+uint16_t RudderFeedback::readFeedback() const {
 #ifndef VIRTUAL_ACTUATOR
 	return analogRead(PIN_RUDDER);
 #else
@@ -136,7 +162,7 @@ int RudderFeedback::rudder_IBIT () {
 	DEBUG_print(F(" It may take a few seconds..."));
 
 	while ( i++ < 500) {
-		val = getFeedback();
+		val = readFeedback();
 		delay (10);
 		if (val<val_min) val_min=val;
 		if (val>val_max) val_max=val;
@@ -176,7 +202,7 @@ void RudderFeedback::getFBKcalStatus(uint16_t & cal_min, uint16_t & cal_max) {
 
 void RudderFeedback::compute_Cal_Feedback() {
 	bool changed = false;
-	int feedback = getFeedback();
+	int feedback = readFeedback();
 	if(feedback<_cal_minFeedback) {_cal_minFeedback=feedback; changed = true;}
 	if(feedback>_cal_maxFeedback) {_cal_maxFeedback=feedback; changed = true;}
 }

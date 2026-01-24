@@ -75,7 +75,7 @@
 //#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
-//#define TESTER_IF
+#define TESTER_IF
 //#define FREQ_MONITOR
 //#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 

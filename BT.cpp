@@ -23,7 +23,7 @@ void BT::setup() {
 	  while (!BTPort)
 	  	  ;
 
-	  	DEBUG_print(F("Bluetooth int... Started\n"));
+	  	DEBUG_print(F("BT int... Started\n"));
 	  	DEBUG_print(F("BT Device on " BT_PORT_NAME "\n"));
 	  	DEBUG_print(F("Supports Fenix App "));
 	  	DEBUG_print(FENIX_APP_COMPATIBILITY);
@@ -207,7 +207,7 @@ void BT::triggerAction () {
 		Enter_Exit_FBK_Calib();//Enter FBK cal mode
     	break;
 
-    case BT_SAVE_FBK_CAL:
+    case BT_SAVE_INST_PARAM: //BT_SAVE_FBK_CAL:
 		if (currentMode == CAL_FEEDBACK ) Enter_Exit_FBK_Calib();// Exit FBK cal mode
 		Save_instParam();
 		break;
@@ -268,6 +268,10 @@ void BT::updateBT(){
 	MyPilot->getFBKcalStatus(fbk_min, fbk_max);
 	_V[AI_FBK_MIN] = fbk_min;
 	_V[AI_FBK_MAX] = fbk_max;
+	_V[AI_MAX_RUDDER] = MyPilot->getMaxRudder() ;
+	_V[AI_FBK_ERROR] = MyPilot->getErrorFeedback() ;
+
+
 
 	static uint8_t S, G, A, M;
 	MyPilot->getCheckSGAM(S, G, A, M);
@@ -360,6 +364,24 @@ void BT::updateSpecialBT() {
 		Change_CenterRudder(valueCenterRudder);
 		// Reset value in app
 		_V[VD_USER_CENTER_RUDDER] = 0;
+
+	}
+
+	// Manual change of Max.Rudder (does not equal MRA!)
+	//
+	int16_t valueMaxRudder = int16_t(_V[VD_USER_MAX_RUDDER]);
+	if (valueMaxRudder!=0) {
+		Change_MaxRudder(valueMaxRudder);
+		// Reset value in app
+		_V[VD_USER_MAX_RUDDER] = 0;
+	}
+
+	// Manual change of feedback error
+	int16_t valueFbkError = int16_t(_V[VD_USER_FBK_ERROR]);
+	if (valueFbkError!=0) {
+		Change_FbkError(valueFbkError);
+		// Reset value in app
+		_V[VD_USER_FBK_ERROR] = 0;
 
 	}
 

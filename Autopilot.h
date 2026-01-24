@@ -483,7 +483,8 @@ public:
     bool setMagneticVariation(float magVariation = 0);
 	void setDBConf (type_DBConfig status);
 	type_DBConfig nextDBConf (void);
-
+	bool setMaxRudder(int16_t value_MaxRudder = 349, bool recalc = true);
+	bool setFbkError(int16_t value_FbkError, bool recalc = true);
 	//FUNCTIONAL MODULE: EEPROM
 	void EEPROM_setup();
 	void EEPROM_format();
@@ -570,11 +571,15 @@ public:
 
 	void setWarning(e_warning warning = NO_WARNING, bool instant = false) {
 
+		if (warning == NO_WARNING) _pending_W = false;
 		if (_warning != warning) {
 
 			//if there are Warnings pending to be displayed, these will be lost!
-			if (_pending_W == true) _lost_W =true;
-
+			if (_pending_W == true)
+			{
+				//printWarning(true);
+				_lost_W =true;
+			}
 			_warning = warning;
 			_pending_W = true;
 		}
@@ -710,6 +715,7 @@ private:
 	double const _offCourseMaxTime = 15000; // max off course time before alarm starts
 	bool _offCourseAlarmActive=false;
 	bool compute_OCA (float delta);
+	void set_OCA (bool set=true);
 
 	uint8_t getOffCourseAlarm() const {
 		return _offCourseAlarm;

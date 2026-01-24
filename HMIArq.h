@@ -75,6 +75,8 @@ protected:
 	//void Apply_PIDrecom();
 	void Change_AvgSpeed(int16_t AvgSpeed);
 	void Change_CenterRudder(int16_t AvgSpeed);
+	void Change_MaxRudder(int16_t MaxRudder);
+	void Change_FbkError(int16_t FbkError);
 	bool Change_instParam (s_instParam instParam);
 	void Change_magneticVariation(float value_magneticVariation);
 	void setDBConf (type_DBConfig status);

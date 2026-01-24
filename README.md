@@ -22,7 +22,7 @@ Upload the SW to Arduino, the App to mobile and configure the autopilot paramete
 
 ## HW integration
 - Guide on how to integrate the components and build your Fenix autopilot
-- Build of materials: the basic shop list to build Fenix autopilot
+- Bill of materials: the basic shop list to build Fenix autopilot
 - You can find all information in the web page:
 https://fenix-autopilot.com/start-to-build-from-here
 - Fritzing file for PCB production is available in Fenix PCB repository:

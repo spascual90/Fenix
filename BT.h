@@ -5,7 +5,7 @@
 #include "BTArq.h"
 #include "HMIArq.h"
 
-#define FENIX_APP_COMPATIBILITY "v.5.X"
+#define FENIX_APP_COMPATIBILITY "v.6.X"
 
 //Virtuino App V6 - Virtual memory button offset (c_BTN_V)
 
@@ -26,37 +26,70 @@
 //Digital Virtual PIN (0/1 values) reserved for PUSH BUTTONS
 // VIRTUINO APP V6: Virtual memory for buttons in Virtuino App V6 has an offset defined by c_BTN_V
 // note, all enum values between START_BT and MAX_BT shall be defined!
+//enum e_BT_push_button {
+//		  START_BT=			-1
+//
+//		, BT_START_STOP=	0
+//		, BT_USER_REQUEST_ACCEPTED = 1
+//		, BT_USER_REQUEST_REJECTED = 2
+//		, BT_INC_MIX_1=		3
+//		, BT_INC_MIX_10= 	4
+//		, BT_DEC_MIX_1= 	5
+//		, BT_DEC_MIX_10=	6
+//		, BT_NEXT_COURSE= 7
+//		, BT_INC_TARGET_10=	8
+//		, BT_TACK_STARBOARD=	9
+//		, BT_DEC_TARGET_10=	10
+//		, BT_TACK_PORTBOARD=	11
+//		, BT_RESET_PID= 	12 // DEPRECATED?
+//		, BT_START_STOP_TARGET=	13
+//		, BT_SET_HEADING_DEV =14
+//		, BT_START_IMU_CAL=15
+//		, BT_START_STOP_FBK_CAL=16
+//		, BT_SAVE_IMU_CAL=17
+//		, BT_SAVE_FBK_CAL=18
+//		, BT_SET_VWR = 19
+//		, BT_RESET_HEADING_DEV = 20
+//		, BT_SET_CENTER_RUDDER = 21
+//		, BT_RESTORE_PID = 22
+//		, BT_STOP_AUTOTUNE = 23 // DEPRECATED
+//		, BT_SET_DBCONF = 24
+//		, BT_SAVE_PID = 25
+//
+//		, MAX_BT = BT_SAVE_PID +1
+//	};
 enum e_BT_push_button {
 		  START_BT=			-1
+		, BT_DEC_TARGET_10=	0
+		, BT_TACK_PORTBOARD=	1
+		, BT_RESET_PID= 	2 // DEPRECATED
+		, BT_START_STOP_TARGET=	3
+		, BT_SET_HEADING_DEV =4
+		, BT_START_IMU_CAL=5
+		, BT_START_STOP_FBK_CAL=6
+		, BT_SAVE_IMU_CAL=7 //Ok
+		, BT_SAVE_INST_PARAM=8 //Include feedback calibration parameters
+		, BT_SET_VWR = 9
+		, BT_RESET_HEADING_DEV = 10
+		, BT_SET_CENTER_RUDDER = 11
+		, BT_RESTORE_PID = 12
+		, BT_STOP_AUTOTUNE = 13 // DEPRECATED
+		, BT_SET_DBCONF = 14
+		, BT_SAVE_PID = 15 //Ok
+		//SHIFTED BUTTONS
+		, BT_START_STOP=	16
+		, BT_USER_REQUEST_ACCEPTED = 17// NOT USED
+		, BT_USER_REQUEST_REJECTED = 18// NOT USED
+		, BT_INC_MIX_1=		19
+		, BT_INC_MIX_10= 	20
+		, BT_DEC_MIX_1= 	21
+		, BT_DEC_MIX_10=	22
+		, BT_NEXT_COURSE= 23
+		, BT_INC_TARGET_10=	24
+		, BT_TACK_STARBOARD=	25
 
-		, BT_START_STOP=	0
-		, BT_USER_REQUEST_ACCEPTED = 1
-		, BT_USER_REQUEST_REJECTED = 2
-		, BT_INC_MIX_1=		3
-		, BT_INC_MIX_10= 	4
-		, BT_DEC_MIX_1= 	5
-		, BT_DEC_MIX_10=	6
-		, BT_NEXT_COURSE= 7
-		, BT_INC_TARGET_10=	8
-		, BT_TACK_STARBOARD=	9
-		, BT_DEC_TARGET_10=	10
-		, BT_TACK_PORTBOARD=	11
-		, BT_RESET_PID= 	12 // DEPRECATED?
-		, BT_START_STOP_TARGET=	13
-		, BT_SET_HEADING_DEV =14
-		, BT_START_IMU_CAL=15
-		, BT_START_STOP_FBK_CAL=16
-		, BT_SAVE_IMU_CAL=17
-		, BT_SAVE_FBK_CAL=18
-		, BT_SET_VWR = 19
-		, BT_RESET_HEADING_DEV = 20
-		, BT_SET_CENTER_RUDDER = 21
-		, BT_RESTORE_PID = 22
-		, BT_STOP_AUTOTUNE = 23 // DEPRECATED
-		, BT_SET_DBCONF = 24
-		, BT_SAVE_PID = 25
 
-		, MAX_BT = BT_SAVE_PID +1
+		, MAX_BT = BT_TACK_STARBOARD +1
 	};
 
 
@@ -104,16 +137,22 @@ enum e_BT_AI_PIN {
 , VD_USER_KP = 37
 , VD_USER_KI = 38
 , VD_USER_KD = 39
+, VD_USER_MAX_RUDDER = 40
+, AI_MAX_RUDDER = 41
+, VD_USER_FBK_ERROR = 42
+, AI_FBK_ERROR = 43
+
 // máximo el valor de c_BTN_V -1 o cambiar el valor de los botones en la App
 
 
-
-, MAX_AI = VD_USER_KD +1
+// MAX_AI = valor del último item de la lista +1
+, MAX_AI = AI_FBK_ERROR +1
 };
 
 const uint8_t c_max_V = MAX_AI;
 const uint8_t c_max_DV = MAX_BT;
-const uint8_t c_BTN_V = 40; //Virtuino App V6 - Virtual memory button offset
+//const uint8_t c_BTN_V = 40; //Virtuino App V6 - Virtual memory button offset
+const uint8_t c_BTN_V = 50; //Virtuino App V6 - Virtual memory button offset
 
 
 class BT: public BTArq, public HMIArq {
