@@ -46,6 +46,11 @@ protected:
 	void Dec_Course_10();
 	void Dec_Course_100();
 
+	void Inc_WindDir_1();
+	void Inc_WindDir_10();
+	void Dec_WindDir_1();
+	void Dec_WindDir_10();
+
 	void Inc_Mix_1();
 	void Inc_Mix_10();
 	void Dec_Mix_1();
@@ -85,7 +90,9 @@ protected:
 	//void received_HDT( s_HDT HDT);
 	void received_HDGT( s_HDG HDG);
 	void received_SOG( s_SOG SOG);
-	void received_VWR( s_VWR VWR);
+	void received_TWD( s_TWD TWD);
+	void received_AWA( s_AWA AWA);
+	void change_windMode(void);
 
 	void Start_Cal(char sensor = '-');
 	void Cal_NextSensor (void);

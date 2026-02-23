@@ -23,7 +23,7 @@ enum e_working_status {RUNNING_OK, RUNNING_ERROR, RUN_OUT_OF_TIME};
 
 // working modes
 enum e_APmode {STAND_BY, CAL_IMU_COMPLETE, XXX_DEPRECATED, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE, WIND_MODE, CAL_AUTOTUNE};
-
+enum e_WindMode {MODE_AWA, MODE_TWA};
 // Error codes
 enum e_error {
 	NO_ERROR
@@ -41,7 +41,8 @@ enum e_warning {
 	WP_INVALID,
 	NO_WIND_DATA,
 	IMU_NOTFOUND,
-	LOST_EXT_IMU
+	LOST_EXT_IMU,
+	WIND_CHANGE
 };
 
 // Information codes
@@ -98,6 +99,8 @@ enum e_info {
 
 		//	Current Working Mode
 		e_APmode mode;
+		// Current Wind Mode
+		e_WindMode windMode;
 		//	Current Rudder Position
 		int16_t rudder;
 		//	Heading True (HDT)
@@ -268,24 +271,40 @@ enum e_info {
 		bool processed = false;
 	} ;
 
-	struct s_VWR {
+	//True Wind Direction - TWD (relative to True North)
+	// Pilot use TWA based on calculation TWA = TWD - HDG
+	struct s_TWD {
 		// Is Valid indicates if data is valid or not
 		bool isValid=false;
-		struct {bool windDirDeg; bool windDirLR; bool windSpeed;} flag;
+		struct {bool windDirDeg; bool windSpeed;} flag;
 
-		//	Wind direction magnitude in degrees
+		//	Wind direction magnitude in degrees 0-359
 		whole_frac windDirDeg;
 
-		//	Wind direction Left/Right of bow
-		char windDirLR;
+		// Wind speed m/s
+		whole_frac windSpeed;
+	} ;
 
-		// Relative wind speed
+	//Relative wind information
+	// Apparent Wind Angle - AWA (relative to bow)
+	// Pilot use AWA filtered to prevent overboost
+	struct s_AWA {
+		// Is Valid indicates if data is valid or not
+		bool isValid=false;
+		struct {bool windDirDeg; bool windSpeed;} flag;
+
+		//	Wind direction magnitude in degrees - 0-359
+		whole_frac windDirDeg;
+
+		// Wind speed - m/s
 		whole_frac windSpeed;
 	} ;
 
 	struct s_windInfo {
-		s_VWR VWR;
-		long t0;
+		s_TWD TWD; // Absolute Wind
+		s_AWA AWA; // Relative Wind
+		long TWD_t0;
+		long AWA_t0;
 	} ;
 
 	struct s_SOG {
@@ -316,6 +335,7 @@ enum e_info {
 
 	enum e_actions {
 		NO_INSTRUCTION
+		, TEST
 		, START_STOP
 		, INC_RUDDER_1
 		, INC_RUDDER_10
@@ -352,7 +372,8 @@ enum e_info {
 		//External compass mode
 		, EXT_HEADING
 		//Wind received
-		, RELATIVE_WIND
+		, AWA_WIND
+		, TWD_WIND
 		//Save to EEPROM
 		, SAVE_CAL		// Save current calibration offsets to EEPROM
 		, SAVE_INST		// Save current instParam to EEPROM
@@ -430,10 +451,18 @@ public:
 	e_setup_status setup();
 	e_working_status Compute();
 	bool setCurrentMode(e_APmode = STAND_BY, char sensor = '-');
+	bool setCurrentWindMode (e_WindMode = MODE_AWA);
 
 	inline e_APmode getCurrentMode() const {
 		return _currentMode;
 	}
+
+	inline e_WindMode getCurrentWindMode() const {
+		return _windMode;
+	}
+
+
+
 	String getCurrentModeStr() const {
 		return _status[_currentMode];
 	}
@@ -470,8 +499,9 @@ public:
 	void SOGreceived(s_SOG SOG);
 
 	//WIND MODE
-	void VWRreceived(s_VWR VWR);
-	int getWindDir(void);
+	void AWAreceived(s_AWA AWA);
+	void TWDreceived(s_TWD TWD);
+	float getWindDir(void);
 	float getWindSpeed(void);
 
 	//OVERLOADED FUNCTIONS
@@ -482,6 +512,7 @@ public:
     bool setHeadingDev(float headingDev = 0);
     bool setMagneticVariation(float magVariation = 0);
 	void setDBConf (type_DBConfig status);
+	type_DBConfig getDBConf (void);
 	type_DBConfig nextDBConf (void);
 	bool setMaxRudder(int16_t value_MaxRudder = 349, bool recalc = true);
 	bool setFbkError(int16_t value_FbkError, bool recalc = true);
@@ -522,21 +553,25 @@ public:
 		EEsave_ReqCal('0'); // Update Calibration Flag to disabled
 	}
 
+	//return angle360 in value (-180, 179)
+	float convert360to180(float angle360) {
+		// asume angulo valido
+		//if (angle<0 or angle1>359) return -360;
+		if (angle360>180) return (angle360 -=360.0);
+		//if (angle360<=180) return (angle360 +=360.0);
+		return angle360;
+	}
+
 	//return delta value (-180, 179)
 	//on error, return -360
 	float delta180(float angle1, float angle2) {
-	if (angle1<0 or angle1>359) return -360;
-	if (angle2<0 or angle2>359) return -360;
+		if (angle1<0 or angle1>359) return -360;
+		if (angle2<0 or angle2>359) return -360;
 
-	float angle180 = angle1- angle2;
-	if (angle180>180) angle180 -=360;
-	if (angle180<=-180)  angle180 +=360;
-	return angle180;
-	}
-
-	// FUNCTIONAL MODULE: OFF COURSE ALARM
-	bool isOffCourseAlarmActive() const {
-		return _offCourseAlarmActive;
+		float angle180 = angle1- angle2;
+		if (angle180>180) angle180 -=360;
+		if (angle180<=-180)  angle180 +=360;
+		return angle180;
 	}
 
 	// FUNCTIONAL MODULE: BOAT SPEED
@@ -600,7 +635,7 @@ public:
 		buzzer_Information();
 	}
 
-	void print_PIDFrontend (void);
+//	void print_PIDFrontend (void);
 
 	inline long getLoopMillis() const {
 		return _loop_millis;
@@ -620,8 +655,21 @@ public:
 		#endif
 	}
 
+	inline int getTargetWindDir() const {
+		return _targetWindDir;
+	}
+
+	void setTargetWindDir(int targetWindDir) {
+		_targetWindDir = targetWindDir;
+	}
+
+	void setTargetWindDir_delta(int deltaWindDir);
+	void set_nextWindDir(void);
+
 private:
 	e_APmode _currentMode= STAND_BY; // current working mode
+
+	e_WindMode _windMode = MODE_AWA;
 	float _targetBearing= 0; // target vessel bearing TRUE ANGLE
 	float _nextCourse= 0; // Next course in STDBY/ AUTO Mode  TRUE ANGLE
 	String _status[5] = { "STAND BY", "FOLLOW BEARING", "CALIBRATING" };
@@ -674,10 +722,12 @@ private:
 
 
 	//Wind mode
-	s_windInfo _windInfo;
-	int _targetWindDir; // Target wind direction relative to heading
-	void set_windInfo(s_VWR VWR);
-	bool isValid_VWR (void);
+	s_windInfo _windInfo; // Wind info AWA and TWD from NMEA. Degrees 0-360
+	int _targetWindDir; // Target wind direction relative to heading. Degrees +-180
+	void set_windInfo(s_AWA AWA);
+	void set_windInfo(s_TWD TWD);
+	bool isValid_AWA (void);
+	bool isValid_TWD (void);
 
 
 	void reset(){
@@ -707,6 +757,23 @@ private:
 	unsigned long _DelayBuzzStart = millis();
 
 
+//	// FUNCTIONAL MODULE: WIND CHANGE ALARM
+//	int _WCAlarm_ref; // Angulo de referencia
+//	bool _WCAlarm_active = false;
+//	int const _WCAlarm = 30; // Si AWA/TWA cambian más, salta la alarma
+//	bool compute_WCA (int fWindDir);
+//	void set_WCA (bool set=true);
+//
+//	inline float getWCAlarmRef() const {
+//		return _WCAlarm_ref;
+//	}
+//
+//	void setWCAlarmRef(void) {
+//		_WCAlarm_ref = int(_targetWindDir+getCurrentHeadingT());
+//		if (_WCAlarm_ref>359) _WCAlarm_ref-=360;
+//		if (_WCAlarm_ref<0) _WCAlarm_ref+=360;
+//		//DEBUG_sprintf("DEBUG:_WCAlarm_ref",_WCAlarm_ref);
+//	}
 
 	// FUNCTIONAL MODULE: OFF COURSE ALARM
 	uint8_t _offCourseAlarm; // off course alarm angle
@@ -717,7 +784,7 @@ private:
 	bool compute_OCA (float delta);
 	void set_OCA (bool set=true);
 
-	uint8_t getOffCourseAlarm() const {
+	inline uint8_t getOffCourseAlarm() const {
 		return _offCourseAlarm;
 	}
 
@@ -725,7 +792,31 @@ private:
 		_offCourseAlarm = offCourseAlarm;
 	}
 
+	// FUNCTIONAL MODULE: OFF COURSE ALARM
+	inline bool isOffCourseAlarmActive() const {
+		return _offCourseAlarmActive;
+	}
 
+	// FUNCTIONAL MODULE: OFF COURSE ALARM-2
+	uint8_t _offCourseAlarm2; // off course alarm angle
+	bool _offCourseAlarmIDLE2 = false; // Alarm is not working until ship is within OCA angle since user changed target bearing.
+	// This is to avoid alarm too soon when making high turns that takes its time (eg. tacking +100 degrees).
+	double const _offCourseMaxTime2 = 15000; // max off course time before alarm starts
+	bool _offCourseAlarmActive2=false;
+	bool compute_OCA2 (float delta);
+	void set_OCA2 (bool set=true);
+
+	inline uint8_t getOffCourseAlarm2() const {
+		return _offCourseAlarm2;
+	}
+
+	void setOffCourseAlarm2(uint8_t offCourseAlarm) {
+		_offCourseAlarm2 = offCourseAlarm;
+	}
+
+	inline bool isOffCourseAlarmActive2() const {
+		return _offCourseAlarmActive2;
+	}
 	// FUNCTIONAL MODULE: BOAT SPEED
 	uint8_t _avgSpeed;
 

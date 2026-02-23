@@ -62,14 +62,14 @@ enum e_BT_push_button {
 		  START_BT=			-1
 		, BT_DEC_TARGET_10=	0
 		, BT_TACK_PORTBOARD=	1
-		, BT_RESET_PID= 	2 // DEPRECATED
+		, BT_WIND_MODE= 	2
 		, BT_START_STOP_TARGET=	3
 		, BT_SET_HEADING_DEV =4
 		, BT_START_IMU_CAL=5
 		, BT_START_STOP_FBK_CAL=6
 		, BT_SAVE_IMU_CAL=7 //Ok
 		, BT_SAVE_INST_PARAM=8 //Include feedback calibration parameters
-		, BT_SET_VWR = 9
+		, BT_SET_WIND = 9
 		, BT_RESET_HEADING_DEV = 10
 		, BT_SET_CENTER_RUDDER = 11
 		, BT_RESTORE_PID = 12
@@ -98,7 +98,7 @@ enum e_BT_push_button {
 enum e_BT_AI_PIN {
   START_AI = 	-1
 , AI_NEXT_CTS= 	0 // Next CTS value
-, AI_HEADING= 	1 // Heading value
+, AI_HDT= 	1 // HeadingT value
 , AI_CTS= 	2 // CTS value
 , AI_DELTA=		3
 , AI_RUDDER=	4
@@ -128,7 +128,7 @@ enum e_BT_AI_PIN {
 , AV_LED_IMU_CAL_ACEL = 28	// Special AV PINS
 , AV_LED_IMU_CAL_MAGN = 29	// Special AV PINS
 , AV_LED_IMU_CAL_SYS = 30	// Special AV PINS
-, AI_INV_HDG = 31 // img:compass5 (compass heading bow, not north!)
+, AI_INV_HDT = 31 // img:compass5 (compass heading True ref.to bow, not north!)
 , AI_DELTA_VWR = 32 // img: vwr01 (wind dir rel to bow - white cloud)
 , AI_SPEED_REF = 33 // Ref.speed for PID tunning
 , AI_SOG = 34 // Current speed
@@ -141,12 +141,16 @@ enum e_BT_AI_PIN {
 , AI_MAX_RUDDER = 41
 , VD_USER_FBK_ERROR = 42
 , AI_FBK_ERROR = 43
+, AI_DB_CONF = 44
+, AI_AWA_TWA = 45 // Wind angle
+, AI_WIND_MODE = 46 // Wind mode
+
 
 // máximo el valor de c_BTN_V -1 o cambiar el valor de los botones en la App
 
 
 // MAX_AI = valor del último item de la lista +1
-, MAX_AI = AI_FBK_ERROR +1
+, MAX_AI = AI_WIND_MODE +1
 };
 
 const uint8_t c_max_V = MAX_AI;

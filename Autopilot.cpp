@@ -23,6 +23,7 @@ Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
 	_currentMode = STAND_BY; //DON'T USE SetCurrentMode in this constructor
 	//Off course alarm angle OCA
 	setOffCourseAlarm(ip.offcourseAlarm);
+	setOffCourseAlarm2(ip.offcourseAlarm);
 	//Average cruise speed ACS
 	setAvgSpeed (ip.avgSpeed);
 
@@ -213,6 +214,7 @@ e_working_status Autopilot::compute_OperationalMode(void){
 	float predicted = BearingMonitor::predictYawDelta(5.0);
 	if (ActuatorManager::Compute(PIDerrorPrima, get_boatSpeed(), predicted)!=1) return RUNNING_ERROR;
 	compute_OCA (PIDerrorPrima);
+	//compute_OCA2(PIDerrorPrima);// Delta entre CTS y CTS cuando se inició WindMode
 	return RUNNING_OK;
 }
 
@@ -241,19 +243,29 @@ void Autopilot::computeLongLoop_TrackMode(void) {
 void Autopilot::computeLongLoop_WindDir(void) {
 
 	// Evaluate validity of Wind info
-	isValid_VWR ();
+	bool bAWA = isValid_AWA ();
+	bool bTWD = isValid_TWD ();
 
 	// Act in consequence
 	if (_currentMode == WIND_MODE) {
-		if (_windInfo.VWR.isValid) {
-			// Update course to steer
-			// CTS = HDG + VWR
+		if (((_windMode == MODE_TWA) && bTWD) or
+		   (((_windMode == MODE_AWA) && bAWA)))
+		{
+			// Update course to steer based on relative angle of HDG_T to wind, not to True North
+			// New CTS = Current HDG_T + Delta CTS
+			// Delta CTS = Current windDir (R/A) - Target windDir (R/A)
+			// Current HDG medido desde True North
+			// Current & Target WindDir (R/A) relativo a HDG_T
 
-			setTargetBearing(getCurrentHeadingT() + getWindDir() - _targetWindDir);
-			setNextCourse(getTargetBearing());
-			//sprintf(DEBUG_buffer,"!Target Bearing: %i\n", int(getTargetBearing()));
-			//DEBUG_print();
+			// ALARM DUE TO BIG CHANGE OF WIND DIRECTION
+			float fWindDir360= getWindDir()+getCurrentHeadingT();
+			//compute_WCA (int(fWindDir360));
+			float deltaCTS = getNextCourse()-getTargetBearing();
+			if (deltaCTS<-180) deltaCTS+= 360;
+			if (deltaCTS>180) deltaCTS-= 360;
+			compute_OCA2(deltaCTS);// Delta entre CTS y CTS cuando se inició WindMode
 
+			setTargetBearing(fWindDir360-getTargetWindDir());
 		} else {
 			// Cancel Wind mode
 			setInformation (NO_MESSAGE);
@@ -328,6 +340,21 @@ bool Autopilot::setCurrentMode(e_APmode newMode, char sensor) {
 	return true;
 }
 
+bool Autopilot::setCurrentWindMode(e_WindMode new_windMode) {
+	//no puede cambiar en WindMode
+	bool rt = false;
+	if (getCurrentMode()==WIND_MODE) return rt;
+	if (new_windMode==MODE_AWA and _windInfo.AWA.isValid) {
+		_windMode=MODE_AWA;
+		rt = true;
+	}
+	if (new_windMode==MODE_TWA and _windInfo.TWD.isValid) {
+		_windMode=MODE_TWA;
+		rt = true;
+	}
+	return rt;
+}
+
 void Autopilot::computeLongLoop() {
 
 #ifndef SHIP_SIM
@@ -363,6 +390,13 @@ bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode, char s
 		}
 		break;
 
+	case WIND_MODE:
+		// Turn off alarm if active
+		float WindDir =  getWindDir();
+		if (WindDir==-360) return false;
+		setTargetWindDir(WindDir);
+		if (_offCourseAlarmActive2 ) set_OCA2(false);
+		break;
 	case STAND_BY:
 		if (newMode == CAL_AUTOTUNE) {
 			setTargetBearing (getCurrentHeadingT());
@@ -388,7 +422,9 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 	}
 
 	_offCourseAlarmIDLE = false; // OCA Alarm deactivated until ship heading gets into OCA angle
-	//DEBUG_print(F("OCA Alarm: Deactivated\n"));
+	DEBUG_print(F("DEBUG:OCA Alarm: Deactivated\n"));
+	_offCourseAlarmIDLE2 = false; // OCA Alarm deactivated until ship heading gets into OCA angle
+	DEBUG_print(F("DEBUG:OCA2 Alarm: Deactivated\n"));
 
 	if (preMode == CAL_IMU_COMPLETE) {
 		if (this->isExternalCalibration()) {
@@ -413,6 +449,7 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 	case STAND_BY:
 		stopAutoMode();
 		compute_OCA (0); //Stop off-course alarm if active
+		compute_OCA2 (0); //Stop off-course alarm if active
 		break;
 	default:
 		break;
@@ -423,16 +460,19 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 }
 
 void Autopilot::setTargetBearing(float targetBearing) {
-		if (targetBearing<0) {targetBearing+= 360;}
+		if (targetBearing<0) targetBearing+= 360;
+		if (targetBearing>359) targetBearing-= 360;
 		// If next course represents a big change in course...
 		float delta_tb = abs (delta180(_targetBearing, targetBearing));
 		// ...then OCA Alarm is deactivated until ship heading gets into OCA angle
 		if (delta_tb > getOffCourseAlarm()) {
 			_offCourseAlarmIDLE = false;
-			//DEBUG_print(F("OCA Alarm: Deactivated\n"));
+			DEBUG_print(F("DEBUG:OCA Alarm: Deactivated\n"));
 		}
-		// ...then Integral Term of PID is reset
-		//ActuatorManager::PID_ext::resetITerm(delta_tb);
+		if (delta_tb > getOffCourseAlarm2()) {
+			_offCourseAlarmIDLE2 = false;
+			DEBUG_print(F("DEBUG:OCA2 Alarm: Deactivated\n"));
+		}
 		_targetBearing = fmod (targetBearing, double(360));
 	}
 
@@ -572,14 +612,13 @@ void Autopilot::Start_Stop_wind(void){
 	setTargetBearing(target);
 
 	switch (mode) {
-	// If in STAND_BY --> set AUTO MODE
+	// If in WIND_MODE --> set AUTO MODE
 	case WIND_MODE:
 		setCurrentMode(AUTO_MODE);
 		break;
 	// If in AUTO MODE --> set WIND_MODE
 	case AUTO_MODE:
-		_targetWindDir= getWindDir();
-		if (_targetWindDir!=-1) setCurrentMode(WIND_MODE);
+		setCurrentMode(WIND_MODE);
 		break;
 	}
 }
@@ -698,32 +737,101 @@ bool Autopilot::isValid_boatSpeed (void) {
 }
 
 // WIND MODE
-void Autopilot::set_windInfo(s_VWR VWR) {
-	_windInfo.VWR = VWR;
-	_windInfo.t0 = getLoopMillis();
-	//DEBUG_print ("!wind received\n"));
-	//sprintf(DEBUG_buffer,"DEBUG:%i.%i\n", _windInfo.VWR.windSpeed.whole, _windInfo.VWR.windSpeed.frac );
-	//DEBUG_print();
+void Autopilot::set_windInfo(s_AWA AWA) {
+	if (isValid_AWA())
+	{
+		// Filter AWA
+		AWA.windDirDeg.Towf_00(_windInfo.AWA.windDirDeg.float_00()* ALFA_90 + ALFA_10* AWA.windDirDeg.float_00());
+		AWA.windSpeed.Towf_00(_windInfo.AWA.windSpeed.float_00() * ALFA_90 + ALFA_10* AWA.windSpeed.float_00());
+	}
+	_windInfo.AWA = AWA;
+	_windInfo.AWA_t0 = getLoopMillis();
+	//DEBUG_print ("!RW received\n");
+	//DEBUG_sprintf("DEBUG", _windInfo.RW.windSpeed.float_00() );
+	//DEBUG_sprintf("DEBUG", _windInfo.RW.windDirDeg.whole,_windInfo.RW.windDirDeg.frac);
+}
+
+void Autopilot::set_windInfo(s_TWD TWD) {
+	if (isValid_TWD())
+	{
+		// Filter TWD
+		TWD.windDirDeg.Towf_00(_windInfo.TWD.windDirDeg.float_00()* ALFA_90 + ALFA_10* TWD.windDirDeg.float_00());
+		TWD.windSpeed.Towf_00(_windInfo.TWD.windSpeed.float_00() * ALFA_90 + ALFA_10* TWD.windSpeed.float_00());
+	}
+	_windInfo.TWD = TWD;
+	_windInfo.TWD_t0 = getLoopMillis();
+	//DEBUG_print ("!AW received\n");
+	//DEBUG_sprintf("DEBUG", _windInfo.AW.windSpeed.float_00() );
 
 }
 
 //evaluate validity windSpeed
-bool Autopilot::isValid_VWR (void) {
-	_windInfo.VWR.isValid = (getLoopMillis()-_windInfo.t0)<=MAX_VWR_TIME;
+bool Autopilot::isValid_AWA (void) {
+	_windInfo.AWA.isValid = (getLoopMillis()-_windInfo.AWA_t0)<=MAX_VWR_TIME;
 	// Last direction/speed remains. Dont reset.
-	return _windInfo.VWR.isValid;
+	return _windInfo.AWA.isValid;
 }
 
-// Return relative wind direction as an int angle between 0 and 359
-//if not valid data available return -1
-int Autopilot::getWindDir(void) {
-	if (_windInfo.VWR.isValid) return (_windInfo.VWR.windDirLR=='L'?360-_windInfo.VWR.windDirDeg.whole:_windInfo.VWR.windDirDeg.whole);
-	return -1;
+bool Autopilot::isValid_TWD (void) {
+	_windInfo.TWD.isValid = (getLoopMillis()-_windInfo.TWD_t0)<=MAX_VWR_TIME;
+	// Last direction/speed remains. Dont reset.
+	return _windInfo.TWD.isValid;
+}
+
+// Return AWA/TWA wind direction relative to BOW as an angle between -180 and 180
+//if not valid data available return -360
+float Autopilot::getWindDir(void) {
+	if (_windMode==MODE_AWA and _windInfo.AWA.isValid)
+	{
+		// convert AWA from 0-360 to +-180
+		float fAWA180 = convert360to180(_windInfo.AWA.windDirDeg.float_00());
+		return fAWA180;
+	}
+	if (_windMode==MODE_TWA and _windInfo.TWD.isValid)
+	{
+		// Sentido: Desde CTS hacia TWD
+		float fTWA180 = delta180(_windInfo.TWD.windDirDeg.float_00(), BearingMonitor::getCurrentHeadingT());
+		return fTWA180;
+	}
+	return -360;
+}
+
+void Autopilot::setTargetWindDir_delta(int deltaWindDir) {
+	if (abs(deltaWindDir)>180) return;
+	// If next course represents a big change in course...
+	// ...then OCA Alarm is deactivated until ship heading gets into OCA angle
+	if (deltaWindDir > getOffCourseAlarm()) {
+		_offCourseAlarmIDLE = false;
+		DEBUG_print(F("DEBUG:OCA Alarm: Deactivated\n"));
+	}
+	if (deltaWindDir > getOffCourseAlarm2()) {
+		_offCourseAlarmIDLE2 = false;
+		DEBUG_print(F("DEBUG:OCA2 Alarm: Deactivated\n"));
+	}
+
+	int factor = deltaWindDir>0?-1:+1;
+	_targetWindDir += (factor*deltaWindDir);
+	// Ajusta a +-180
+	if (_targetWindDir>180) _targetWindDir-=360;
+	if (_targetWindDir<-180) _targetWindDir+=360;
 }
 
 float Autopilot::getWindSpeed(void) {
-	if (_windInfo.VWR.isValid) return (_windInfo.VWR.windSpeed.float_00());
+	if (_windMode == MODE_AWA and _windInfo.AWA.isValid) return _windInfo.AWA.windSpeed.float_00();
+	if (_windMode == MODE_TWA and _windInfo.TWD.isValid) return _windInfo.TWD.windSpeed.float_00();
 	return -1;
+}
+
+void Autopilot::set_nextWindDir(void) {
+	float fTargetWindDir =
+			getWindDir()
+			+convert360to180(getCurrentHeadingT())
+			-convert360to180(getNextCourse());
+	//Reduce to +-180
+	if (fTargetWindDir>180) fTargetWindDir-=360;
+	if (fTargetWindDir<=-180) fTargetWindDir+=360;
+	setTargetWindDir(fTargetWindDir);
+	setTargetBearing(getNextCourse());
 }
 
 // TRACK MODE
@@ -777,10 +885,12 @@ void Autopilot::APBreceived(s_APB APB) {
 void Autopilot::HDGTreceived(s_HDG HDG) {
 	set_extHeading(HDG);
 }
-void Autopilot::VWRreceived(s_VWR VWR) {
-	set_windInfo(VWR);
+void Autopilot::AWAreceived(s_AWA AWA) {
+	set_windInfo(AWA);
 }
-
+void Autopilot::TWDreceived(s_TWD TWD) {
+	set_windInfo(TWD);
+}
 void Autopilot::SOGreceived(s_SOG SOG) {
 	set_boatSpeed (SOG);
 }
@@ -856,6 +966,10 @@ void Autopilot::setDBConf (type_DBConfig status) {
 	if (!isCalMode()) setTypeDB (status);
 }
 
+type_DBConfig Autopilot::getDBConf (void) {
+	return getTypeDB();
+}
+
 type_DBConfig Autopilot::nextDBConf (void) {
 	if (!isCalMode()) {
 		type_DBConfig DBtemp;
@@ -885,8 +999,8 @@ void Autopilot::Request_instParam(s_instParam & instParam) {
 }
 
 void Autopilot::buzzer_tone_start (unsigned long frequency, int duration) {
-	// If alarm is active prevails
-	if (_offCourseAlarmActive) return;
+	// If any alarm is active prevails
+	if (isOffCourseAlarmActive() or isOffCourseAlarmActive2()) return;
 #ifdef BUZZER
 	_buzzFrec = frequency;
 	_buzzDur = duration;
@@ -1018,7 +1132,7 @@ bool Autopilot::compute_OCA (float delta) {
 	if (abs(delta) < _offCourseAlarm) {
 		if (!_offCourseAlarmIDLE) {
 			_offCourseAlarmIDLE = true; // Alarm in Stand By
-			//DEBUG_print(F("OCA Alarm: Stand by\n"));
+			DEBUG_print(F("DEBUG:OCA Alarm: Stand by\n"));
 		}
 		if (sb_offCourse ==true)
 		{
@@ -1034,7 +1148,7 @@ bool Autopilot::compute_OCA (float delta) {
 	if (_offCourseAlarmIDLE == true and l_offCourse == true and sb_offCourse == false) {
 		sb_offCourse = true;
 		sd_offCourseStartTime = getLoopMillis();
-		//DEBUG_print(F("OCA Alarm: Start counting\n"));
+		DEBUG_print(F("DEBUG:OCA Alarm: Start counting\n"));
 	}
 
 	if (_offCourseAlarmIDLE == true and
@@ -1054,15 +1168,112 @@ void Autopilot::set_OCA (bool set) {
 		buzzer_tone_start (1000, 1023);
 		_offCourseAlarmActive = true;
 		// END: These two instructions always in this order
-		//DEBUG_print(F("OCA Alarm: Alarm!\n"));
+		DEBUG_print(F("DEBUG:OCA Alarm: Alarm!\n"));
 	} else
 	{
 		_offCourseAlarmActive = false;
 		buzzer_noTone(); // shut down alarm
 		setWarning(NO_WARNING);
-		//DEBUG_print(F("OCA Alarm: Stopped\n"));
+		DEBUG_print(F("DEBUG:OCA Alarm: Stopped\n"));
 	}
 }
+
+
+// OUT OF COURSE ALARM FUNCTIONAL MODULE
+//arguments: delta - angle (-180, 179) to be compared against off course alarm angle.
+// return true if out course more than x secs
+// return false if in course
+bool Autopilot::compute_OCA2 (float delta) {
+	static double sd_offCourseStartTime;
+	static bool sb_offCourse =false;
+	bool l_offCourse;
+
+	//Detect if we are in-course-->stop alarm (if active)
+	if (abs(delta) < _offCourseAlarm2) {
+		if (!_offCourseAlarmIDLE2) {
+			_offCourseAlarmIDLE2 = true; // Alarm in Stand By
+			DEBUG_print(F("DEBUG:OCA2 Alarm: Stand by\n"));
+		}
+		if (sb_offCourse ==true)
+		{
+			// reset static values
+			sb_offCourse=false; // in course, stop counting
+			set_OCA2(false);
+		}
+		return _offCourseAlarmActive2;
+
+	} else l_offCourse = true;// else-->we are out of course
+
+	// change detected and alarm in Stand by-->start counting
+	if (_offCourseAlarmIDLE2 == true and l_offCourse == true and sb_offCourse == false) {
+		sb_offCourse = true;
+		sd_offCourseStartTime = getLoopMillis();
+		DEBUG_print(F("DEBUG:OCA2 Alarm: Start counting\n"));
+	}
+
+	if (_offCourseAlarmIDLE2 == true and
+		_offCourseAlarmActive2 == false and
+		(getLoopMillis()-sd_offCourseStartTime)>_offCourseMaxTime2)
+	{
+		set_OCA2();
+	}
+	return _offCourseAlarmActive2;
+}
+
+void Autopilot::set_OCA2 (bool set) {
+	if (set)
+	{
+		// INI: These instructions always in this order
+		setWarning(WIND_CHANGE);
+		buzzer_tone_start (1000, 1023);
+		_offCourseAlarmActive2 = true;
+		// END: These two instructions always in this order
+		DEBUG_print(F("DEBUG:OCA2 Alarm: Alarm!\n"));
+	} else
+	{
+		_offCourseAlarmActive2 = false;
+		buzzer_noTone(); // shut down alarm
+		setWarning(NO_WARNING);
+		DEBUG_print(F("DEBUG:OCA2 Alarm: Stopped\n"));
+	}
+}
+
+//// WIND CHANGE ALARM FUNCTIONAL MODULE
+//// OUT OF COURSE ALARM FUNCTIONAL MODULE
+////arguments: delta - angle (-180, 179) to be compared against off course alarm angle.
+//// return true if out course more than x secs
+//// return false if in course
+//bool Autopilot::compute_WCA (int awindDir) {
+//	//Detect if we are in-course-->start alarm
+//	int temp= awindDir;
+//	awindDir-=_WCAlarm_ref;
+//	// Reduce to +-180
+//    if (awindDir > 180)  awindDir -= 360;
+//    if (awindDir <= -180) awindDir += 360;
+//	if (abs(awindDir)>_WCAlarm and !_WCAlarm_active) {
+//		DEBUG_sprintf("DEBUG:awindDir",temp);
+//		set_WCA();
+//	}
+//}
+//
+//
+//void Autopilot::set_WCA (bool set) {
+//	if (set)
+//	{
+//		// INI: These instructions always in this order
+//		setWarning(WIND_CHANGE);
+//		buzzer_tone_start (1000, 1023);
+//		_WCAlarm_active = true;
+//		// END: These two instructions always in this order
+//		DEBUG_print(F("DEBUG:WCA Alarm: Alarm!\n"));
+//	} else
+//	{
+//		_WCAlarm_active = false;
+//		buzzer_noTone(); // shut down alarm
+//		setWarning(NO_WARNING);
+//		DEBUG_print(F("DEBUG:WCA Alarm: Stopped\n"));
+//	}
+//}
 
 
 //EEPROM FUNCTIONAL MODULE
@@ -1309,41 +1520,5 @@ void Autopilot::printWarning(bool instant) {
 
 	}
 	return;
-}
-
-void Autopilot::print_PIDFrontend() {
-	static unsigned long lastPIDprint = 0;
-
-	int l=6, d=2;
-	char c3[l+3];
-	if ( (getLoopMillis() - lastPIDprint) > 1000 ) {
-	DEBUG_print(F("PID "));
-	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID_ext::getSetpoint(),l,d,c3)));
-	  DEBUG_print();
-	  DEBUG_print(F(" "));
-	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(this->getInput(),l,d,c3)));
-	  DEBUG_print();
-	  DEBUG_print(F(" "));
-	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(this->getOutput(),l,d,c3)));
-	  DEBUG_print();
-	  DEBUG_print(F(" "));
-	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID::GetKp(),l,d,c3)));
-	  DEBUG_print();
-	  DEBUG_print(F(" "));
-	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID::GetKi(),l,d,c3)));
-	  DEBUG_print();
-	  DEBUG_print(F(" "));
-	  sprintf(DEBUG_buffer,"%s", deblank(dtostrf(PID::GetKd(),l,d,c3)));
-	  DEBUG_print();
-	  DEBUG_print(F(" "));
-	  if(PID::GetMode()==AUTOMATIC) DEBUG_print(F("Automatic"));
-	  else DEBUG_print(F("Manual"));
-	  DEBUG_print(F(" "));
-	  DEBUG_print(F("Direct\n"));
-
-		// reset counter
-		lastPIDprint = getLoopMillis();
-	}
-
 }
 

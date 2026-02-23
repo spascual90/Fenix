@@ -27,11 +27,15 @@ public:
 	s_APB APB;
 	//s_HDT HDT;
 	s_HDG HDG;
-	s_VWR VWR;
+	s_TWD TWD;
+	s_AWA AWA;
 	s_IMUcal IMUcal;
 	s_FBKcal FBKcal;
 	s_calibrate_py calibrate_py;
 	s_SOG SOG;
+
+	//For testing purposes only
+	bool TEST_isValid = false;
 
 	// Is Valid indicates if data received is valid or not
 	bool isValid=NO;

@@ -47,8 +47,8 @@ void BT::triggerAction () {
 
 	if (button == BT_NO_BTN) return;
 
-	//sprintf(DEBUG_buffer,"!triggerAction: %i\n", button);
-	//DEBUG_print();
+	//DEBUG_sprintf("!triggerAction", button);
+
 
 	// Launch action accordingly to button pressed and current mode
 	e_APmode currentMode = MyPilot->getCurrentMode();
@@ -74,6 +74,9 @@ void BT::triggerAction () {
 		case TRACK_MODE:
 			Inc_Course_10();
 			break;
+		case WIND_MODE:
+			Inc_WindDir_10();
+			break;
 		default:
 			break;
 		}
@@ -90,6 +93,9 @@ void BT::triggerAction () {
     	case TRACK_MODE:
     		Dec_Course_10();
     		break;
+		case WIND_MODE:
+			Dec_WindDir_10();
+			break;
     	default:
     		break;
     	}
@@ -106,6 +112,9 @@ void BT::triggerAction () {
     	case TRACK_MODE:
     		Inc_Course_1();
     		break;
+		case WIND_MODE:
+			Inc_WindDir_1();
+			break;
     	default:
     		break;
     	}
@@ -122,6 +131,9 @@ void BT::triggerAction () {
     	case TRACK_MODE:
     		Dec_Course_1();
     		break;
+		case WIND_MODE:
+			Dec_WindDir_1();
+			break;
     	default:
     		break;
     	}
@@ -162,23 +174,29 @@ void BT::triggerAction () {
      case BT_RESET_HEADING_DEV:
    		MyPilot->setHeadingDev(0);
      	break;
-     case BT_SET_VWR:
-     	switch (currentMode) {
-     	case AUTO_MODE:
-     	case WIND_MODE:
- 			userRequestAnswer (false);
- 			Start_Stop_wind ();
- 			break;
-     	default:
-     		break;
+
+     case BT_SET_WIND:
+     	switch (currentMode)
+     	{
+			case AUTO_MODE:
+			case WIND_MODE:
+				userRequestAnswer (false);
+				Start_Stop_wind ();
+				break;
+			default:
+				break;
      	}
+		break;
+
+	case BT_WIND_MODE:
+		change_windMode();
      	break;
 
 // CONFIGURATION PANEL
 
-    case BT_RESET_PID:
-    	ResetPID();
-    	break;
+    //case BT_RESET_PID:
+    //	ResetPID();
+    //	break;
     case BT_SAVE_PID:
     	Save_PIDgain();
     	break;
@@ -244,8 +262,8 @@ void BT::triggerAction () {
 void BT::updateBT(){
 
 	//VIRTUAL PIN IN APP (FLOAT)
-	_V[AI_NEXT_CTS] = float(MyPilot->getNextCourse());
-	_V[AI_HEADING] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeadingT():888); // TRUE angle
+	_V[AI_NEXT_CTS] = MyPilot->getNextCourse();
+	_V[AI_HDT] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeadingT():888); // TRUE angle
 	_V[AI_CTS] = MyPilot->getTargetBearing();
 	_V[AI_DELTA] = MyPilot->getInput();
 	_V[AI_RUDDER] = MyPilot->getCurrentRudder();
@@ -254,15 +272,7 @@ void BT::updateBT(){
 	_V[AI_DEADBAND_VALUE] = float(MyPilot->getDeadband());
 	_V[AI_MAGNETIC_VARIATION] = MyPilot->getMagneticVariation();
 	_V[AI_HEAD_ALIGN] = MyPilot->getHeadingDev();
-
-
-//	static uint16_t X = 0;
-//	int8_t Y = 0;
-//	uint8_t Z = 0;
-//	MyPilot->getCheckXYZ(X,Y,Z);
-//	_V[AI_IMU_X] = X;
-//	_V[AI_IMU_Y] = Y;
-//	_V[AI_IMU_Z] = Z;
+	_V[AI_DB_CONF] = MyPilot->getDBConf();
 
 	static uint16_t fbk_min, fbk_max;
 	MyPilot->getFBKcalStatus(fbk_min, fbk_max);
@@ -287,7 +297,10 @@ void BT::updateBT(){
 	_V[AI_KD] = MyPilot->PID::GetKd();
 	_V[AI_SPEED_REF] = float(MyPilot->getAvgSpeed()) ;
 	_V[AI_SOG] = MyPilot->get_boatSpeed();
-	_V[AI_WIND_SPEED] = float(MyPilot->getWindSpeed()) ;
+	_V[AI_WIND_SPEED] = MyPilot->getWindSpeed() ;
+	_V[AI_AWA_TWA] = MyPilot->getWindDir() ;
+	_V[AI_WIND_MODE] = float(MyPilot->getCurrentWindMode()) ;
+
 	_V[AV_LED_DBACTIVE] = MyPilot->isInDeadband()== true ? 1: 0;
 	_V[AI_USER_MESSAGE] = MyPilot->getInformation();
 
@@ -313,12 +326,6 @@ void BT::updateBT(){
 //		WP_INVALID
 //		NO_WIND_DATA
 
-//	, AI_RECOM_KP = 33
-//	, AI_RECOM_KI = 34
-//	, AI_RECOM_KD = 35
-//	, AI_AUTOTUNE_CYCLE = 36
-//	, AI_AUTOTUNE_INFO = 37
-
 	updateSpecialBT();
 
 }
@@ -326,22 +333,29 @@ void BT::updateBT(){
 // SPECIAL OBJECTS IN APP
 void BT::updateSpecialBT() {
 	// WIND ROSE
-	_V[AI_INV_HDG] = 360 - _V[AI_HEADING];
+	_V[AI_INV_HDT] = 360 - _V[AI_HDT];
 
-	_V[AI_DELTA_CTS] = _V[AI_CTS] - _V[AI_HEADING];
+	_V[AI_DELTA_CTS] = _V[AI_CTS] - _V[AI_HDT];
 	if (_V[AI_DELTA_CTS]<0) {_V[AI_DELTA_CTS]+= 360;}
 	_V[AI_DELTA_CTS] = fmod (_V[AI_DELTA_CTS], double(360));
 
-	_V[AI_DELTA_NEXT_CTS] = _V[AI_NEXT_CTS] - _V[AI_HEADING];
+	_V[AI_DELTA_NEXT_CTS] = _V[AI_NEXT_CTS] - _V[AI_HDT];
 	if (_V[AI_DELTA_NEXT_CTS]<0) {_V[AI_DELTA_NEXT_CTS]+= 360;}
 	_V[AI_DELTA_NEXT_CTS] = fmod (_V[AI_DELTA_NEXT_CTS], double(360));
 
-	_V[AI_DELTA_VWR] = float(MyPilot->getWindDir());
-	if (_V[AI_DELTA_VWR]==-1) _V[AI_DELTA_VWR]=180; // Hides pointer in App
+
+	_V[AI_DELTA_VWR] = MyPilot->getWindDir();
+	if (_V[AI_DELTA_VWR]==-360) {
+		_V[AI_DELTA_VWR]=180; // Hides pointer in App
+	} else {
+		if (_V[AI_DELTA_VWR]<0) _V[AI_DELTA_VWR] +=360.0; // convert +-180 in 0-360
+	}
+
+
 
 	// REGULATOR
 	if (_V[AI_DELTA_TARGET]!=0) {
-		_V[AI_DELTA_TARGET]+=_V[AI_HEADING];
+		_V[AI_DELTA_TARGET]+=_V[AI_HDT];
 		if (_V[AI_DELTA_TARGET]<0) _V[AI_DELTA_TARGET]+=360; // transform (-180,180) to (0, 360);
 		_V[AI_DELTA_TARGET] = fmod (_V[AI_DELTA_TARGET], double(360));
 
@@ -355,7 +369,6 @@ void BT::updateSpecialBT() {
 		Change_AvgSpeed(valueAvgSpeed);
 		// Reset value in app
 		_V[VD_USER_AVG_SPEED] = 0;
-
 	}
 
 	// Manual change of rudder center
@@ -364,7 +377,6 @@ void BT::updateSpecialBT() {
 		Change_CenterRudder(valueCenterRudder);
 		// Reset value in app
 		_V[VD_USER_CENTER_RUDDER] = 0;
-
 	}
 
 	// Manual change of Max.Rudder (does not equal MRA!)

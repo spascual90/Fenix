@@ -36,9 +36,12 @@ void SERIALorder::reset () {
 	//HDT.flag = {false};
 	HDG.isValid=NO;
 	HDG.flag = {false};
-	VWR.isValid=NO;
-	VWR.flag = {false,false};
+	AWA.isValid=NO;
+	AWA.flag = {false,false};
+	TWD.isValid=NO;
+	TWD.flag = {false,false};
 	calibrate_py.isValid=NO;
+	TEST_isValid = false;
 
 	isValid=NO;
 	isRequest= false;

@@ -153,6 +153,11 @@ void IF_NMEA::refresh_INorder() {
 //		sprintf(DEBUG_buffer, "Order:%i\n", this->INorder.get_order());
 //		DEBUG_print();
 		switch (this->INorder.get_order()){
+
+		case TEST:
+			DEBUG_print("Test order received\n");
+			break;
+
 		case START_STOP:
 			if (!MyPilot->isCalMode()) Start_Stop();
 		break;
@@ -222,11 +227,15 @@ void IF_NMEA::refresh_INorder() {
 				received_HDGT(INorder.HDG);
 			}
 			break;
-		case RELATIVE_WIND: //VWR received
+		case AWA_WIND: //AWA received via NMEA MWV/VWR messages
 			if (!MyPilot->isCalMode()) {
-				received_VWR(INorder.VWR);
+				received_AWA(INorder.AWA);
 			}
-
+			break;
+		case TWD_WIND: //TWD received via NMEA MWV message
+			if (!MyPilot->isCalMode()) {
+				received_TWD(INorder.TWD);
+			}
 			break;
 
 //		case START_CAL:

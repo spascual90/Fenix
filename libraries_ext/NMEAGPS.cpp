@@ -416,6 +416,9 @@ void NMEAGPS::storeFix()
   #if defined(NMEA_PARSE_HDT) | defined(NMEAGPS_RECOGNIZE_ALL)
     static const char hdt[] __PROGMEM =  "HDT";
   #endif
+  #if defined(NMEA_PARSE_MWV) | defined(NMEAGPS_RECOGNIZE_ALL)
+    static const char mwv[] __PROGMEM =  "MWV";
+  #endif
   // FIN SPM
 #if defined(NMEAGPS_PARSE_RMC) | defined(NMEAGPS_RECOGNIZE_ALL)
   static const char rmc[] __PROGMEM =  "RMC";
@@ -463,6 +466,10 @@ static const char * const std_nmea[] __PROGMEM =
 
 	#if defined(NMEA_PARSE_HDT) | defined(NMEAGPS_RECOGNIZE_ALL)
 	  hdt,
+	#endif
+
+	#if defined(NMEAGPS_PARSE_MWV) | defined(NMEAGPS_RECOGNIZE_ALL)
+	  mwv,
 	#endif
 
 	// FIN SPM
@@ -738,10 +745,18 @@ bool NMEAGPS::parseField(char chr)
 	  // INI SPM
 	  #if defined(NMEA_PARSE_HDG)
 		case NMEA_HDG: return parseHDG( chr );
+
 	  #endif
 	  #if defined(NMEA_PARSE_HDT)
 		case NMEA_HDT: return parseHDT( chr );
 	  #endif
+
+	#if defined(NMEA_PARSE_MWV)
+		case NMEA_MWV:
+			return parseMWV( chr );
+			//return Test_parse( chr );
+		//case NMEA_MWV: return Test_parse( chr );
+	#endif
 
 
       #if defined(NMEA_PARSE_RMC)
@@ -754,7 +769,9 @@ bool NMEAGPS::parseField(char chr)
 
 	  #if defined(NMEA_PARSE_VWR)
 		case NMEA_VWR: return parseVWR( chr );
+        //case NMEA_VWR: return Test_parse( chr );
 	  #endif
+
     	// FIN SPM
 
 

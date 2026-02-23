@@ -24,6 +24,7 @@
 #define NMEA_PARSE_APB
 #define NMEA_PARSE_HDG
 #define NMEA_PARSE_HDT
+#define NMEA_PARSE_MWV
 #define NMEA_PARSE_VWR
 #define NMEA_PARSE_RMC
 #define NMEA_PARSE_VTG

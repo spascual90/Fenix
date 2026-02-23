@@ -276,8 +276,40 @@ void HMIArq::received_SOG( s_SOG SOG) {
 }
 
 // Wing mode functions
-void HMIArq::received_VWR( s_VWR VWR) {
-	MyPilot->VWRreceived(VWR);
+void HMIArq::received_AWA( s_AWA AWA) {
+	MyPilot->AWAreceived(AWA);
+}
+
+void HMIArq::received_TWD( s_TWD TWD) {
+	MyPilot->TWDreceived(TWD);
+}
+
+void HMIArq::change_windMode(void) {
+	 if (MyPilot->getCurrentWindMode()==MODE_AWA)
+	 {
+		 if (MyPilot->setCurrentWindMode(MODE_TWA)) MyPilot->buzzer_Beep();
+	 } else
+	 {
+		 if (MyPilot->setCurrentWindMode(MODE_AWA)) MyPilot->buzzer_Beep();
+	 }
+
+}
+
+void HMIArq::Inc_WindDir_1(){
+	  MyPilot->setTargetWindDir_delta(1);
+	  MyPilot->buzzer_Beep();
+}
+void HMIArq::Inc_WindDir_10(){
+	MyPilot->setTargetWindDir_delta(10);
+	  MyPilot->buzzer_Beep();
+}
+void HMIArq::Dec_WindDir_1(){
+	MyPilot->setTargetWindDir_delta(-1);
+	  MyPilot->buzzer_Beep();
+}
+void HMIArq::Dec_WindDir_10(){
+	MyPilot->setTargetWindDir_delta(-10);
+	  MyPilot->buzzer_Beep();
 }
 
 // Track mode functions
@@ -286,11 +318,24 @@ void HMIArq::received_APB( s_APB APB) {
 }
 
 void HMIArq::Accept_Next(void) {
-	// Accept WPnext
-	if (MyPilot->activateWPnext()) {
-		MyPilot->setCurrentMode(TRACK_MODE);
-	} else {
-		MyPilot->setTargetBearing(MyPilot->getNextCourse());
+	switch (MyPilot->getCurrentMode())
+	{
+	case STAND_BY:
+	case AUTO_MODE:
+	case TRACK_MODE:
+		// Accept WPnext
+		if (MyPilot->activateWPnext())
+		{
+			MyPilot->setCurrentMode(TRACK_MODE);
+		} else {
+			MyPilot->setTargetBearing(MyPilot->getNextCourse());
+		}
+		break;
+	case WIND_MODE:
+		MyPilot->set_nextWindDir();
+		break;
+	default:
+		return;
 	}
 	MyPilot->buzzer_Beep();
 }

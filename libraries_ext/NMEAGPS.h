@@ -93,6 +93,10 @@ public:
 		  NMEA_HDT,
 		#endif
 
+		#if defined(NMEA_PARSE_MWV) | defined(NMEAGPS_RECOGNIZE_ALL)
+		  NMEA_MWV,
+		#endif
+
 		// FIN SPM
 
         #if defined(NMEA_PARSE_RMC) | defined(NMEAGPS_PARSE_RMC) | defined(NMEAGPS_RECOGNIZE_ALL)

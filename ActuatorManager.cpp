@@ -164,7 +164,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     const int deadband = toRudder(getErrorFeedback());
     const unsigned long change_delay = ACTUATOR_STOP_TIME; // 300–500 ms típico
     const uint8_t slow_threshold = 30;   // grados para entrar en modo SLOW
-    const uint8_t stop_threshold = toRudder(getErrorFeedback ());   // en este rango paramos
+    const uint8_t stop_threshold = max (1, toRudder(getErrorFeedback ()));   // en este rango paramos
     const uint8_t restart_threshold = stop_threshold * 10;
 
     bool min_limit = getCurrentFeedback() < getLimitMinFeedback();
@@ -226,7 +226,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     {
 
 		#ifdef DEBUG
-		DEBUG_sprintf("3.stop\n");
+		DEBUG_sprintf("3.stop", stop_threshold);
 		delay(10);
 		#endif
 		setSpeed(0, true);

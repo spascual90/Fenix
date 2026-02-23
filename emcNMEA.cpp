@@ -50,10 +50,6 @@ void emcNMEA::sentenceOk()
 
 void emcNMEA::sentenceInvalid()
 {
-
-  // All the values are suspect.  Start over.
-  //DEBUG_print("sentenceInvalid\n");
-
   INorder.reset();
   nmeaMessage = NMEA_UNKNOWN;
   reset();
@@ -128,6 +124,18 @@ bool emcNMEA::parseField(char chr)
   return true;
 
 } // parseField
+
+// $IIHDG,1*56
+// $IIVWR,1*4E
+// $IIMWV,1*51
+// !!! Asign this function handler in NMEAGPS.cpp for testing only
+bool emcNMEA::Test_parse( char chr )
+{
+  INorder.TEST_isValid=YES;
+  INorder.set_order(TEST);
+return true;
+}
+
 // $GPAPB,A,A,0.0,L,N,V,V,043.6,,5,043.6,T,43.583042528455735,T*46
 // $ECAPB,A,A,0.00,L,N,V,V,312.23,M,001,312.34,M,312.34,M*2A
 // $GPAPB,A,A,0.00,R,N,V,,291.3,T,3,291.3,T,291.3,T*50
@@ -247,42 +255,105 @@ bool emcNMEA::parseRMC( char chr )
     }
 return ok;
 }
-// TODO: Parse MWV instead of obsolete VWR
+
+//$--MWV,x.x,a,x.x,a*hh<CR><LF>
+//$IIMWV,315.0,R,12.6,M*61
+//$IIMWV,315.0,A,12.6,M*72
+bool emcNMEA::parseMWV( char chr )
+{
+	bool ok = true;
+	static whole_frac windSpeed;
+	static whole_frac windDirDeg;
+	static bool flag_windDirDeg;
+	static bool flag;
+	static e_actions order = NO_INSTRUCTION;
+	switch (fieldIndex) {
+	  case 1: parseFloat( windDirDeg, chr, 2, flag_windDirDeg); break; //Wind Angle, 0 to 359 degrees
+	  case 2:
+		  // Identify type of wind: True or Relative
+		  switch (parseWindDirRT(chr)) {
+			  case 'T':
+				  order = TWD_WIND;
+				  break;
+			  case 'R':
+				  order = AWA_WIND;
+				  break;
+			  case '-':
+				  order = NO_INSTRUCTION;
+				  break;
+		  }
+		  break;
+	  case 3: parseFloat( windSpeed, chr, 2, flag); break; //Speed, knots
+	  case 4:
+	  	  if (chr=='M' and flag) windSpeed.Towf_00(windSpeed.float_00()*1.94384); //M = Meters Per Second, converted to knots
+	  	  // TBC cambiado a (chr=='K') en vez de (chr=='K' and flag)
+	  	  if (chr=='K' and flag) windSpeed.Towf_00(windSpeed.float_00()*0.539957); //K = Kilometers Per Hour, converted to knots
+//		  break;
+//	  case 5:
+		  switch (order) {
+		  case TWD_WIND:
+			  INorder.TWD.windDirDeg = windDirDeg;
+			  INorder.TWD.flag.windDirDeg = flag_windDirDeg;
+			  INorder.TWD.windSpeed = windSpeed; // Speed unit already converted
+			  INorder.TWD.flag.windSpeed = flag;
+			  INorder.TWD.isValid = flag_windDirDeg && flag;
+			  INorder.set_order(order);
+			  break;
+		  case AWA_WIND:
+			  INorder.AWA.windDirDeg = windDirDeg;
+			  INorder.AWA.flag.windDirDeg = flag_windDirDeg;
+			  INorder.AWA.windSpeed = windSpeed; // Speed unit already converted
+			  INorder.AWA.flag.windSpeed = flag;
+			  INorder.AWA.isValid = flag_windDirDeg && flag;
+			  INorder.set_order(order);
+			  break;
+		  }
+		  order = NO_INSTRUCTION; // reset value
+
+		  break;//Status, A = Data Valid, V = Invalid
+    }
+	return ok;
+}
+
 // Obsolete
 // $--VWR,x.x,a,,,,,,*hh<CR><LF>
 // Example: $IIVWR,045.0,L,12.6,N,6.5,M,23.3,K*52
+// Example: $IIVWR,045.0,L,12.6,N,,,,*65
 bool emcNMEA::parseVWR( char chr )
 {
 	bool ok = true;
 	static whole_frac windSpeed;
 	static bool flag = false;
 	switch (fieldIndex) {
-	  case 1: parseFloat( INorder.VWR.windDirDeg, chr, 2, INorder.VWR.flag.windDirDeg); break; //Wind direction magnitude in degrees
-	  case 2: parseWindDir(chr); break;  // Wind direction Left/Right of bow: R/L
+	  // must be a positive number between 0-180
+	  case 1: parseFloat( INorder.AWA.windDirDeg, chr, 2, INorder.AWA.flag.windDirDeg); break; //Wind direction magnitude in degrees
+	  case 2:
+  		  // Convierte angulo relativo R/L a 0-360
+		  if (parseWindDirRL(chr) == 'L') INorder.AWA.windDirDeg.whole = 360.0 - INorder.AWA.windDirDeg.whole;
+		  break;  // Wind direction Left/Right of bow: R/L
 	  case 3: parseFloat( windSpeed, chr, 2, flag); break; //Speed, knots
 	  case 4: if (chr=='N' and flag) {
-  	  	  INorder.VWR.windSpeed = windSpeed; // Speed in Knots. No need conversion
-  	  	  INorder.VWR.flag.windSpeed=true;
-		  INorder.VWR.isValid=YES;
-	  	  INorder.set_order(RELATIVE_WIND);
-	  	  }//N = Knots
-	  	  	  break;
+				  INorder.AWA.windSpeed = windSpeed; // Speed in Knots. No need conversion
+				  INorder.AWA.flag.windSpeed=true;
+				  INorder.AWA.isValid=YES;
+				  INorder.set_order(AWA_WIND);
+			  }//N = Knots
+	  	  break;
 	  case 5: parseFloat( windSpeed, chr, 2, flag); break; //Speed in m/s
 	  case 6: if (chr=='M' and flag) {
-		  	  	  INorder.VWR.windSpeed.Towf_00(windSpeed.float_00()*1.94384); //M = Meters Per Second , converted to knots
-		  	  	  INorder.VWR.flag.windSpeed=true;
-				  INorder.VWR.isValid=YES;
-			  	  INorder.set_order(RELATIVE_WIND);
+		  	  	  INorder.AWA.windSpeed.Towf_00(windSpeed.float_00()*1.94384); //M = Meters Per Second , converted to knots
+		  	  	  INorder.AWA.flag.windSpeed=true;
+				  INorder.AWA.isValid=YES;
+			  	  INorder.set_order(AWA_WIND);
 	  	  	  }
 	  	  	  break;
 	  case 7: parseFloat( windSpeed, chr, 2, flag); break; //Speed in km/h
 	  case 8:if (chr=='K') {
-		  	  	  INorder.VWR.windSpeed.Towf_00(windSpeed.float_00()*0.539957); //M = Meters Per Second , converted to knots
-		  	  	  INorder.VWR.flag.windSpeed=true;
-				  INorder.VWR.isValid=YES;
-			  	  INorder.set_order(RELATIVE_WIND);
+		  	  	  INorder.AWA.windSpeed.Towf_00(windSpeed.float_00()*0.539957); //M = Meters Per Second , converted to knots
+		  	  	  INorder.AWA.flag.windSpeed=true;
+				  INorder.AWA.isValid=YES;
+			  	  INorder.set_order(AWA_WIND);
 	  	  	  } //K = Kilometers Per Hour
-		  // TODO: If last field is empty Message is not recognized
 		  break;
 	          }
 	return ok;
@@ -764,8 +835,9 @@ bool emcNMEA::parseDirSteer( char chr )
   return true;
 } // parsedirSteer
 
-
-bool emcNMEA::parseWindDir( char chr )
+// return 'R', 'L', ',' when valid
+// return '-' when invalid
+char emcNMEA::parseWindDirRL( char chr )
 {
 
     if (chrCount == 0) {
@@ -773,19 +845,46 @@ bool emcNMEA::parseWindDir( char chr )
         // First char can only be 'R' or 'L'
         if (chr == 'R'||chr == 'L' ) {
 
-        	INorder.VWR.windDirLR = chr;
+        	//INorder.VWR.windDirLR = chr;
 
         } else {
           sentenceInvalid();
+          return '-';
         }
 
         // Second char can only be ','
       } else if ((chrCount > 1) || (chr != ',')) {
         sentenceInvalid();
+        return '-';
+    }
+  return chr;
+} // parseWindDirRL
+
+// return 'T', 'R', ',' when valid
+// return '-' when invalid
+char emcNMEA::parseWindDirRT( char chr )
+{
+
+    if (chrCount == 0) {
+
+        // First char can only be 'T' or 'R'
+        if (chr == 'T'||chr == 'R' ) {
+
+        	//INorder.VWR.windDirAR = chr;
+
+        } else {
+          sentenceInvalid();
+          return '-';
+        }
+
+        // Second char can only be ','
+      } else if ((chrCount > 1) || (chr != ',')) {
+        sentenceInvalid();
+        return '-';
     }
 
-  return true;
-} // parseWindDir
+  return chr;
+} // parseWindDirRT
 
 bool emcNMEA::parseAngleRef( whole_frac & angle, char chr)
 {

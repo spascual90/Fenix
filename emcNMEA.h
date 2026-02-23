@@ -86,10 +86,12 @@ protected:
     void sentenceInvalid() ;
     void sentenceUnrecognized() ;
     NMEAGPS_VIRTUAL decode_t decode( char c ) override;
+    NMEAGPS_VIRTUAL bool Test_parse( char chr );
     NMEAGPS_VIRTUAL bool parseAPB( char chr );
     NMEAGPS_VIRTUAL bool parseHDT( char chr );
     NMEAGPS_VIRTUAL bool parseHDG( char chr );
     NMEAGPS_VIRTUAL bool parseVWR( char chr );
+    NMEAGPS_VIRTUAL bool parseMWV( char chr );
     NMEAGPS_VIRTUAL bool parseRMC( char chr );
     NMEAGPS_VIRTUAL bool parseVTG( char chr );
     bool parse360(whole_frac & angle, char chr);
@@ -101,7 +103,8 @@ protected:
     bool parseDeadbandType( char chr );
     bool parseAPmode( char chr );
     bool parseDirSteer( char chr );
-    bool parseWindDir( char chr );
+    char parseWindDirRL( char chr );
+    char parseWindDirRT( char chr );
     bool parseXTEUnits( char chr );
     bool parseAlarmCircle( char chr );// AlarmCircle: A - Activated, V - no alarm.
     bool parseAlarmPerp( char chr );// AlarmPerp: A - Activated, V - no alarm.
@@ -217,6 +220,25 @@ private:
 	unsigned long _DelayTX1Start = millis();
 	//ORDER OF NMEA Transmition per loop
 	int _TX1order = 0;
+
+//	//Wind information
+//	struct s_RW {
+//		// Is Valid indicates if data is valid or not
+//		bool isValid=false;
+//		struct {bool windDirDeg; bool windDirLR; bool windSpeed;} flag;
+//
+//		//	Wind direction magnitude in degrees
+//		whole_frac windDirDeg;
+//
+//		//	Wind direction Left/Right of bow
+//		char windDirLR;
+//
+//		//	Wind value Relative/ Absolute
+//		char windDirAR;
+//
+//		// Wind speed
+//		whole_frac windSpeed;
+//	} ;
 
 } ;
 
