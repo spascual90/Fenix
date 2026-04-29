@@ -8,10 +8,8 @@
 #ifndef DEVICM20948_H_
 #define DEVICM20948_H_
 
-#include <utility/imumaths.h>
-#include <EEPROM.h>
-#include <Wire.h>
-#include "I2Cdev.h"
+#include <Arduino.h>
+//#include <Wire.h>
 
 // All configurations are managed in Fenix_config.h
 #include "Fenix_config.h"

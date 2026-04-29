@@ -72,9 +72,6 @@ void IF_NMEA::refresh(){
 					printMemory(& gpsPort);
 				#endif
 				printRSA(& gpsPort);
-				//#ifdef TESTER_IF
-				//	TESTER_sincroTime();
-				//#endif
 
 				TXNext();
 				break;
@@ -87,8 +84,8 @@ void IF_NMEA::refresh(){
 				// HDT Deprecated
 				//// Only transmits HDM/HDG when no valid HDM message has been received.
 				//if (MyPilot->isHeadingValid() and !MyPilot->isExtHeading()) printHDM(& gpsPort);
-				#ifdef TESTER_IF
-				TESTER_sincroTime();
+				#ifdef TELEMETRY_IF
+				reportTelemetry();
 				#endif
 				TXNext();
 				break;
@@ -362,7 +359,7 @@ void IF_NMEA::printAPB(Stream * outStream, s_APB APB) {
 	emcNMEA::printAPB(outStream);
 }
 
-void IF_NMEA::TESTER_sincroTime(void) {
+void IF_NMEA::reportTelemetry(void) {
 		static unsigned long DelayCalcStart = millis();
 		int l=7, d=2;
 		char c3[l+3];
@@ -377,9 +374,11 @@ void IF_NMEA::TESTER_sincroTime(void) {
 				dtostrf(MyPilot->getITerm(),0,d,c4),
 				dtostrf(MyPilot->getKdContrib(),0,d,c5),
 				dtostrf(MyPilot-> getKanticipContrib(),0,d,c6));
+
 		DEBUG_print();
 		DEBUG_flush();
 		DelayCalcStart = millis();
+
 	}
 
 

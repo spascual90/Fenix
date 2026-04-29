@@ -42,17 +42,9 @@ e_IMU_status BearingMonitor::IMU_setup(long EE_address){
 		return _IMU_status;
 #endif
 
-	#ifdef BNO055_INTERNAL_FUSION
-	_imuDevice= (DevBNO055Int *) IMUDevice::createIMUDevice();    // create the imu_device object
-#endif
-
-#ifdef BNO055_EXTERNAL_FUSION
-	_imuDevice= (DevBNO055Ext *) IMUDevice::createIMUDevice();    // create the imu_device object
-#endif
-
-#ifdef MINIMU9V5
-	_imuDevice= (DevMinIMU9V5 *) IMUDevice::createIMUDevice();    // create the imu_device object
-#endif
+//#ifdef MINIMU9V5
+//	_imuDevice= (DevMinIMU9V5 *) IMUDevice::createIMUDevice();    // create the imu_device object
+//#endif
 
 #ifdef ICM20948
 	_imuDevice= (DevICM20948 *) IMUDevice::createIMUDevice();    // create the imu_device object

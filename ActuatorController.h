@@ -47,8 +47,22 @@ public:
 	int get_PIN_PWM() {return PIN_PWM;}
 	int get_PIN_DIR() {return PIN_DIR;}
 
+	inline bool isBlocked() const {
+		return _blocked;
+	}
+
 protected:
 	void setup();
+
+	void setBlocked(bool blocked = true) {
+		_blocked = blocked;
+		if (_blocked) {
+			setSpeed(0, true);
+			cal_FBK_move(e_dir(1-getDir()));
+			//DEBUG_sprintf("\n!W: Blocked\n");
+		}
+	}
+
 
 	//Feedback Calibration
 	int cal_FBK_move(e_dir dir);
@@ -61,6 +75,7 @@ private:
 	int _currentSpeed=0; //Value speed between 0 and 255
 	//bool blocked_dirCharge = false;
 	//const unsigned long delay_dirChange;
+	bool _blocked = false; // security blockage of actuator
 
 	void IBIT();
 };

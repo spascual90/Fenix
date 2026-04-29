@@ -2,7 +2,6 @@
 #ifndef _ICM20948_EXT_H
 #define	_ICM20948_EXT_H
 
-#include <RTIMU.h>
 #include "CalLib.h"
 #include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 

@@ -246,9 +246,9 @@ void BT::triggerAction () {
 
 
     case BT_RESTORE_PID:
-    	if (currentMode == STAND_BY) {
-    		MyPilot->ResetTunings();
-    	}
+//    	if (currentMode == STAND_BY) {
+//    		MyPilot->ResetTunings();
+//    	}
     	break;
 
 
@@ -280,6 +280,8 @@ void BT::updateBT(){
 	_V[AI_FBK_MAX] = fbk_max;
 	_V[AI_MAX_RUDDER] = MyPilot->getMaxRudder() ;
 	_V[AI_FBK_ERROR] = MyPilot->getErrorFeedback() ;
+	_V[AI_MAX_CURRENT] = MyPilot->getMaxCurrent();
+
 
 
 
@@ -394,6 +396,15 @@ void BT::updateSpecialBT() {
 		Change_FbkError(valueFbkError);
 		// Reset value in app
 		_V[VD_USER_FBK_ERROR] = 0;
+
+	}
+
+	// Manual change of max current
+	int16_t valueMaxCurrent = int16_t(_V[VD_USER_MAX_CURRENT]);
+	if (valueMaxCurrent!=0) {
+		Change_MaxCurrent(valueMaxCurrent);
+		// Reset value in app
+		_V[VD_USER_MAX_CURRENT] = 0;
 
 	}
 

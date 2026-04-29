@@ -19,11 +19,12 @@
 //  along with NeoGPS.  If not, see <http://www.gnu.org/licenses/>.
 
 //
-// SPM INI
 #define SERIAL_IF_AVAILABLE // Comment this line to avoid SERIAL IF compilation: NMEA and debugging will not be available
 #include <PString.h> /// http://arduiniana.org/libraries/pstring/
 #ifdef SERIAL_IF_AVAILABLE
-// SPM FIN
+#if defined(ARDUINO_AVR_MEGA2560)
+// ===== AVR (Mega): NeoHWSerial disponible =====
+
              #include <NeoHWSerial.h>
 
              #define gpsPort NeoSerial
@@ -34,18 +35,40 @@
 			 #define DEBUG_PORT_NAME "NeoSerial"// (USB D0, D1)"
 			 #endif
 
-#endif
-// SPM INI
-// Define Bluetooth interface
-// SPM  ATENCION  INI COMENTAR PARA DEBUG NANO - Weather Station!!!
-	#define HMI_BT // Bluetooth IF
-    #define BTPort NeoSerial1
-    #define BT_PORT_NAME "NeoSerial1"// (D18, D19)
-// SPM  ATENCION FIN COMENTAR PARA DEBUG NANO - Weather Station!!!
+			// Define Bluetooth interface
+			#define HMI_BT // Bluetooth IF
+			#define BTPort NeoSerial1
+			#define BT_PORT_NAME "NeoSerial1"// (D18, D19)
 
-			//SPM ATENCION AÑADIR PARA DEBUG NANO
-            //#define BTPort NeoSerial
-            //#define BT_PORT_NAME "NeoSerial"
+			// Define mechanism to poll incoming data
+			#define GPS_HAS_ISR 1
+
+#elif defined(ARDUINO_NANO)
+				//SPM ATENCION AÑADIR PARA DEBUG NANO
+				#define BTPort NeoSerial
+				#define BT_PORT_NAME "NeoSerial"
+				#define GPS_HAS_ISR 1
+
+#elif defined(ARDUINO_UNOR4_WIFI)
+#include <Arduino.h>
+#include ".\unoR4Wifi\avr\dtostrf.h"
+
+// ===== UNO R4 WiFi (Renesas): usa HardwareSerial del core =====
+  // No incluir NeoHWSerial
+
+  // En R4:
+  // - Serial  -> USB-C (debug)
+  // - Serial1 -> UART HW (pins TX1/RX1)
+  #define gpsPort Serial
+  #define GPS_PORT_NAME "Serial (USB)"
+  #define GPS_HAS_ISR 0
+
+  // debug por USB
+  #define DEBUG_PORT Serial
+  #define DEBUG_PORT_NAME "Serial (USB)"
+#endif
+
+#endif //SERIAL_IF defined
 
 
 static char DEBUG_buffer[80];

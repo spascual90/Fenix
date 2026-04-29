@@ -7,10 +7,11 @@
 
 #include "ActuatorManager.h"
 
-ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback, float refSpeed)
+ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback, float refSpeed, int maxCurrent)
 	: PID_ext(&_Input, &_Output, &_Setpoint, Kp, Ki, Kd, ControllerDirection, refSpeed),
 	  PID_ATune(&_ATune_Input, &_ATune_Output),
-	  RudderFeedback(MRA, error, deltaCenterOfRudder, minFeedback, maxFeedback)
+	  RudderFeedback(MRA, error, deltaCenterOfRudder, minFeedback, maxFeedback),
+	  CurrentFeedback(maxCurrent)
 {
 
 	// Implement PID gain initial values
@@ -31,6 +32,23 @@ ActuatorManager::~ActuatorManager() {
 
 
 void ActuatorManager::setup(void){
+	// Setup current feedback
+	DEBUG_print(F("Current monitor:\n"));
+	bool c_status = CurrentFeedback::setup(true);
+	switch (c_status) {
+		break;
+	case INA_KO:
+		DEBUG_print(F("Not detected\n"));
+
+		break;
+	case INA_OK:
+		DEBUG_print(F("Detected\n"));
+		break;
+	}
+
+	// Setup linear actuator
+	ActuatorController::setup();
+
 	updateCurrentRudder();
 	setTargetRudder(getCurrentRudder());
 	bool out_min = getCurrentFeedback() < getLimitMinFeedback();
@@ -70,7 +88,7 @@ void ActuatorManager::stopAutoMode(){
 	setTargetRudder(getCurrentRudder());
 }
 
-int ActuatorManager::Compute(float setPoint, float processVariable, float speed, float predictedYaw) {
+int ActuatorManager::Compute(float setPoint, float processVariable, float speed, float predictedYawDelta) {
 
 //			PID FACTOR
 //		  1. Target Bearing(TB) is considered the 0 reference (TB' reference system) instead of magnetic North.
@@ -91,34 +109,35 @@ int ActuatorManager::Compute(float setPoint, float processVariable, float speed,
 		if (PIDerrorPrima>180) PIDerrorPrima -=360;
 		if (PIDerrorPrima<=-180)  PIDerrorPrima +=360;
 
-		return this->Compute(PIDerrorPrima, speed, predictedYaw);
+		return this->Compute(PIDerrorPrima, speed, predictedYawDelta);
 }
 
-int ActuatorManager::Compute(float PIDerrorPrima, float speed, float predictedYaw) {
+int ActuatorManager::Compute(float PIDerrorPrima, float speed, float predictedYawDelta) {
 
 		static int delta_rudder =0;
 		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 		//setSetpoint(0); If always 0 it is not necessary to update value...
 
+		PID_ext::calcKanticipContrib(predictedYawDelta);
 		PID_ext::Compute(delta_rudder, speed);
 		delta_rudder = controlActuator (getOutput());
-		PID_ext::setKanticipContrib(predictedYaw/100.0);
+
 		//predictedYaw
 
 		return 1;
 	}
 
-int ActuatorManager::Compute_Autotune(float PIDerrorPrima) {
-
-		//setATuneInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
-		//setSetpoint(0); If always 0 it is not necessary to update value...
-
-		//evaluateAutoTune();
-
-		//controlActuator (int(_ATune_Output), false, 0);
-
-		return 1;
-	}
+//int ActuatorManager::Compute_Autotune(float PIDerrorPrima) {
+//
+//		//setATuneInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
+//		//setSetpoint(0); If always 0 it is not necessary to update value...
+//
+//		//evaluateAutoTune();
+//
+//		//controlActuator (int(_ATune_Output), false, 0);
+//
+//		return 1;
+//	}
 
 int ActuatorManager::compute_VA() {
 	// Refresh virtual actuator status
@@ -131,8 +150,10 @@ int ActuatorManager::compute_VA() {
 	setVAanalogRead(new_analog);
 	#endif
 }
-
+// ret 1: Ok
+// ret 0: Is blocked
 int ActuatorManager::changeRudder(int delta_rudder) {
+	if (isBlocked()) return 0;
 	int target = getTargetRudder();
 	int current = getCurrentRudder();
 	if (abs(delta_rudder) > abs (target-current))
@@ -145,6 +166,34 @@ int ActuatorManager::changeRudder(int delta_rudder) {
 	return 1;
 }
 
+// True: Current over limit: Blockage
+// False: Current nominal: No blockage
+bool ActuatorManager::checkBlockage(void) {
+	// if there is no monitoring doesnt go further
+	if (!isCurrentMonitoring()) return false;
+	static float a = 0;
+	static int i = 0;
+	a = max(a,abs(readCurrent()));
+	//if (a>300) DEBUG_sprintf("Current",a);
+	if (a>getMaxCurrent()) {// para max.1184mA en vacío (10% mas corriente para bloqueo: 1300mA)
+		setBlocked();
+#ifdef DEBUG_SIMPLOT_CURRENT
+		plot1(NeoSerial, a);
+#endif
+		a=0;
+		return true;
+	} else if (i==0) {
+#ifdef DEBUG_SIMPLOT_CURRENT
+		plot1(NeoSerial, a);
+#endif
+		a=0;
+	}
+	i++;
+	if (i==100) i=0;
+	return false;
+}
+
+
 int ActuatorManager::controlActuator(int target_rudder_deg)
 {
     // --- Estado actual ---
@@ -152,7 +201,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     //int current = getCurrentRudder();
     int delta = target_rudder_deg - getCurrentRudder();
 
-	#ifdef DEBUG
+	#ifdef DEBUG_ACTUATOR
     DEBUG_sprintf("tr,c,d",target_rudder_deg, getCurrentRudder(), delta);
 	#endif
 
@@ -174,6 +223,9 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 	int current_speed = getSpeed();
 
 
+	// 0. Verificar bloqueo de actuador
+
+	if (checkBlockage()) return 0;
 
     // --- 1. Dirección deseada ---
     e_dir desired_dir = (delta >= 0 ? EXTEND : RETRACT);
@@ -193,14 +245,14 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 	{
 		if (now - t_last_dir_change < change_delay)
 		{
-			#ifdef DEBUG
+			#ifdef DEBUG_ACTUATOR
 			DEBUG_print("t.w\n");//waiting
 			delay(10);
 			#endif
 		}
 		else
 		{
-			#ifdef DEBUG
+			#ifdef DEBUG_ACTUATOR
 			DEBUG_print("t.f\n");// finished
 			delay(10);
 			#endif
@@ -212,7 +264,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     if ((desired_dir == RETRACT && min_limit) ||
         (desired_dir == EXTEND  && max_limit))
     {
-    	#ifdef DEBUG
+    	#ifdef DEBUG_ACTUATOR
     	DEBUG_print("2.\n");
     	delay(10);
     	#endif
@@ -225,7 +277,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     if (abs(delta) <= (stop_threshold))
     {
 
-		#ifdef DEBUG
+		#ifdef DEBUG_ACTUATOR
 		DEBUG_sprintf("3.stop", stop_threshold);
 		delay(10);
 		#endif
@@ -235,7 +287,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 
 	if (current_speed ==0 and restart_threshold > abs(delta))
 	{
-		#ifdef DEBUG
+		#ifdef DEBUG_ACTUATOR
 		DEBUG_sprintf("3.dont_start\n");
 		delay(10);
 		#endif
@@ -253,13 +305,13 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 			if (double_check==false)
 			{
 				double_check=true;
-				#ifdef DEBUG
+				#ifdef DEBUG_ACTUATOR
 				DEBUG_sprintf("****** 4.!b1", delta);
 				#endif
 				return delta;
 			}
 			double_check=false;
-			#ifdef DEBUG
+			#ifdef DEBUG_ACTUATOR
 			DEBUG_sprintf("****** 4.!b2", delta); //begin
 			delay(10);
 			#endif
@@ -270,7 +322,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     		{
     			estados=2;
 
-				#ifdef DEBUG
+				#ifdef DEBUG_ACTUATOR
 				DEBUG_print("4.!w\n");
 				delay(10);
 				#endif
@@ -281,7 +333,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 		case 2:
 			if (estado_timer==2)//(now - t_last_dir_change < change_delay)
 			{
-				#ifdef DEBUG
+				#ifdef DEBUG_ACTUATOR
 				DEBUG_print("4.f\n");// finished
 				delay(10);
 				#endif
@@ -300,7 +352,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 		if (abs(delta) > slow_threshold)
 		{
 			speed_cmd = SPEED_CRUISE;   // error grande - mover rápido
-			#ifdef DEBUG
+			#ifdef DEBUG_ACTUATOR
 			DEBUG_sprintf("5.SC", delta);
 			delay(10);
 			#endif
@@ -311,14 +363,14 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 			if (current_speed ==0 and restart_threshold > abs(delta))
 			{
 				speed_cmd = 0;     // error pequeño y parado- no mover aún
-				#ifdef DEBUG
+				#ifdef DEBUG_ACTUATOR
 				DEBUG_sprintf("5.0", delta);
 				delay(10);
 				#endif
 				return delta;
 			} else {
 				speed_cmd = SPEED_CRUISE/3;     // error pequeño y moviendose - aproximación suave
-				#ifdef DEBUG
+				#ifdef DEBUG_ACTUATOR
 				DEBUG_sprintf("5./3", delta);
 				delay(10);
 				#endif
@@ -330,7 +382,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 	if ((last_direction != desired_dir) and (estados==0))
 
 	{
-		#ifdef DEBUG
+		#ifdef DEBUG_ACTUATOR
 		DEBUG_sprintf("6.c.dd,gd",desired_dir,getDir());
 		delay(10);
 		#endif
@@ -349,7 +401,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     if (delta_speed > 0) //(speed_cmd > current_speed)
     {
         new_speed = current_speed + 5;  // rampa de aceleración
-		#ifdef DEBUG
+		#ifdef DEBUG_ACTUATOR
 		DEBUG_print("6.a\n");
 		delay(10);
 		#endif
@@ -358,14 +410,14 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     	if (delta_speed < 0 )
     	{
 			new_speed = current_speed - 5;  // rampa de frenado
-			#ifdef DEBUG
+			#ifdef DEBUG_ACTUATOR
 			DEBUG_print("6.f\n");
 			delay(10);
 			#endif
 		} else  //delta_speed == 0
 		{
 			new_speed = current_speed;
-			#ifdef DEBUG
+			#ifdef DEBUG_ACTUATOR
 			DEBUG_print("6.0\n");
 			delay(10);
 			#endif
@@ -378,7 +430,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 
     if (new_speed!=current_speed)
     {
-		#ifdef DEBUG
+		#ifdef DEBUG_ACTUATOR
     	DEBUG_sprintf("speed,estados", new_speed, estados);
 		#endif
     	setSpeed(new_speed, true);
@@ -389,91 +441,4 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 
 void ActuatorManager::ResetTunings(){
 	SetTunings (_KpIni, _KiIni, _KdIni);
-}
-
-
-// AUTOTUNE
-//input: bearing
-//input noise band: max. bandwith: 5 degrees
-//look back time (local peaks filtering): 5 seg
-//
-//The number of cycles performed will vary between 3 and 10.
-//The algorithm waits until the last 3 maxima have been within 5% of each other.
-//This is trying to ensure that we’ve reached a stable oscillation and there’s no external strangeness happening. This leads me to…
-//
-//output: target rudder angle
-//
-//proceso:
-//- En modo Auto, navegar hacia un rumbo estable
-//- Extender actuador al máximo hasta alcanzar un rumbo 100º a estribor
-//- Retraer actuador al mínimo hasta alcanzar un rumbo 200º a babor
-//- Extender actuador al máximo hasta alcanzar un rumbo 200º a estribor
-//- Repetir hasta que Autotune considere necesario (3/10 veces)
-//
-//Monitorización:
-//Target bearing en cada momento
-//Numero de ciclos
-//Estado del proceso: Starting process, turn starboard, turn portboard, process finished successfully, process finished with errors
-
-void ActuatorManager::setupAutoTune(double aTuneNoise, double aTuneStep, double aTuneLookBack)
-{
-    SetNoiseBand(aTuneNoise);
-    SetOutputStep(aTuneStep);
-    SetLookbackSec((int)aTuneLookBack);
-}
-
-
-void ActuatorManager::startAutoTune(void) {
- if(!_tuning)
-  {
-    //Set the output to the desired starting frequency.
-
-    _tuning = true;
-	DEBUG_print(F("!ATune started\n"));
-  }
-}
-
-bool ActuatorManager::evaluateAutoTune(void) {
-	int l=8, d=4;
-	char c3[l+3];
-	char c4[l+3];
-	char c5[l+3];
-
-	if(_tuning) {
-		  byte val = (Runtime());
-		  if (val!=0) {
-			DEBUG_print(F("!Autotune finished\n"));
-			stopAutoTune();
-
-			sprintf(DEBUG_buffer,"Kp, Ki, Kd: %s, %s, %s\n",dtostrf(PID_ATune::GetKp(),l,d,c3) ,dtostrf(PID_ATune::GetKi(),l,d,c4),dtostrf(PID_ATune::GetKd(),l,d,c5));
-			DEBUG_print();
-
-		  }
-		  return _tuning;
-	}
-}
-
-
-void ActuatorManager::stopAutoTune(void) {
-	if (_tuning) {
-		//cancel autotune
-		Cancel();
-		_tuning = false;
-		_ATune_Output = 0;
-		_ATune_Input = 0;
-		DEBUG_print(F("!ATune stopped\n"));
-
-	}
-}
-
-bool ActuatorManager::CopyToPIDAutoTune(void) {
-
-	if(!_tuning) {
-		//we're done, set the tuning parameters
-		double l_kp = PID_ATune::GetKp();
-		double l_ki = PID_ATune::GetKi();
-		double l_kd = PID_ATune::GetKd();
-		SetTunings(l_kp,l_ki,l_kd);
-	}
-	return (!_tuning);
 }

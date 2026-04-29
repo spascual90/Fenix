@@ -9,8 +9,9 @@
 #include <MemoryFree.h>
 #include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 
+//TODO: maxCurrent instead of 20
 Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
- : ActuatorManager(gain.Kp.float_00(), gain.Ki.float_00(), gain.Kd.float_00(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback, float(ip.avgSpeed) ) //maxRudder is the min/max value for PID as well.
+ : ActuatorManager(gain.Kp.float_00(), gain.Ki.float_00(), gain.Kd.float_00(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback, float(ip.avgSpeed), float(ip.maxCurrent) ) //maxRudder is the min/max value for PID as well.
  , BearingMonitor (ip.magVariation.float_00(), ip.headAlign.float_00())
 {
 	//SET HARDCODED INSTALATION PARAMETERS
@@ -57,8 +58,10 @@ e_setup_status Autopilot::setup() {
 	//Setup EEPROM
 	EEPROM_setup();
 
+
+
 	// Setup linear actuator
-	ActuatorController::setup();
+	//ActuatorController::setup();
 
 	// Setup Actuator manager
 	ActuatorManager::setup();
@@ -152,23 +155,6 @@ e_working_status Autopilot::Compute() {
 	case TRACK_MODE:
 	case WIND_MODE:
 		ws = compute_OperationalMode();
-
-		//plot2(NeoSerial,int(getInput()), -int(getKdContrib()));//,int(getOutput(), int(getKpContrib()), int(getITerm()))
-//		getTargetBearing();
-//		getInput();
-//		getCurrentRudder();
-//		float (getKpContrib());
-//		float (getITerm());
-//		float(getKdContrib());
-//		float(getOutput());
-//		//_V[AI_DELTA_CRUDDER] = MyPilot->getDeltaCenterOfRudder();
-//		//dbt.getDeadband();
-//		dbt.getTrim();
-
-		//
-
-
-
 		break;
 	case STAND_BY:
 		ws = compute_Stand_By();
@@ -180,10 +166,11 @@ e_working_status Autopilot::Compute() {
 		ws = compute_Cal_Feedback();
 		break;
 	case CAL_AUTOTUNE:
-		ws = compute_Autotune();
+		//ws = compute_Autotune();
 		break;
 	}
-
+	//Check whether linear actuator is blocked
+	if (isBlocked()) setWarning(ACTUATOR_BLOCKED, true);
 	return ws;
 }
 
@@ -211,19 +198,37 @@ e_working_status Autopilot::compute_OperationalMode(void){
 	float PIDerrorPrima = delta180(getTargetBearing(), BearingMonitor::getCurrentHeadingT());
 	if (PIDerrorPrima==-360) return RUNNING_ERROR;
 	// Adapt to actual SOG or SOW speed over water
-	float predicted = BearingMonitor::predictYawDelta(5.0);
-	if (ActuatorManager::Compute(PIDerrorPrima, get_boatSpeed(), predicted)!=1) return RUNNING_ERROR;
+//	static float predicted =0;
+//	predicted=predicted*0.995 + 0.005 * BearingMonitor::predictYawDelta(1.0);
+//	static float integrated =0;
+//
+//	integrated = integrated*0.9 +predicted*abs(predicted);
+//
+//
+//#ifdef DEBUG_SIMPLOT
+//	//plot3(NeoSerial, PIDerrorPrima*100, predicted, integrated);
+//	plot2(NeoSerial,getCurrentHeadingT() ,getCurrentHeadingT() - getKanticipContrib());
+//#endif
+
+	if (ActuatorManager::Compute(PIDerrorPrima, get_boatSpeed(), BearingMonitor::predictYawDelta(1.0))!=1) return RUNNING_ERROR;
+
+#ifdef DEBUG_SIMPLOT
+	//plot3(NeoSerial, PIDerrorPrima*100, predicted, integrated);
+	plot2(NeoSerial,getCurrentHeadingT() ,getCurrentHeadingT() - getKanticipContrib());
+#endif
+
+	if (isBlocked()) setCurrentMode(STAND_BY);
 	compute_OCA (PIDerrorPrima);
 	//compute_OCA2(PIDerrorPrima);// Delta entre CTS y CTS cuando se inició WindMode
 	return RUNNING_OK;
 }
 
-e_working_status Autopilot::compute_Autotune(void){
-	float PIDerrorPrima = delta180(getTargetBearing(), BearingMonitor::getCurrentHeadingT());
-	if (PIDerrorPrima==-360) return RUNNING_ERROR;
-	if (ActuatorManager::Compute_Autotune(PIDerrorPrima)!=1) return RUNNING_ERROR;
-	return RUNNING_OK;
-}
+//e_working_status Autopilot::compute_Autotune(void){
+//	float PIDerrorPrima = delta180(getTargetBearing(), BearingMonitor::getCurrentHeadingT());
+//	if (PIDerrorPrima==-360) return RUNNING_ERROR;
+//	if (ActuatorManager::Compute_Autotune(PIDerrorPrima)!=1) return RUNNING_ERROR;
+//	return RUNNING_OK;
+//}
 
 
 void Autopilot::computeLongLoop_TrackMode(void) {
@@ -318,7 +323,7 @@ bool Autopilot::setCurrentMode(e_APmode newMode, char sensor) {
 		break;
 
 	case CAL_AUTOTUNE:
-		startAutoTune();
+		//startAutoTune();
     	DEBUG_print(F("!SetCurrentMode: CAL_AUTOTUNE\n"));
 		break;
 
@@ -361,7 +366,7 @@ void Autopilot::computeLongLoop() {
 		refreshCalStatus();
 #endif
 		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU();
-		if (_currentMode == CAL_AUTOTUNE) computeLongLoop_heading();
+		//if (_currentMode == CAL_AUTOTUNE) computeLongLoop_heading();
 
 		if (isCalMode()) return;
 
@@ -390,13 +395,14 @@ bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode, char s
 		}
 		break;
 
-	case WIND_MODE:
+	case WIND_MODE: {
 		// Turn off alarm if active
 		float WindDir =  getWindDir();
 		if (WindDir==-360) return false;
 		setTargetWindDir(WindDir);
 		if (_offCourseAlarmActive2 ) set_OCA2(false);
 		break;
+		}
 	case STAND_BY:
 		if (newMode == CAL_AUTOTUNE) {
 			setTargetBearing (getCurrentHeadingT());
@@ -422,9 +428,13 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 	}
 
 	_offCourseAlarmIDLE = false; // OCA Alarm deactivated until ship heading gets into OCA angle
-	DEBUG_print(F("DEBUG:OCA Alarm: Deactivated\n"));
 	_offCourseAlarmIDLE2 = false; // OCA Alarm deactivated until ship heading gets into OCA angle
-	DEBUG_print(F("DEBUG:OCA2 Alarm: Deactivated\n"));
+#ifdef DEBUG_OCA
+	DEBUG_print(F("OCA: Deact\n"));
+	DEBUG_print(F("OCA2: Deact\n"));
+#endif
+
+
 
 	if (preMode == CAL_IMU_COMPLETE) {
 		if (this->isExternalCalibration()) {
@@ -467,11 +477,15 @@ void Autopilot::setTargetBearing(float targetBearing) {
 		// ...then OCA Alarm is deactivated until ship heading gets into OCA angle
 		if (delta_tb > getOffCourseAlarm()) {
 			_offCourseAlarmIDLE = false;
-			DEBUG_print(F("DEBUG:OCA Alarm: Deactivated\n"));
+#ifdef DEBUG_OCA
+			DEBUG_print(F("OCA: Deact\n"));
+#endif
 		}
 		if (delta_tb > getOffCourseAlarm2()) {
 			_offCourseAlarmIDLE2 = false;
-			DEBUG_print(F("DEBUG:OCA2 Alarm: Deactivated\n"));
+#ifdef DEBUG_OCA
+			DEBUG_print(F("OCA2: Deact\n"));
+#endif
 		}
 		_targetBearing = fmod (targetBearing, double(360));
 	}
@@ -521,7 +535,9 @@ bool Autopilot::setFbkError(int16_t value_FbkError, bool recalc) {
 	RudderFeedback::setErrorFeedback(value_FbkError, recalc);
 }
 
-
+bool Autopilot::setMaxCurrent(int16_t value_MaxCurrent) {
+	CurrentFeedback::setMaxCurrent(value_MaxCurrent);
+}
 
 // CALIBRATION MODE
 inline bool Autopilot::isCalMode(void){
@@ -670,7 +686,7 @@ void Autopilot::evaluate_changeIMUstatus (void) {
 	bool changeIMUstatus = false;
 
 	// _extHeading.t0==0 indica que NO se ha recibido ningún mensaje
-	if (_extHeading.t0==0) return false;
+	if (_extHeading.t0==0) return;
 
 	if ((getLoopMillis()-_extHeading.t0)<MAX_HDTG_TIME){
 		if (_extHeading.processed == false) {
@@ -802,11 +818,15 @@ void Autopilot::setTargetWindDir_delta(int deltaWindDir) {
 	// ...then OCA Alarm is deactivated until ship heading gets into OCA angle
 	if (deltaWindDir > getOffCourseAlarm()) {
 		_offCourseAlarmIDLE = false;
-		DEBUG_print(F("DEBUG:OCA Alarm: Deactivated\n"));
+#ifdef DEBUG_OCA
+		DEBUG_print(F("OCA: Deact\n"));
+#endif
 	}
 	if (deltaWindDir > getOffCourseAlarm2()) {
 		_offCourseAlarmIDLE2 = false;
-		DEBUG_print(F("DEBUG:OCA2 Alarm: Deactivated\n"));
+#ifdef DEBUG_OCA
+		DEBUG_print(F("OCA2: Deact\n"));
+#endif
 	}
 
 	int factor = deltaWindDir>0?-1:+1;
@@ -993,8 +1013,9 @@ void Autopilot::Request_instParam(s_instParam & instParam) {
 	instParam.headAlign.Towf_00(getHeadingDev());
 	instParam.minFeedback=getMinFeedback();
 	instParam.maxFeedback=getMaxFeedback();
+	instParam.maxCurrent=getMaxCurrent();
 	//instParam.offcourseAlarm=MyPilot-;; TODO: Implement off course alarm
-	instParam.flag = {true, true, true, true, true, true, true, true, true, true};
+	instParam.flag = {true, true, true, true, true, true, true, true, true, true, true};
 	instParam.isValid = true;
 }
 
@@ -1028,6 +1049,7 @@ bool Autopilot::Change_instParam (s_instParam instParam) {
 			setMinFeedback(instParam.minFeedback, false);
 			setMaxFeedback(instParam.maxFeedback, true);
 		}
+		if (instParam.flag.maxCurrent) setMaxCurrent(instParam.maxCurrent);
 		//TODO: change off course alarm
 		rt= true;
 	}
@@ -1054,7 +1076,7 @@ void Autopilot::buzzer_setup() {
 	pinMode(PIN_BUZZER, OUTPUT); // Set buzzer - pin PIN_BUZZER as an output
 	buzzer_IBIT();
 #else
-	DEBUG_print(F("!Debugging: SAFETY NOTICE: Buzzer disconnected!\n"));
+	DEBUG_print(F("!Debugging: Buzzer off!\n"));
 #endif
 }
 
@@ -1132,7 +1154,9 @@ bool Autopilot::compute_OCA (float delta) {
 	if (abs(delta) < _offCourseAlarm) {
 		if (!_offCourseAlarmIDLE) {
 			_offCourseAlarmIDLE = true; // Alarm in Stand By
-			DEBUG_print(F("DEBUG:OCA Alarm: Stand by\n"));
+#ifdef DEBUG_OCA
+			DEBUG_print(F("OCA: Stand by\n"));
+#endif
 		}
 		if (sb_offCourse ==true)
 		{
@@ -1148,7 +1172,9 @@ bool Autopilot::compute_OCA (float delta) {
 	if (_offCourseAlarmIDLE == true and l_offCourse == true and sb_offCourse == false) {
 		sb_offCourse = true;
 		sd_offCourseStartTime = getLoopMillis();
-		DEBUG_print(F("DEBUG:OCA Alarm: Start counting\n"));
+#ifdef DEBUG_OCA
+		DEBUG_print(F("OCA: Start count\n"));
+#endif
 	}
 
 	if (_offCourseAlarmIDLE == true and
@@ -1168,13 +1194,17 @@ void Autopilot::set_OCA (bool set) {
 		buzzer_tone_start (1000, 1023);
 		_offCourseAlarmActive = true;
 		// END: These two instructions always in this order
-		DEBUG_print(F("DEBUG:OCA Alarm: Alarm!\n"));
+#ifdef DEBUG_OCA
+		DEBUG_print(F("OCA: Alarm!\n"));
+#endif
 	} else
 	{
 		_offCourseAlarmActive = false;
 		buzzer_noTone(); // shut down alarm
 		setWarning(NO_WARNING);
-		DEBUG_print(F("DEBUG:OCA Alarm: Stopped\n"));
+#ifdef DEBUG_OCA
+		DEBUG_print(F("OCA: Stopped\n"));
+#endif
 	}
 }
 
@@ -1192,7 +1222,9 @@ bool Autopilot::compute_OCA2 (float delta) {
 	if (abs(delta) < _offCourseAlarm2) {
 		if (!_offCourseAlarmIDLE2) {
 			_offCourseAlarmIDLE2 = true; // Alarm in Stand By
-			DEBUG_print(F("DEBUG:OCA2 Alarm: Stand by\n"));
+#ifdef DEBUG_OCA
+			DEBUG_print(F("OCA2: Stand by\n"));
+#endif
 		}
 		if (sb_offCourse ==true)
 		{
@@ -1208,7 +1240,9 @@ bool Autopilot::compute_OCA2 (float delta) {
 	if (_offCourseAlarmIDLE2 == true and l_offCourse == true and sb_offCourse == false) {
 		sb_offCourse = true;
 		sd_offCourseStartTime = getLoopMillis();
-		DEBUG_print(F("DEBUG:OCA2 Alarm: Start counting\n"));
+#ifdef DEBUG_OCA
+		DEBUG_print(F("OCA2: Start count\n"));
+#endif
 	}
 
 	if (_offCourseAlarmIDLE2 == true and
@@ -1228,13 +1262,17 @@ void Autopilot::set_OCA2 (bool set) {
 		buzzer_tone_start (1000, 1023);
 		_offCourseAlarmActive2 = true;
 		// END: These two instructions always in this order
-		DEBUG_print(F("DEBUG:OCA2 Alarm: Alarm!\n"));
+#ifdef DEBUG_OCA
+		DEBUG_print(F("OCA2: Alarm!\n"));
+#endif
 	} else
 	{
 		_offCourseAlarmActive2 = false;
 		buzzer_noTone(); // shut down alarm
 		setWarning(NO_WARNING);
-		DEBUG_print(F("DEBUG:OCA2 Alarm: Stopped\n"));
+#ifdef DEBUG_OCA
+		DEBUG_print(F("OCA2: Stopped\n"));
+#endif
 	}
 }
 
@@ -1408,7 +1446,7 @@ bool Autopilot::EEload_instParam (void){
 				instParam.flag.avgSpeed && instParam.flag.centerTiller &&
 				instParam.flag.headAlign && instParam.flag.instSide && instParam.flag.magVariation &&
 				instParam.flag.maxRudder && instParam.flag.offcourseAlarm && instParam.flag.rudDamping &&
-				instParam.flag.minFeedback && instParam.flag.maxFeedback;
+				instParam.flag.minFeedback && instParam.flag.maxFeedback && instParam.flag.maxCurrent;
 		if (Loaded) Change_instParam (instParam);
 
     }

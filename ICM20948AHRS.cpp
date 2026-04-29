@@ -27,15 +27,24 @@
 //#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 #include "GPSport.h"
 
+#if defined(ARDUINO_AVR_MEGA2560)
+	#define WIRE_PORT Wire // desired Wire port.
+	#define Fenix_PIN_SDA 20
+	#define Fenix_PIN_SCL 21
+
+#elif defined(ARDUINO_UNOR4_WIFI)
+	#define WIRE_PORT Wire1 // desired Wire port.
+	#define Fenix_PIN_SDA 18
+	#define Fenix_PIN_SCL 19
+
+#endif
+
+// On the SparkFun 9DoF IMU breakout the default is 1, and when
+// the ADR jumper is closed the value becomes 0
 //////////////////////////
 // ICM_20948 Library Init //
 //////////////////////////
 // default settings for accel and magnetometer
-
-#define WIRE_PORT Wire // desired Wire port.
-//#define AD0_VAL 1      // value of the last bit of the I2C address.
-// On the SparkFun 9DoF IMU breakout the default is 1, and when
-// the ADR jumper is closed the value becomes 0
 
 #define G_OFFSET_MAX 1000
 #define G_OFFSET_MIN -1000
@@ -103,9 +112,41 @@ void vector_normalize(float a[3]);
 float vector_dot(float a[3], float b[3]);
 
 
+static void i2c_bus_recover(int sdaPin, int sclPin) {
+  pinMode(sdaPin, INPUT_PULLUP);
+  pinMode(sclPin, INPUT_PULLUP);
+  delay(5);
+
+  // Si SDA está baja, intenta liberar con hasta 9 pulsos en SCL
+  if (digitalRead(sdaPin) == LOW) {
+    pinMode(sclPin, OUTPUT);
+    for (int i = 0; i < 9; i++) {
+      digitalWrite(sclPin, HIGH); delayMicroseconds(5);
+      digitalWrite(sclPin, LOW);  delayMicroseconds(5);
+    }
+    pinMode(sclPin, INPUT_PULLUP);
+    delay(5);
+  }
+
+  // Genera condición STOP “manual”
+  pinMode(sdaPin, OUTPUT);
+  digitalWrite(sdaPin, LOW);
+  delayMicroseconds(5);
+  pinMode(sclPin, OUTPUT);
+  digitalWrite(sclPin, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(sdaPin, HIGH);
+  delayMicroseconds(5);
+
+  pinMode(sdaPin, INPUT_PULLUP);
+  pinMode(sclPin, INPUT_PULLUP);
+  delay(5);
+}
+
+
 extern bool ICM20948AHRS_setup(bool orientation = false)
 {
-  //Orientation not implemented
+  i2c_bus_recover(SDA, SCL);
   WIRE_PORT.begin();
   WIRE_PORT.setClock(400000);
   imu.begin(WIRE_PORT, 0);

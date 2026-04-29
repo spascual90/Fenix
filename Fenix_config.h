@@ -46,7 +46,7 @@
 // EEPROM address of IMU overlapping InstParam.
 //v.3.5.B1
 // Implementation of PID improvements: Derivative low-pass filter, Anti-windup, limit ITerm, reset ITerm
-// Implementation of TESTER_IF to report internal time via Serial I/F
+// Implementation of TELEMETRY_IF to report internal time and PID values via Serial I/F
 // Improved heading in External HDM mode
 //v.3.6.B1
 // NMEA I/F: Read relative wind and speed information
@@ -62,41 +62,69 @@
 // Updates interfaces and debug output to support new predictive features
 // Refactors actuator control for smoother direction changes and speed ramping
 // Adjusts configuration and rudder limits for improved control
-// Info: TESTER_IF introduces predictive yaw delta calculation using IMU data for information only. Doesnt change PID logic
+// Info: TELEMETRY_IF introduces predictive yaw delta calculation using IMU data for information only. Doesnt change PID logic
 // Deprecated: Deprecates unused PID autotune application
 
 //DEBUG
 // Defined for Release version
-#define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
+//#define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
 #define TXNMEA //Comment this line to stop periodic NMEA Transmission
+
 // Commented for Release version
 //#define PRINT_FREE_MEM
 //#define SHIP_SIM // Uncomment to simulate boat to tune PID
 //#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
 //#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
-#define TESTER_IF
+//#define DEBUG_OCA
+//#define DEBUG_ACTUATOR
+#define TELEMETRY_IF
 //#define FREQ_MONITOR
-//#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
+#define DEBUG_SIMPLOT
+
+// Library to plot signals
+#ifdef DEBUG_SIMPLOT
+#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
+#endif
 
 //Other libraries necessary for printing to serial monitor
 #include "GPSport.h" // Some libraries requires to uncomment this line to print debug messages to serial monitor
 
+#if defined(ARDUINO_AVR_MEGA2560)
+	// PIN Configuration
+	#define PIN_RUDDER A8
+	#define PIN_RUDDER_NAME "A8"
+	#define PIN_BUZZER A12
 
-// PIN Configuration
-#define PIN_RUDDER A8
-#define PIN_RUDDER_NAME "A8"
-#define PIN_BUZZER A12
+	#define PIN_CURRENT A9
+	#define PIN_CURRENT_NAME "A9"
 
-#define PIN_PWM 6
-#define PIN_DIR 7
-//SDA - I2C data pin, connect to your microcontrollers I2C data line. This pin can be
-//used with 3V or 5V logic, and there's a 10K pullup on this pin.
-#define PIN_SDA 20
-//SCL - I2C clock pin, connect to your microcontrollers I2C clock line. This pin can be
-// used with 3V or 5V logic, and there's a 10K pullup on this pin
-#define PIN_SCL 21
+	#define PIN_PWM 6
+	#define PIN_DIR 7
+	//SDA - I2C data pin, connect to your microcontrollers I2C data line. This pin can be
+	//used with 3V or 5V logic, and there's a 10K pullup on this pin.
+	//#define Fenix_PIN_SDA 20
+	//SCL - I2C clock pin, connect to your microcontrollers I2C clock line. This pin can be
+	// used with 3V or 5V logic, and there's a 10K pullup on this pin
+	//#define Fenix_PIN_SCL 21
+#elif defined(ARDUINO_UNOR4_WIFI)
+	// PIN Configuration
+	#define PIN_RUDDER A0
+	#define PIN_RUDDER_NAME "A0"
+	#define PIN_BUZZER A1
 
+	#define PIN_RUDDER A1
+	#define PIN_RUDDER_NAME "A1"
+
+	#define PIN_PWM 6
+	#define PIN_DIR 7
+	//SDA - I2C data pin, connect to your microcontrollers I2C data line. This pin can be
+	//used with 3V or 5V logic, and there's a 10K pullup on this pin.
+	//#define Fenix_PIN_SDA SDA//18
+	//SCL - I2C clock pin, connect to your microcontrollers I2C clock line. This pin can be
+	// used with 3V or 5V logic, and there's a 10K pullup on this pin
+	//#define Fenix_PIN_SCL SCL//19
+#endif
 
 
 // *** BearingMonitor.h ***
@@ -154,6 +182,8 @@
 # define ATUNE_NOISE 5 // magnetic degrees (input signal noise). Maximum bandwith value recommended
 # define ATUNE_STEP 500 // rudder degrees (D value for output step)
 # define ATUNE_LOOKBACK 50 //mseg look back time (local peaks filtering)
+// *** CurrentFeedback.h ***
+#define D_MAX_CURRENT 1020.0 // blocking current (mA)
 
 // *** RudderFeedback.h ***
 
@@ -179,7 +209,6 @@
 #define VA_MAXFEEDBACK 935 //value between 0 and 1024
 #define VA_SPEEDFEEDBACK 0.040//0.027 // speed in mm/mseg    20mm/seg--> 0.02 mm/mseg
 #define VA_LENGHTFEEDBACK 300.0 // mm lenght --> 7.5 seg to get to the center
-
 
 // *** HMIArq.h ***
 

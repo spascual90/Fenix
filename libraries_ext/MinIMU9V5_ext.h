@@ -2,7 +2,6 @@
 #ifndef _MINIMU9V5_EXT_H
 #define	_MINIMU9V5_EXT_H
 
-#include <RTIMU.h>
 #include "CalLib.h"
 #include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 

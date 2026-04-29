@@ -144,13 +144,15 @@ enum e_BT_AI_PIN {
 , AI_DB_CONF = 44
 , AI_AWA_TWA = 45 // Wind angle
 , AI_WIND_MODE = 46 // Wind mode
+, VD_USER_MAX_CURRENT = 47
+, AI_MAX_CURRENT = 48
 
 
 // máximo el valor de c_BTN_V -1 o cambiar el valor de los botones en la App
 
 
 // MAX_AI = valor del último item de la lista +1
-, MAX_AI = AI_WIND_MODE +1
+, MAX_AI = AI_MAX_CURRENT +1
 };
 
 const uint8_t c_max_V = MAX_AI;

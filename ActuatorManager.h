@@ -10,6 +10,7 @@
 
 #include "PID_v1_ext.h"
 #include "RudderFeedback.h"
+#include "CurrentFeedback.h"
 #include "ActuatorController.h"
 //#include "DeadbandTrim.h"
 #include "PID_AutoTune_v0.h"
@@ -35,16 +36,17 @@ typedef enum type_instSide {STARBOARD, PORTBOARD} type_instSide;
 
 class ActuatorManager: public PID_ext, public PID_ATune,
 		public RudderFeedback,
-		public ActuatorController {
+		public ActuatorController,
+		public CurrentFeedback {
 public:
-	ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback, float refSpeed);
+	ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback, float refSpeed, int maxCurrent);
 	virtual ~ActuatorManager();
 	void setup(void);
 	void startAutoMode();
 	void stopAutoMode();
 	int Compute(float setPoint, float processVariable, float speed, float predictedYaw);
 	int Compute(float PIDerrorPrima, float speed, float predictedYaw);
-	int Compute_Autotune(float PIDerrorPrima);
+	//int Compute_Autotune(float PIDerrorPrima);
 	int compute_VA(void);
 	int controlActuator (int target);
 	void ResetTunings();
@@ -86,21 +88,19 @@ public:
 		_installation_side = installationSide;
 	}
 
-	void setupAutoTune(double aTuneNoise, double aTuneStep, double aTuneLookBack);
-	void startAutoTune(void);
-	void stopAutoTune (void);
-	bool evaluateAutoTune (void);
-	bool CopyToPIDAutoTune(void);
-
-	void setATuneInput(double aTuneInput) {
-		_ATune_Input = aTuneInput;
-	}
-
-	//DeadbandTrim
-	//DeadbandTrim dbt;
+//	void setupAutoTune(double aTuneNoise, double aTuneStep, double aTuneLookBack);
+//	void startAutoTune(void);
+//	void stopAutoTune (void);
+//	bool evaluateAutoTune (void);
+//	bool CopyToPIDAutoTune(void);
+//
+//	void setATuneInput(double aTuneInput) {
+//		_ATune_Input = aTuneInput;
+//	}
 
 protected:
 	int changeRudder(int delta_rudder);
+	bool checkBlockage(void);
 
 private:
 	//PID: Define Variables we'll be connecting to

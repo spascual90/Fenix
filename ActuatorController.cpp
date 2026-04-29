@@ -75,6 +75,7 @@ int ActuatorController::setSpeed(int speed, bool immediate) {
 			if (speed ==0 and _currentSpeed < 30) _currentSpeed=0;
 			if (speed ==MAX_SPEED and _currentSpeed > 220) _currentSpeed=MAX_SPEED;
 		}
+		if (isBlocked()) _currentSpeed=0;
 		//DEBUG_sprintf("_currentSpeed", _currentSpeed);
 		analogWrite(PIN_PWM, _currentSpeed);
 	}

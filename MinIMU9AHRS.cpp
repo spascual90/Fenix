@@ -39,9 +39,9 @@ int SENSOR_SIGN[9];
 
 // tested with Arduino Uno with ATmega328 and Arduino Duemilanove with ATMega168
 
-#include <Wire.h>
 #include "GPSport.h" // uncomment this line to print debug messages to serial monitor
 //#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
+#include <Wire.h>
 
 // accelerometer: 8 g sensitivity
 // 3.9 mg/digit; 1 g = 256

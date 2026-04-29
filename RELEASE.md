@@ -147,7 +147,7 @@ Support motor voltage to 16V. Support continous current: 10 A | High
 - v.3.4.B1 Known limitations: NMEA I/F: Centered Tiller Position and Heading alignment set parameter to 0 is not accepted
 -v.3.5.B1
 - Implementation of PID improvements: Derivative low-pass filter, Anti-windup, limit ITerm, reset ITerm
-- Implementation of TESTER_IF to report internal time via Serial I/F
+- Implementation of TELEMETRY_IF to report internal time via Serial I/F
 - Improved heading in External HDM mode
 - v.3.6.B1
 - NMEA I/F: Read relative wind and speed information
@@ -163,6 +163,6 @@ Support motor voltage to 16V. Support continous current: 10 A | High
 - Updates interfaces and debug output to support new predictive features
 - Refactors actuator control for smoother direction changes and speed ramping
 - Adjusts configuration and rudder limits for improved control
-- Info: TESTER_IF introduces predictive yaw delta calculation using IMU data for information only. Doesnt change PID logic
+- Info: TELEMETRY_IF introduces predictive yaw delta calculation using IMU data for information only. Doesnt change PID logic
 - Deprecated: Deprecates unused PID autotune application
 

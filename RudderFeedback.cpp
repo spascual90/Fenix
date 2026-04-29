@@ -38,7 +38,7 @@ e_feedback_status RudderFeedback::setup(bool b_ibit){
 }
 
 void RudderFeedback::setErrorFeedback (int error, bool recalc) {
-	// always in limits
+	// always in limits (1,10)
 	error=max(error,1);
 	error=min(error,10);
 
@@ -71,8 +71,9 @@ void RudderFeedback::setMaxFeedback(int maxFeedback, bool recalc) {
 void RudderFeedback::setMRA(int MRA, bool recalc) {
 	// always positive
 	MRA=abs(MRA);
-	// always in limits
-	MRA=min(MRA,511);
+	// always in limits (10,50) deg
+	MRA=max(MRA,100);
+	MRA=min(MRA,500);
 
 	//independent variable that can be changed in Standby mode
 	_MRA = MRA;

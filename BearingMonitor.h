@@ -8,8 +8,16 @@
 #ifndef BEARINGMONITOR_H_
 #define BEARINGMONITOR_H_
 
-#include <utility/imumaths.h>
+//#include <utility/imumaths.h>
+#include <Arduino.h>
+
 #include <EEPROM.h>
+
+//#if defined(ARDUINO_AVR_MEGA2560)
+//#include ".\Mega\EEPROM\src\EEPROM.h"
+//#elif defined(ARDUINO_UNOR4_WIFI)
+//#include ".\unoR4Wifi\EEPROM\src\EEPROM.h"
+//#endif
 
 // All configurations are managed in Fenix_config.h
 #include "Fenix_config.h"

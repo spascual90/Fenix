@@ -1,5 +1,8 @@
 //header TODO
 
+//#ifndef PROJECT_NAME
+#define PROJECT_NAME "Fenix"
+//#endif
 
 #include <Arduino.h>
 
@@ -46,6 +49,17 @@ static void NMEAisr( uint8_t c )
   parserNMEA.handle( c );
 
 } // GPSisr
+
+// Procesa EXACTAMENTE 1 carácter si hay, y devuelve true si se completó una sentencia (fix listo)
+inline bool gpsPort_process_one_char() {
+  if (gpsPort.available()) {
+    char c = gpsPort.read();
+    return parserNMEA.handle( c );
+  }
+  return false;
+}
+
+
 #endif
 
 void setup()
@@ -54,9 +68,10 @@ void setup()
 	// Setup NMEA IF if defined
 #ifdef SERIAL_IF_AVAILABLE
 	parserNMEA.setup();
-
-	gpsPort.attachInterrupt( NMEAisr );
-	gpsPort.begin( 9600 );
+	#if GPS_HAS_ISR
+		gpsPort.attachInterrupt( NMEAisr );
+	#endif
+	gpsPort.begin(115200);//9600) ;
 #endif
 
 	// Setup LCDKeypad if defined
@@ -93,6 +108,11 @@ void setup()
 
 void loop()
 {
+	// Capture Serial input (if isr not available)
+	#if !GPS_HAS_ISR
+	gpsPort_process_one_char();
+	#endif
+
 	// Refresh NMEA IF if defined
 	#ifdef SERIAL_IF_AVAILABLE
 	parserNMEA.refresh();

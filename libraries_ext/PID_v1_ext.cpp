@@ -1,6 +1,7 @@
 #include "PID_v1_ext.h"
 #include "Arduino.h"
 #include "GPSport.h"
+//#include "Fenix_config.h"
 
 // COMPUTE_MODEL: PID_BASIC2, PID_ADVANCED
 #define  PID_ADVANCED1
@@ -180,7 +181,7 @@ bool PID_ext::Compute(int rudder_error, float speed)
         _kdContrib = (-kd_eff * dInput) * ALFA_20 + _kdContrib_prev * ALFA_80;
 
         /* Salida PID */
-        double output_libre = _kpContrib + ITerm + _kdContrib;
+        double output_libre = _kpContrib + ITerm + _kdContrib + getKanticipContrib();
         *myOutput = output_libre;
         bool saturated = false;
         if (output_libre > outMaxeff) {
@@ -223,6 +224,16 @@ bool PID_ext::Compute(int rudder_error, float speed)
         return true;
     }
     return false;
+}
+
+void PID_ext::calcKanticipContrib(double predictYawDelta) {
+	static float predicted =0;
+	predicted=predicted*0.995 + 0.005 * predictYawDelta;
+	static float integrated =0;
+
+	integrated = integrated*0.9 +predicted*abs(predicted);
+	_kanticipContrib = integrated/100;
+
 }
 
 // TRUE: El barco está dentro del deadband dinámico

@@ -111,6 +111,11 @@ void HMIArq::Change_FbkError(int16_t value_FbkError) {
 	MyPilot->buzzer_Beep();
 }
 
+void HMIArq::Change_MaxCurrent(int16_t value_MaxCurrent) {
+	MyPilot->setMaxCurrent(value_MaxCurrent);
+	MyPilot->buzzer_Beep();
+}
+
 void HMIArq::Change_magneticVariation(float value_MagneticVariation) {
 	MyPilot->setMagneticVariation(value_MagneticVariation);
 	MyPilot->buzzer_Beep();

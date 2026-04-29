@@ -57,7 +57,7 @@ public:
 
 private:
 	void refresh_INorder();
-	void TESTER_sincroTime(void);
+	void reportTelemetry();
 
 };
 

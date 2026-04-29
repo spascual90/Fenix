@@ -42,7 +42,8 @@ enum e_warning {
 	NO_WIND_DATA,
 	IMU_NOTFOUND,
 	LOST_EXT_IMU,
-	WIND_CHANGE
+	WIND_CHANGE,
+	ACTUATOR_BLOCKED
 };
 
 // Information codes
@@ -136,7 +137,7 @@ enum e_info {
 	struct s_instParam {
 		// Is Valid indicates if data is valid or not
 		bool isValid;
-		struct {bool centerTiller; bool maxRudder; bool avgSpeed; bool instSide; bool rudDamping; bool magVariation;bool headAlign;bool offcourseAlarm ; bool minFeedback; bool maxFeedback;} flag;
+		struct {bool centerTiller; bool maxRudder; bool avgSpeed; bool instSide; bool rudDamping; bool magVariation;bool headAlign;bool offcourseAlarm ; bool minFeedback; bool maxFeedback;bool maxCurrent;} flag;
 
 		//Centered Tiller Position:
 		//Indicates the linear actuator position when the tiller is aligned with the hull.
@@ -188,6 +189,8 @@ enum e_info {
 		//minimum/maximum values read on feedback (without error protection)
 		uint16_t minFeedback;
 		uint16_t maxFeedback;
+		//maximum current (mA) before cutting power to linear actuator
+		uint16_t maxCurrent;
 
 	} ;
 
@@ -432,11 +435,12 @@ enum e_info {
 			20, //offCourseAlarm
 			#ifndef VIRTUAL_ACTUATOR
 			0, //minFeedback
-			1024 // maxFeedback
+			1024, // maxFeedback
 			#else
 			VA_MINFEEDBACK, //minFeedback
-			VA_MAXFEEDBACK // maxFeedback
+			VA_MAXFEEDBACK, // maxFeedback
 			#endif
+			D_MAX_CURRENT // maxCurrent
 	};
 
 enum e_start_stop {CURRENT_HEADING, CURRENT_TARGET};
@@ -516,6 +520,8 @@ public:
 	type_DBConfig nextDBConf (void);
 	bool setMaxRudder(int16_t value_MaxRudder = 349, bool recalc = true);
 	bool setFbkError(int16_t value_FbkError, bool recalc = true);
+	//FUNCTIONAL MODULE: CURRENT MONITOR
+	bool setMaxCurrent(int16_t value_MaxCurrent);
 	//FUNCTIONAL MODULE: EEPROM
 	void EEPROM_setup();
 	void EEPROM_format();
@@ -697,7 +703,7 @@ private:
 	e_working_status compute_Stand_By(void);
 	e_working_status compute_Cal_IMU(void);
 	e_working_status compute_Cal_Feedback(void);
-	e_working_status compute_Autotune(void);
+	//e_working_status compute_Autotune(void);
 
 	void computeLongLoop(void);
 
