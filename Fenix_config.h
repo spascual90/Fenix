@@ -1,7 +1,7 @@
 #ifndef FENIX_CONFIG_H_
 
 //Fenix version
-#define ARDUINO_VERSION "v.4.1.B1"
+#define ARDUINO_VERSION "v.4.2.B1"
 
 // RELEASE v.2.0.B1
 // RELEASE v.2.1.B1
@@ -64,7 +64,14 @@
 // Adjusts configuration and rudder limits for improved control
 // Info: TELEMETRY_IF introduces predictive yaw delta calculation using IMU data for information only. Doesnt change PID logic
 // Deprecated: Deprecates unused PID autotune application
-
+//v4.2.B1
+// Serial port speed increased to 115200
+// Introduces user-configurable max rudder and feedback error parameters,
+// Refactors actuator and rudder feedback logic for improved calibration, safety, and ramping.
+// Updates BT protocol for app compatibility v6.X, reorganizes button mappings, and adds new asset images.
+// Introduce support for both Apparent (AWA) and True (TWD) wind inputs and related wind-mode behavior across the autopilot stack.
+// Introduce INA260-based CurrentFeedback and integrate overcurrent protection into actuator control.
+// Introduce new melody-based buzzer control.
 
 //DEBUGGING OPTIONS
 // Commented for Release version
