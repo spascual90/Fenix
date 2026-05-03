@@ -110,6 +110,7 @@ bool emcNMEA::parseField(char chr)
       case PEMC_09: return parsePEMC_09( chr ); //Start IMU Calibration
       case PEMC_11: return parsePEMC_11( chr ); //Save
       case PEMC_14: return parsePEMC_14( chr ); //IMC20948 calibration values
+      case PEMC_99: return parsePEMC_99( chr ); //Special actions (eg. EEPROM reset)
       default: 
         break;
     }
@@ -383,21 +384,23 @@ bool emcNMEA::parseVTG( char chr )
 bool emcNMEA::classifyPEMC( char chr )
 {
   bool ok = true;
-  static bool EMC1x=false;
+  //static bool EMC1x=false;
+  static uint16_t EMCnx=0;
 
   switch (fieldIndex) {
   case 1:
     // The first field is actually a message subtype
 	if (chrCount == 0) {
     	switch (chr) {
-    		case '0': EMC1x=false; ok = true; break;// Message is PEMC,0#,...
-    		case '1': EMC1x=true; ok = true; break;// Message is PEMC,1#...
+    		case '0': EMCnx=0; ok = true; break;// Message is PEMC,0#,...
+    		case '1': EMCnx=1; ok = true; break;// Message is PEMC,1#...
+    		case '9': EMCnx=9; ok = true; break;// Message is PEMC,9#...
     		default : ok = false;
     	}// end switch chr
     } // end ChrCount==0
     if (chrCount == 1) {
-		if (!EMC1x) {
-//			case false: // Message is PEMC,0#,...
+		if (EMCnx==0) {
+//			case 0: // Message is PEMC,0#,...
 				switch (chr) {
 							// $PEMC,00
 							case '0': nmeaMessage = (nmea_msg_t) PEMC_00; INorder.set_order(START_STOP); break;
@@ -414,7 +417,7 @@ bool emcNMEA::classifyPEMC( char chr )
 								//INorder.set_order(START_CAL);	break;
 							default : ok = false;
 				}// end switch chr
-			} else {// case true: // Message is PEMC,1#,...
+			} else if (EMCnx==1) {// case 1: // Message is PEMC,1#,...
 				switch (chr) {
 							// $PEMC,10
 							case '0': nmeaMessage = (nmea_msg_t) PEMC_10; INorder.set_order(EE_FBK_CAL); break;
@@ -425,7 +428,14 @@ bool emcNMEA::classifyPEMC( char chr )
 
 							default : ok = false;
 				} // end switch chr
-		} // end Switch (EMC1x)
+		} else if (EMCnx==9) {// case 9: // Message is PEMC,9#,...
+			switch (chr) {
+						// $PEMC,99
+						case '9': nmeaMessage = (nmea_msg_t) PEMC_99; break;
+						default : ok = false;
+			} // end switch chr
+
+		} // end if (EMCnx)
 
 	// end ChrCount==1
     }
@@ -722,6 +732,43 @@ bool emcNMEA::parsePEMC_14( char chr )
 
   return true;
 }
+
+bool emcNMEA::parsePEMC_99( char chr )
+{
+    switch (fieldIndex) {
+        case 2:
+            switch (chrCount) {
+              case 0:
+                if (chr != ',') {
+                  	  switch (chr) {
+                  	  case 'E':
+                      	  //$PEMC,99,E*5E
+                  		  INorder.set_order(EVENT_TRIGGER);
+                  		  break;
+                  	  case 'F':
+                      	  //$PEMC,99,F*5D
+                  		  INorder.set_order(LOOP_FREQ);
+                  		  break;
+                  	  case 'R':
+                      	  //$PEMC,99,R*4nueve
+                  		  INorder.set_order(RESET_EEPROM);
+                  		  break;
+                  	  case 'T':
+                      	  //$PEMC,99,T*4F
+                  		  INorder.set_order(TELEMETRY);
+                  		  break;
+
+                  		//case 'X':
+                  		//  INorder.set_order(CAL_ACCEL);
+                  		//  break;
+                  	  }
+                  	  }
+                break;
+            }
+    }
+  return true;
+}
+
 //---------------------------------------------
 bool emcNMEA::parseFix( char chr )
 {

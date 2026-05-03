@@ -65,22 +65,19 @@
 // Info: TELEMETRY_IF introduces predictive yaw delta calculation using IMU data for information only. Doesnt change PID logic
 // Deprecated: Deprecates unused PID autotune application
 
-//DEBUG
-// Defined for Release version
-//#define BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
-#define TXNMEA //Comment this line to stop periodic NMEA Transmission
 
+//DEBUGGING OPTIONS
 // Commented for Release version
+//#define SILENT_TXNMEA //Comment this line to stop periodic NMEA Transmission
+//#define SNOOZE_BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
 //#define PRINT_FREE_MEM
 //#define SHIP_SIM // Uncomment to simulate boat to tune PID
 //#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
-//#define RESTORE_EEPROM //Uncomment this line to reset EEPROM memory
 //#define DEBUG
 //#define DEBUG_OCA
 //#define DEBUG_ACTUATOR
-#define TELEMETRY_IF
-//#define FREQ_MONITOR
-#define DEBUG_SIMPLOT
+//#define DEBUG_SIMPLOT
+//#define DEBUG_SIMPLOT_CURRENT
 
 // Library to plot signals
 #ifdef DEBUG_SIMPLOT
@@ -126,32 +123,10 @@
 	//#define Fenix_PIN_SCL SCL//19
 #endif
 
-
 // *** BearingMonitor.h ***
 //Only one IMU driver shall be defined at a time.
 // Uncomment #define as applicable
-//#define MINIMU9V5
 #define ICM20948
-//#define BNO055_EXTERNAL_FUSION
-//#define BNO055_INTERNAL_FUSION //Sensor fusion performed internally by BNO055.
-
-// For MPU9250 and BNO055: additional configuration required in RTIMULibDefs.h
-//  IMU enable defs - only one should be enabled, the rest commented out
-// BNO055_INTERNAL_FUSION or BNO055_EXTERNAL_FUSION: #define BNO055_28
-
-
-//TODO: Integrate BNO055 IMU axis orientation options
-
-
-//Define IMU axis orientation (MinIMU9V5 only)
-# define IMU_ORIENTATION 0 // IMU Device components on top
-// Valid values of IMU_ORIENTATION:
-// IMU Device components on top 0 // Valid for MinIMU9V5 only
-// IMU Device components on bottom 1 // Valid for MinIMU9V5 only
-
-// For BNO055: Uncomment #define in RTIMULibDefs.h as applicable
-//	RTIMU_XNORTH_YEAST--> BNO055 Device components on the bottom
-//	RTIMU_XWEST_YNORTH--> BNO055 Device components on the top
 
 // *** Autopilot.h ***
 
@@ -162,6 +137,7 @@
 #define MAX_VWR_TIME 10000 // Maximum time of VWR data validity
 #define LONG_LOOP_TIME 100 // Loops to update current course, target bearing and calibration status
 #define W_DISPLAY_TIME 2000 // Loops to display Warnings
+#define A_DISPLAY_TIME 2000 // Loops to display Alarms
 #define AVDSPEED 5
 // *** ActuatorController.h ***
 

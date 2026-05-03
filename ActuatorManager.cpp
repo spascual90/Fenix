@@ -33,11 +33,12 @@ ActuatorManager::~ActuatorManager() {
 
 void ActuatorManager::setup(void){
 	// Setup current feedback
-	DEBUG_print(F("Current monitor:\n"));
 	bool c_status = CurrentFeedback::setup(true);
+	DEBUG_print(F("Current monitor: "));
 	switch (c_status) {
 		break;
 	case INA_KO:
+
 		DEBUG_print(F("Not detected\n"));
 
 		break;
@@ -177,6 +178,7 @@ bool ActuatorManager::checkBlockage(void) {
 	//if (a>300) DEBUG_sprintf("Current",a);
 	if (a>getMaxCurrent()) {// para max.1184mA en vacío (10% mas corriente para bloqueo: 1300mA)
 		setBlocked();
+		DEBUG_sprintf("!Blocked(mA)",int(a));
 #ifdef DEBUG_SIMPLOT_CURRENT
 		plot1(NeoSerial, a);
 #endif

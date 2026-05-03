@@ -13,7 +13,9 @@
 Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
  : ActuatorManager(gain.Kp.float_00(), gain.Ki.float_00(), gain.Kd.float_00(), ControllerDirection, ip.maxRudder, ip.rudDamping, ip.centerTiller, ip.minFeedback, ip.maxFeedback, float(ip.avgSpeed), float(ip.maxCurrent) ) //maxRudder is the min/max value for PID as well.
  , BearingMonitor (ip.magVariation.float_00(), ip.headAlign.float_00())
+ , buzzer()
 {
+
 	//SET HARDCODED INSTALATION PARAMETERS
 	// Installation side IS
 	setInstallationSide(ip.instSide); //TODO: implement STAR/PORTBOARD installation
@@ -27,6 +29,7 @@ Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
 	setOffCourseAlarm2(ip.offcourseAlarm);
 	//Average cruise speed ACS
 	setAvgSpeed (ip.avgSpeed);
+
 
 }
 
@@ -53,7 +56,7 @@ e_setup_status Autopilot::setup() {
 	buzzer_setup();
 
 
-	setInformation(SETUP_INPROGRESS);
+	//setInformation(SETUP_INPROGRESS);
 
 	//Setup EEPROM
 	EEPROM_setup();
@@ -120,11 +123,13 @@ e_setup_status Autopilot::setup() {
 		return SETUP_OK;
 	}
 
-	setInformation(NO_MESSAGE);
+	//setInformation(NO_MESSAGE);
+
 	return SETUP_OK;
 }
 
 e_working_status Autopilot::Compute() {
+
 	e_working_status ws = RUNNING_OK;
 
 	// Set the millis value used along this loop for low-time dependant functions
@@ -138,11 +143,12 @@ e_working_status Autopilot::Compute() {
 	// Once each XXX loops: Update current course and target bearing (in track mode). Stores value for later use.
 	computeLongLoop();
 
-	// Display new warnings
+	// Display new alarms/ warnings
+	printAlarm();
 	printWarning();
 
 	// Play buzzer if required
-	buzzer_play();
+	buzzer.updateMelody();
 
 	#ifdef VIRTUAL_ACTUATOR
 	ActuatorManager::compute_VA();
@@ -170,7 +176,7 @@ e_working_status Autopilot::Compute() {
 		break;
 	}
 	//Check whether linear actuator is blocked
-	if (isBlocked()) setWarning(ACTUATOR_BLOCKED, true);
+	if (isBlocked()) setAlarm(ACTUATOR_BLOCKED, true);
 	return ws;
 }
 
@@ -612,6 +618,7 @@ void Autopilot::Start_Stop(e_start_stop type){
 		case AUTO_MODE:
 		case WIND_MODE:
 			setCurrentMode(STAND_BY);
+
 			break;
 		default:
 			break;
@@ -717,7 +724,7 @@ void Autopilot::evaluate_changeIMUstatus (void) {
 			} else {
 				//TODO: WARNING ALARM!
 				if (isOpsMode()) {
-					setWarning(LOST_EXT_IMU);
+					setAlarm(LOST_EXT_IMU);
 					setCurrentMode(STAND_BY);
 				}
 				setIMUstatus (OPERATIONAL);
@@ -1019,15 +1026,13 @@ void Autopilot::Request_instParam(s_instParam & instParam) {
 	instParam.isValid = true;
 }
 
-void Autopilot::buzzer_tone_start (unsigned long frequency, int duration) {
-	// If any alarm is active prevails
-	if (isOffCourseAlarmActive() or isOffCourseAlarmActive2()) return;
-#ifdef BUZZER
-	_buzzFrec = frequency;
-	_buzzDur = duration;
-	BuzzReset();
-#endif
-}
+//void Autopilot::buzzer_tone_start (unsigned long frequency, int duration) {
+//	// If any alarm is active prevails
+//	if (isOffCourseAlarmActive() or isOffCourseAlarmActive2()) return;
+//	_buzzFrec = frequency;
+//	_buzzDur = duration;
+//	BuzzReset();
+//}
 
 void Autopilot::setDeltaCenterOfRudder(int deltaCenterOfRudder, bool recalc) {
 	//independent variable that can be changed in Standby mode
@@ -1071,75 +1076,55 @@ void Autopilot::Request_PIDgain(s_PIDgain & PIDgain) {
 
 // BUZZER FUNCTIONAL MODULE
 void Autopilot::buzzer_setup() {
-#ifdef BUZZER
 	//Setup Buzzer
-	pinMode(PIN_BUZZER, OUTPUT); // Set buzzer - pin PIN_BUZZER as an output
-	buzzer_IBIT();
+	buzzer.setUp(PIN_BUZZER);
+	//pinMode(PIN_BUZZER, OUTPUT); // Set buzzer - pin PIN_BUZZER as an output
+
+#ifdef SNOOZE_BUZZER
+	buzzer.snooze();
+	DEBUG_print(F("!Debugging: Buzzer snooze!\n"));
 #else
-	DEBUG_print(F("!Debugging: Buzzer off!\n"));
+	buzzer_IBIT();
 #endif
 }
 
 // Initial buzzer test
 void Autopilot::buzzer_IBIT() {
 	//DEBUG_sprintf("Buzzer test on PIN %i ...\n", get_PIN_BUZZER());
-	DEBUG_sprintfree("Buzzer test on PIN %i ...\n", get_PIN_BUZZER());
+	DEBUG_sprintfree("Buzzer test on PIN %i ...\n", PIN_BUZZER);
 
 	// Performs an initial test of the buzzer
-	tone(PIN_BUZZER, 1000, 1000); // Send 1KHz sound signal...
+	buzzer.startMelody(DevBuzzer::START);
+	while (buzzer.updateMelody()) {;};
+	//tone(PIN_BUZZER, 1000, 1000); // Send 1KHz sound signal...
 }
 
-// Error: buzzer sound
-void Autopilot::buzzer_Error() {
-	buzzer_tone_start (2000, 40);
+// Buzzer melodies
+void Autopilot::buzzer_Alarm() {
+	buzzer.startMelody(DevBuzzer::ALARM);
 }
+
+void Autopilot::buzzer_Alarm_Off() {
+	buzzer_Stop();
+	buzzer.startMelody(DevBuzzer::ALARM_OFF);
+}
+
 
 void Autopilot::buzzer_Warning() {
-	buzzer_tone_start (2000, 20);
+	buzzer.startMelody(DevBuzzer::WARNING);
 }
 
 void Autopilot::buzzer_Information() {
-	buzzer_tone_start (1000, 20);
+	buzzer.startMelody(DevBuzzer::INFO);
 }
 
 void Autopilot::buzzer_Beep() {
-	buzzer_tone_start (1000, 1);
+	buzzer.startMelody(DevBuzzer::BEEP);
 }
 
-
-
-// frequency -->Frequency of the sound
-// duration--> Number of periods playing sound. Maximum 1023 (250 seg aprox)
-
-void Autopilot::buzzer_noTone() {
-	noTone(PIN_BUZZER);
-	_Buzz=false; // Stop buzzer
+void Autopilot::buzzer_Stop() {
+	buzzer.stopMelody();
 }
-
-void Autopilot::buzzer_play() {
-	if (_Buzz) { // If buzzer is on
-		tone(PIN_BUZZER, _buzzFrec); // Send sound signal
-
-		if (IsBuzzTime()) { //End of period?
-			BuzzReset();
-			if ((_buzzDur--)<0) buzzer_noTone(); //End of sound condition?
-		}
-	}
-}
-
-void Autopilot::BuzzReset() {
-	_Buzz=true;
-	_DelayBuzzStart = getLoopMillis();
-}
-
-bool Autopilot::IsBuzzTime () {
-	// returns false if timer is ON and still RUNNING
-	// returns true if timer is OFF or is ON but arrived to the limit TIME
-	if ( !_Buzz or ( (getLoopMillis() -_DelayBuzzStart) < DELAY_BUZZBEAT_TIME) ) {
-		return false;}
-	return true;
-}
-
 
 // OUT OF COURSE ALARM FUNCTIONAL MODULE
 //arguments: delta - angle (-180, 179) to be compared against off course alarm angle.
@@ -1190,8 +1175,8 @@ void Autopilot::set_OCA (bool set) {
 	if (set)
 	{
 		// INI: These instructions always in this order
-		setWarning(OUT_OF_COURSE);
-		buzzer_tone_start (1000, 1023);
+		setAlarm(OUT_OF_COURSE);
+		//buzzer.startMelody(DevBuzzer::ALARM);
 		_offCourseAlarmActive = true;
 		// END: These two instructions always in this order
 #ifdef DEBUG_OCA
@@ -1200,8 +1185,7 @@ void Autopilot::set_OCA (bool set) {
 	} else
 	{
 		_offCourseAlarmActive = false;
-		buzzer_noTone(); // shut down alarm
-		setWarning(NO_WARNING);
+		setAlarm(NO_ALARM);
 #ifdef DEBUG_OCA
 		DEBUG_print(F("OCA: Stopped\n"));
 #endif
@@ -1254,12 +1238,26 @@ bool Autopilot::compute_OCA2 (float delta) {
 	return _offCourseAlarmActive2;
 }
 
+void Autopilot::Report_telemetry(bool activate) {
+	_telemetry = activate;
+}
+
+void Autopilot::Event_trigger(bool activate) {
+	_event_trigger = activate;
+}
+
+void Autopilot::Monitor_frequency(bool activate) {
+	_monitor_freq = activate;
+}
+
+
 void Autopilot::set_OCA2 (bool set) {
 	if (set)
 	{
 		// INI: These instructions always in this order
-		setWarning(WIND_CHANGE);
-		buzzer_tone_start (1000, 1023);
+		setAlarm(WIND_CHANGE);
+		//buzzer_tone_start (1000, 1023);
+		//buzzer.startMelody(DevBuzzer::ALARM);
 		_offCourseAlarmActive2 = true;
 		// END: These two instructions always in this order
 #ifdef DEBUG_OCA
@@ -1268,8 +1266,7 @@ void Autopilot::set_OCA2 (bool set) {
 	} else
 	{
 		_offCourseAlarmActive2 = false;
-		buzzer_noTone(); // shut down alarm
-		setWarning(NO_WARNING);
+		setAlarm(NO_ALARM);
 #ifdef DEBUG_OCA
 		DEBUG_print(F("OCA2: Stopped\n"));
 #endif
@@ -1336,15 +1333,14 @@ void Autopilot::EEPROM_setup() {
 }
 
 void Autopilot::EEPROM_format() {
-	DEBUG_print(F("!EEPROM Format..."));
+	DEBUG_print(F("!Format EEPROM..."));
 
 	for (uint16_t i = 0 ; i < EEPROM.length() ; i++) {
 	    EEPROM.update(i, 0xFF);
 	  }
 
-	DEBUG_print(F("Ok\nStop."));
-    while (1) {;}
-
+	DEBUG_print(F("Ok\n"));
+	reset();
 }
 
 // G, A, M will calibrate one sensor only
@@ -1529,6 +1525,30 @@ bool Autopilot::Load_calibrate_py (s_calibrate_py calibrate_py){
 }
 
 
+void Autopilot::printAlarm(bool instant) {
+	static e_alarm prev_alarm = NO_ALARM;
+	static unsigned long lastAprint = 0;
+
+	if (_lost_A) {
+		DEBUG_print(F("!Alarm not displayed\n"));
+		buzzer_Alarm();
+		_lost_A = false;
+	}
+
+	if ( (instant == true) or (getLoopMillis() - lastAprint) > A_DISPLAY_TIME ) {
+
+		if (prev_alarm!=_alarm) {
+			DEBUG_sprintf("!Alarm Code", _alarm);
+			_alarm == NO_ALARM?buzzer_Alarm_Off():buzzer_Alarm();
+			prev_alarm = _alarm;
+			_pending_A = false;
+			// reset counter
+			lastAprint = getLoopMillis();
+		}
+	}
+	return;
+}
+
 void Autopilot::printWarning(bool instant) {
 	static e_warning prev_warning = NO_WARNING;
 	static unsigned long lastWprint = 0;
@@ -1543,8 +1563,7 @@ void Autopilot::printWarning(bool instant) {
 
 		if (prev_warning!=_warning) {
 			DEBUG_sprintf("!WARNING Code", _warning);
-
-			buzzer_Warning();
+			_warning == NO_WARNING?buzzer_Stop():buzzer_Warning();
 			prev_warning = _warning;
 			_pending_W = false;
 			// reset counter

@@ -139,6 +139,7 @@ protected:
 		PEMC_12, //IMUCal
 		PEMC_13, //FEEDBACK VALUES
 		PEMC_14, //calibrate_py Calib. values
+		PEMC_99, //Special actions
 
         EXT_END
     };
@@ -193,6 +194,7 @@ protected:
     bool parsePEMC_09( char chr );
     bool parsePEMC_11( char chr );
     bool parsePEMC_14( char chr );
+    bool parsePEMC_99( char chr );
 
     bool parseField( char chr );
     bool parseFix( char chr );

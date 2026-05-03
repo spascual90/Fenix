@@ -83,6 +83,7 @@ protected:
 	void Change_MaxRudder(int16_t MaxRudder);
 	void Change_FbkError(int16_t FbkError);
 	void Change_MaxCurrent(int16_t value_MaxCurrent);
+	void Change_OffCourseAlarm(int16_t value_OCA);
 	bool Change_instParam (s_instParam instParam);
 	void Change_magneticVariation(float value_magneticVariation);
 	void setDBConf (type_DBConfig status);

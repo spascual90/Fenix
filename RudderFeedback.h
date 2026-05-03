@@ -137,6 +137,10 @@ protected:
 	void compute_Cal_Feedback();
 
 private:
+
+	//independent variables
+	uint16_t _currentFeedback; // Actuator feedback
+
 #ifdef VIRTUAL_ACTUATOR
 	//independent variables
 	int _errorFeedback = VA_ERROR;
@@ -144,10 +148,7 @@ private:
 	int _max_feedback = VA_MAXFEEDBACK;//A number between 0 and 1023.
 	int _delta_center_of_rudder =VA_DELTACENTEROFRUDDER;
 	int _MRA = VA_MRA; // MIN_RUDDER = -MRA; MAX_RUDDER = MRA-1
-
 #else
-	//independent variables
-	uint16_t _currentFeedback; // Actuator feedback
 	int _errorFeedback = DEFAULT_ERROR_FEEDBACK;
 	int _min_feedback = D_MIN_FEEDBACK;//A number between 0 and 1023.
 	int _max_feedback = D_MAX_FEEDBACK;//A number between 0 and 1023.

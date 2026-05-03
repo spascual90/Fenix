@@ -39,7 +39,7 @@ public:
 
 	// Is Valid indicates if data received is valid or not
 	bool isValid=NO;
-	// An information request has been received with message $PEMC,08
+	// An information/action request has been received
 	bool isRequest = NO;
 
 private:

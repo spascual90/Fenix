@@ -287,7 +287,7 @@ void BT::updateBT(){
 
 	static uint8_t S, G, A, M;
 	MyPilot->getCheckSGAM(S, G, A, M);
-	_V[AV_LED_IMU_CAL_SYS] = S;
+	//_V[AV_LED_IMU_CAL_SYS] = S;
 	_V[AV_LED_IMU_CAL_GYRO] = G;
 	_V[AV_LED_IMU_CAL_ACEL] = A;
 	_V[AV_LED_IMU_CAL_MAGN] = M;
@@ -306,27 +306,35 @@ void BT::updateBT(){
 	_V[AV_LED_DBACTIVE] = MyPilot->isInDeadband()== true ? 1: 0;
 	_V[AI_USER_MESSAGE] = MyPilot->getInformation();
 
-//	Information codes (0 TO 7)
-//		NO_MESSAGE,
-//		NOT_USED,
-//		SETUP_INPROGRESS,
-//		IMU_RECAL_INPROGRESS,
-//		EE_PID_DEFAULT,
-//		TRACKMODE_AVAILABLE,
-//		TRACKING,
-//		CONFIRM_NEW_WP
+	_V[AI_OCA] = MyPilot->getOffCourseAlarm() ;
 
-	_V[AI_WARNING] = MyPilot->getWarning();
+//	enum e_alarm {
+//0		NO_ALARM,
+//1		OUT_OF_COURSE,
+//2		LOST_EXT_IMU,
+//3		WIND_CHANGE,
+//4		ACTUATOR_BLOCKED
+//	};
+//
+//	// Warning codes
+//	enum e_warning {
+//10		NO_WARNING,
+//11		FBK_ERROR_HIGH,
+//12		EE_INSTPARAM_NOTFOUND,
+//13		EE_IMU_NOTFOUND,
+//14		IMU_LOW,// not used
+//15		WP_INVALID,
+//16		NO_WIND_DATA,
+//17		IMU_NOTFOUND
+//	};
 
-// Warning codes (0 TO 7)
-//		NO_WARNING,
-//		FBK_ERROR_HIGH,
-//		OUT_OF_COURSE,
-//		EE_INSTPARAM_NOTFOUND,
-//		EE_IMU_NOTFOUND,
-//		IMU_LOW,
-//		WP_INVALID
-//		NO_WIND_DATA
+	int message = NO_WARNING;
+	if(MyPilot->getAlarm()!=NO_ALARM) {
+		message = MyPilot->getAlarm();
+	} else if (MyPilot->getWarning()!=NO_WARNING) {
+		message = MyPilot->getWarning() + 10;
+	}
+	_V[AI_MESSAGES] = message;
 
 	updateSpecialBT();
 
@@ -414,6 +422,15 @@ void BT::updateSpecialBT() {
 		Change_magneticVariation(magneticVariation);
 		// Reset value in app
 		_V[VD_USER_MAGNETIC_VARIATION] = 0;
+	}
+
+
+	// Manual change of off course alarm angle
+	float OCA = _V[VD_USER_OCA];
+	if (OCA!=0) {
+		Change_OffCourseAlarm(OCA);
+		// Reset value in app
+		_V[VD_USER_OCA] = 0;
 	}
 
 	// Manual change of PID parameters

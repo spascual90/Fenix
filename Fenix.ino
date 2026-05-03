@@ -92,7 +92,7 @@ void setup()
 
 		case IMU_ERROR:
 		case FEEDBACK_ERROR:
-			MyPilot.buzzer_Error();
+			MyPilot.buzzer_Warning();
 			DEBUG_print(F("Stop\n"));
 			while(1){;}
 			break;

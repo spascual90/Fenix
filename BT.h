@@ -120,14 +120,15 @@ enum e_BT_AI_PIN {
 , AI_DELTA_TARGET = 20		// Special AI PINS rotary regulator (user defined)
 , AI_USER_MESSAGE = 21		// Special AI PINS
 , AV_LED_DBACTIVE = 22		// Special AV PINS
-, AI_WARNING = 23			// Special AV PINS
+, AI_MESSAGES = 23			// Special AV PINS
 , AI_DELTA_CTS = 24			// Special AV PINS img:CTS (red drop)
 , AI_DELTA_NEXT_CTS = 25	// Special AV PINS img: NEXT_CTS2 (white drop)
 , AV_LED_STATUS = 26		// Special AV PINS
 , AV_LED_IMU_CAL_GYRO = 27	// Special AV PINS
 , AV_LED_IMU_CAL_ACEL = 28	// Special AV PINS
 , AV_LED_IMU_CAL_MAGN = 29	// Special AV PINS
-, AV_LED_IMU_CAL_SYS = 30	// Special AV PINS
+//, AV_LED_IMU_CAL_SYS = 30	// Special AV PINS
+, AI_OCA = 30
 , AI_INV_HDT = 31 // img:compass5 (compass heading True ref.to bow, not north!)
 , AI_DELTA_VWR = 32 // img: vwr01 (wind dir rel to bow - white cloud)
 , AI_SPEED_REF = 33 // Ref.speed for PID tunning
@@ -146,13 +147,15 @@ enum e_BT_AI_PIN {
 , AI_WIND_MODE = 46 // Wind mode
 , VD_USER_MAX_CURRENT = 47
 , AI_MAX_CURRENT = 48
+, VD_USER_OCA = 49
+
 
 
 // máximo el valor de c_BTN_V -1 o cambiar el valor de los botones en la App
 
 
 // MAX_AI = valor del último item de la lista +1
-, MAX_AI = AI_MAX_CURRENT +1
+, MAX_AI = VD_USER_OCA +1
 };
 
 const uint8_t c_max_V = MAX_AI;

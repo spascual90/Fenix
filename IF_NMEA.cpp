@@ -34,7 +34,7 @@ void IF_NMEA::setup(){
 	  ;
 	DEBUG_print ( "NMEA int... Started\n" );
 	DEBUG_print ("Serial NMEA device on " GPS_PORT_NAME "\n" );
-	#ifndef TXNMEA
+	#ifdef SILENT_TXNMEA
 		DEBUG_print ("Debug: No NMEA TX\n");
 	#endif
 
@@ -53,7 +53,7 @@ void IF_NMEA::refresh(){
 
 	refresh_INorder ();
 
-#ifdef TXNMEA
+#ifndef SILENT_TXNMEA
 	bool fl = false;
 	if (IsTXtime()) {
 		switch (MyPilot->getCurrentMode()) {
@@ -61,9 +61,11 @@ void IF_NMEA::refresh(){
 			//If calibration is performed by external application, PMEC12 messages are managed directly by IMU Device
 			// eg. ICM20948 uses Fenix py for calibration
 			if (!MyPilot->isExternalCalibration()) printPEMC_12(& gpsPort);
+			TXReset();
 			break;
 		case CAL_FEEDBACK:
 			printPEMC_13(& gpsPort);
+			TXReset();
 			break;
 		default:
 			switch (getTxorder()) {
@@ -81,12 +83,9 @@ void IF_NMEA::refresh(){
 				TXNext();
 				break;
 			case 2:
-				// HDT Deprecated
-				//// Only transmits HDM/HDG when no valid HDM message has been received.
-				//if (MyPilot->isHeadingValid() and !MyPilot->isExtHeading()) printHDM(& gpsPort);
-				#ifdef TELEMETRY_IF
-				reportTelemetry();
-				#endif
+				if (MyPilot->isTelemetry()) {
+					reportTelemetry();
+				}
 				TXNext();
 				break;
 			default:
@@ -147,8 +146,8 @@ void IF_NMEA::refresh_INorder() {
 	// Launch action accordingly to action received and current mode
 	e_APmode currentMode = MyPilot->getCurrentMode();
 	if (this->INorder.isValid){
-//		sprintf(DEBUG_buffer, "Order:%i\n", this->INorder.get_order());
-//		DEBUG_print();
+		//sprintf(DEBUG_buffer, "Order:%i\n", this->INorder.get_order());
+		//DEBUG_print();
 		switch (this->INorder.get_order()){
 
 		case TEST:
@@ -235,23 +234,6 @@ void IF_NMEA::refresh_INorder() {
 			}
 			break;
 
-//		case START_CAL:
-//			switch (currentMode) {
-//			case STAND_BY:
-//				delay(500);//TODO: delay necessary?
-//				Start_Cal();
-//				break;
-//			//case CAL_IMU_COMPLETE:
-//			//case CAL_IMU_MINIMUM:
-//				//TODO: Implement cancel method
-//				//delay(500);
-//				//Cancel_Cal();
-//			//	break;
-//			default:
-//				break;
-//			}
-//			break;
-
 		case EE_FBK_CAL:
 			switch (currentMode) {
 			case STAND_BY:
@@ -299,13 +281,26 @@ void IF_NMEA::refresh_INorder() {
 			if (currentMode==CAL_IMU_COMPLETE) Cal_NextSensor();
 			break;
 		case LOAD_calibrate_py:
-			//Instruction only valid for IMU ICM20948
+			// TODO: Add condition if (currentMode==STAND_BY)
 			Load_calibrate_py(INorder.calibrate_py);
 			break;
 		case SOG: //SOG received
 			if (!MyPilot->isCalMode()) {
 				received_SOG(INorder.SOG);
 			}
+			break;
+		case RESET_EEPROM:
+			if (currentMode==STAND_BY) MyPilot->EEPROM_format();
+			break;
+		case TELEMETRY:
+			MyPilot->Report_telemetry(!MyPilot->isTelemetry());
+			break;
+		case LOOP_FREQ:
+			MyPilot->Monitor_frequency(!MyPilot->isMonitorFreq());
+			break;
+		case EVENT_TRIGGER:
+			// Use isEventTrigger() to capture event and trigger action
+			MyPilot->Event_trigger(!MyPilot->isEventTrigger());
 			break;
 		default:
 	    	 break;
@@ -369,7 +364,7 @@ void IF_NMEA::reportTelemetry(void) {
 
 		if ((millis() -DelayCalcStart) < 100) return;
 
-		sprintf(DEBUG_buffer,"#%ld,%s,%s,%s,%s\n",
+		sprintf(DEBUG_buffer,"#1,%ld,%s,%s,%s,%s\n",
 				millis(),dtostrf(MyPilot->getKpContrib(),0,d,c3),
 				dtostrf(MyPilot->getITerm(),0,d,c4),
 				dtostrf(MyPilot->getKdContrib(),0,d,c5),

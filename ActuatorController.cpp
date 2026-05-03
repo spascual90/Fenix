@@ -95,13 +95,6 @@ int ActuatorController::compute_VA (void) {
 	float f_value = ( c_ratio * float(deltaTime) );
 		if (_currentDirection== RETRACT) f_value = -f_value;
 
-//				int l=8, d=4;
-//				char c3[l+3];
-//				char c4[l+3];
-//				sprintf(DEBUG_buffer,"deltaTime, value=%s,%s,%i\n",dtostrf(deltaTime,l,d,c3), dtostrf(f_value,l,d,c4), round(f_value));
-//				DEBUG_print();
-//				DEBUG_PORT.flush();
-
 	return round(f_value);
 
 }

@@ -13,6 +13,7 @@
 
 #include "ActuatorManager.h"
 #include "BearingMonitor.h"
+#include "DevBuzzer.h"
 #include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
 
 // setup status
@@ -25,25 +26,24 @@ enum e_working_status {RUNNING_OK, RUNNING_ERROR, RUN_OUT_OF_TIME};
 enum e_APmode {STAND_BY, CAL_IMU_COMPLETE, XXX_DEPRECATED, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE, WIND_MODE, CAL_AUTOTUNE};
 enum e_WindMode {MODE_AWA, MODE_TWA};
 // Error codes
-enum e_error {
-	NO_ERROR
-//	,IMU_NOTFOUND
+enum e_alarm {
+	NO_ALARM,
+	OUT_OF_COURSE,
+	LOST_EXT_IMU,
+	WIND_CHANGE,
+	ACTUATOR_BLOCKED
 };
 
 // Warning codes
 enum e_warning {
 	NO_WARNING,
 	FBK_ERROR_HIGH,
-	OUT_OF_COURSE,
 	EE_INSTPARAM_NOTFOUND,
 	EE_IMU_NOTFOUND,
 	IMU_LOW,
 	WP_INVALID,
 	NO_WIND_DATA,
-	IMU_NOTFOUND,
-	LOST_EXT_IMU,
-	WIND_CHANGE,
-	ACTUATOR_BLOCKED
+	IMU_NOTFOUND
 };
 
 // Information codes
@@ -390,13 +390,22 @@ enum e_info {
 		, LOAD_calibrate_py // Load external calibration parameters
 		// SOW received from RMC message
 		, SOG
+		// Reset EEPROM
+		, RESET_EEPROM
+		// Telemetry
+		, TELEMETRY
+		// Trigger special event for debugging
+		, EVENT_TRIGGER
+		// Report frequency of loops
+		, LOOP_FREQ
 	};
 
 	struct  {
 		// ver 1: Fenix v0.1
 		// ver 2: save CHECK value before IMU, InstParam and PID structures
 		// ver 3: additional space for IMU ICM20948
-		int ver=3; // TODO: Version of EEPROM structure is not saved
+		// ver 4: Max current for blockage linear actuator
+		int ver=4; // TODO: Version of EEPROM structure is not saved
 		long Flag=0;
 		long IMU=500;//25; //Length 48 (bno055) 112 (ICM20948)
 		long InstParam=73;
@@ -525,6 +534,9 @@ public:
 	//FUNCTIONAL MODULE: EEPROM
 	void EEPROM_setup();
 	void EEPROM_format();
+	void Report_telemetry (bool activate = true);
+	void Monitor_frequency (bool activate = true);
+	void Event_trigger (bool activate = true);
 	void EEsave_ReqCal (char sensor = '0');
 	char EEload_ReqCal (void);
 	bool EEsave_Calib();
@@ -544,10 +556,13 @@ public:
 	bool Load_calibrate_py (s_calibrate_py calibrate_py);
 
 	// FUNCTIONAL MODULE: BUZZER
-	void buzzer_Error();
+	DevBuzzer buzzer;
+	void buzzer_Alarm();
+	void buzzer_Alarm_Off();
 	void buzzer_Warning();
 	void buzzer_Information();
 	void buzzer_Beep();
+	void buzzer_Stop();
 
 
 	// FUNCTIONAL MODULE: IMU
@@ -594,16 +609,34 @@ public:
 	//Boat speed from RMC
 	float get_boatSpeed (void);
 
-// FUNCTIONAL MODULE: ERROR HANDLING
+// FUNCTIONAL MODULE: ALARM HANDLING
 
-	e_error getError() const {
-		return _error;
+	void setOffCourseAlarm(uint8_t offCourseAlarm) {
+		_offCourseAlarm = offCourseAlarm;
 	}
 
-	void setError(e_error error = NO_ERROR) {
-		_error = error;
-		DEBUG_sprintf("!ERROR Code:", _error);
-		buzzer_Error();
+	uint8_t getOffCourseAlarm() const {
+		return _offCourseAlarm;
+	}
+
+	e_alarm getAlarm() const {
+		return _alarm;
+	}
+
+	void setAlarm(e_alarm alarm = NO_ALARM, bool instant = false) {
+
+		if (alarm == NO_ALARM) _pending_A = false;
+		if (_alarm != alarm) {
+
+			//if there are Alarms pending to be displayed, these will be lost!
+			if (_pending_A == true)
+			{
+				_lost_A =true;
+			}
+			_alarm = alarm;
+			_pending_A = true;
+		}
+		if (instant) printAlarm(instant);
 	}
 
 	e_warning getWarning() const {
@@ -627,6 +660,7 @@ public:
 		if (instant) printWarning(instant);
 	}
 
+	void printAlarm(bool instant = false);
 	void printWarning(bool instant = false);
 
 	e_info getInformation() const {
@@ -637,8 +671,7 @@ public:
 	void setInformation(e_info information = NO_MESSAGE) {
 		_information = information;
 		DEBUG_sprintf("!INFORMATION Code", _information);
-
-		buzzer_Information();
+		if (_information!=NO_MESSAGE) buzzer_Information();
 	}
 
 //	void print_PIDFrontend (void);
@@ -650,7 +683,8 @@ public:
 	void setLoopMillis(void) {
 		static int8_t counter =0;
 		_loop_millis = millis();
-		#ifdef FREQ_MONITOR
+		//#ifdef FREQ_MONITOR
+		if (isMonitorFreq()) {
 			static long ini_millis = millis();
 			if (counter++ == 100 ) {
 				float temp = 1000.0f/(_loop_millis-ini_millis)*100.0f ;//1000 ms/s. 100 times per cycle
@@ -658,7 +692,8 @@ public:
 				ini_millis = _loop_millis;
 				counter=0;
 			}
-		#endif
+		}
+		//#endif
 	}
 
 	inline int getTargetWindDir() const {
@@ -671,6 +706,16 @@ public:
 
 	void setTargetWindDir_delta(int deltaWindDir);
 	void set_nextWindDir(void);
+
+	bool isTelemetry() const {
+		return _telemetry;
+	}
+	bool isEventTrigger() const {
+		return _event_trigger;
+	}
+	bool isMonitorFreq() const {
+		return _monitor_freq;
+	}
 
 private:
 	e_APmode _currentMode= STAND_BY; // current working mode
@@ -695,6 +740,10 @@ private:
 	    return output;
 	}
 
+	// SPECIAL ACTIONS
+	bool _telemetry= false;
+	bool _event_trigger= false;
+	bool _monitor_freq= false;
 
 	// FUNCTIONAL MODULE: WORKING MODES
 	bool before_changeMode(e_APmode newMode, e_APmode currentMode, char sensor);
@@ -737,7 +786,7 @@ private:
 
 
 	void reset(){
-		DEBUG_print(F("Reset\n"));
+		DEBUG_print(F("!Reset...\n"));
 		delay (2000);
 		resetFunc();  //call reset
 	}
@@ -751,16 +800,15 @@ private:
 	// FUNCTIONAL MODULE: BUZZER
 	void buzzer_setup();
 	void buzzer_IBIT();
-	int get_PIN_BUZZER() {return PIN_BUZZER;}
-	void buzzer_noTone();
-	void buzzer_tone_start (unsigned long frequency=1000, int duration=0);
-	void buzzer_play();
-	unsigned long _buzzFrec = 1000;
-	int _buzzDur = 0;
-	void BuzzReset(void);
-	bool IsBuzzTime (void);
-	bool _Buzz=false;
-	unsigned long _DelayBuzzStart = millis();
+	//int get_PIN_BUZZER() {return PIN_BUZZER;}
+	//void buzzer_tone_start (unsigned long frequency=1000, int duration=0);
+	//void buzzer_play();
+	//unsigned long _buzzFrec = 1000;
+	//int _buzzDur = 0;
+	//void BuzzReset(void);
+	//bool IsBuzzTime (void);
+	//bool _Buzz=false;
+	//unsigned long _DelayBuzzStart = millis();
 
 
 //	// FUNCTIONAL MODULE: WIND CHANGE ALARM
@@ -789,14 +837,6 @@ private:
 	bool _offCourseAlarmActive=false;
 	bool compute_OCA (float delta);
 	void set_OCA (bool set=true);
-
-	inline uint8_t getOffCourseAlarm() const {
-		return _offCourseAlarm;
-	}
-
-	void setOffCourseAlarm(uint8_t offCourseAlarm) {
-		_offCourseAlarm = offCourseAlarm;
-	}
 
 	// FUNCTIONAL MODULE: OFF COURSE ALARM
 	inline bool isOffCourseAlarmActive() const {
@@ -829,12 +869,14 @@ private:
 	// FUNCTIONAL MODE: MILLIS
 	long _loop_millis;
 
-	// FUNCTIONAL MODULE: ERROR, WARNING AND INFORMATION DISPLAY
+	// FUNCTIONAL MODULE: ALARM, WARNING AND INFORMATION DISPLAY
 	e_info _information = NO_MESSAGE;
 	e_warning _warning = NO_WARNING;
-	e_error _error = NO_ERROR;
+	e_alarm _alarm = NO_ALARM;
 	bool _pending_W = false;
+	bool _pending_A = false;
 	bool _lost_W = false;
+	bool _lost_A = false;
 
 	void LongLoopReset() {
 		_DelayLongLoopStart = millis();
