@@ -6,7 +6,7 @@
  */
 
 #include "DevMinIMU9V5.h"
-
+#define IMU_ORIENTATION 0
 
 DevMinIMU9V5::DevMinIMU9V5(void)
 {
