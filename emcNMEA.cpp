@@ -1350,9 +1350,9 @@ void emcNMEA::printPEMC_0304(uint8_t num, Stream * outStream) {
 		bufferStream->print(',');
 		bufferStream->print(OUTorder.instParam.rudDamping);
 		bufferStream->print(',');
-		bufferStream->print(OUTorder.instParam.magVariation.float_00());
+		bufferStream->print(display180(OUTorder.instParam.magVariation.float_00()));
 		bufferStream->print(',');
-		bufferStream->print(OUTorder.instParam.headAlign.float_00());
+		bufferStream->print(display180(OUTorder.instParam.headAlign.float_00()));
 		bufferStream->print(',');
 		bufferStream->print(OUTorder.instParam.offcourseAlarm);
 		send( outStream, string2char(output) );
@@ -1431,9 +1431,9 @@ void emcNMEA::printPEMC_07(Stream * outStream) {
 		bufferStream->print(',');
 		bufferStream->print(OUTorder.APinfo.rudder);
 		bufferStream->print(',');
-		bufferStream->print(OUTorder.APinfo.HDT.float_00());
+		bufferStream->print(display360(OUTorder.APinfo.HDT.float_00()));
 		bufferStream->print(',');
-		bufferStream->print(OUTorder.APinfo.CTS.float_00());
+		bufferStream->print(display360(OUTorder.APinfo.CTS.float_00()));
 		bufferStream->print(',');
 		// TODO: Update I/F Documentation: deadband is float
 		bufferStream->print(OUTorder.APinfo.deadband.float_00());
@@ -1545,7 +1545,8 @@ void emcNMEA::printAPB(Stream * outStream) {
 
 void emcNMEA::printHDG(Stream * outStream) {
 	bufferStream->print ("$APHDG,");
-	bufferStream->print (getHeadingC() ,1);
+
+	bufferStream->print (display360(getHeadingC()) ,1);
 	bufferStream->print(",");
 	bufferStream->print(abs(getHeadingDev()),1);
 	bufferStream->print(",");
@@ -1570,7 +1571,7 @@ void emcNMEA::printHDG(Stream * outStream) {
 
 void emcNMEA::printHDT(Stream * outStream) {
 	bufferStream->print ("$APHDT,");
-	bufferStream->print (getHeadingT(),1);
+	bufferStream->print (display360(getHeadingT()),1);
 	bufferStream->print (",T");
 	send( outStream, string2char(output) );
 	output.remove(0);

@@ -262,9 +262,9 @@ void BT::triggerAction () {
 void BT::updateBT(){
 
 	//VIRTUAL PIN IN APP (FLOAT)
-	_V[AI_NEXT_CTS] = MyPilot->getNextCourse();
-	_V[AI_HDT] = (MyPilot->isHeadingValid()? MyPilot->getCurrentHeadingT():888); // TRUE angle
-	_V[AI_CTS] = MyPilot->getTargetBearing();
+	_V[AI_NEXT_CTS] = display360(MyPilot->getNextCourse());
+	_V[AI_HDT] = (MyPilot->isHeadingValid()? display360(MyPilot->getCurrentHeadingT()):888); // TRUE angle
+	_V[AI_CTS] = display360(MyPilot->getTargetBearing());
 	_V[AI_DELTA] = MyPilot->getInput();
 	_V[AI_RUDDER] = MyPilot->getCurrentRudder();
 	_V[AI_PIDOUT] = float(MyPilot->getOutput());
@@ -343,15 +343,19 @@ void BT::updateBT(){
 // SPECIAL OBJECTS IN APP
 void BT::updateSpecialBT() {
 	// WIND ROSE
-	_V[AI_INV_HDT] = 360 - _V[AI_HDT];
+	_V[AI_INV_HDT] = 360.0f - _V[AI_HDT];
 
 	_V[AI_DELTA_CTS] = _V[AI_CTS] - _V[AI_HDT];
-	if (_V[AI_DELTA_CTS]<0) {_V[AI_DELTA_CTS]+= 360;}
-	_V[AI_DELTA_CTS] = fmod (_V[AI_DELTA_CTS], double(360));
+	_V[AI_DELTA_CTS] = fmod (_V[AI_DELTA_CTS], 360.0f);
+	if (_V[AI_DELTA_CTS]<0) _V[AI_DELTA_CTS]+= 360.0f;
+
+	_V[AI_DELTA_CTS] = display360(_V[AI_DELTA_CTS]);
 
 	_V[AI_DELTA_NEXT_CTS] = _V[AI_NEXT_CTS] - _V[AI_HDT];
-	if (_V[AI_DELTA_NEXT_CTS]<0) {_V[AI_DELTA_NEXT_CTS]+= 360;}
-	_V[AI_DELTA_NEXT_CTS] = fmod (_V[AI_DELTA_NEXT_CTS], double(360));
+	_V[AI_DELTA_NEXT_CTS] = fmod (_V[AI_DELTA_NEXT_CTS], 360.0f);
+	if (_V[AI_DELTA_NEXT_CTS]<0) _V[AI_DELTA_NEXT_CTS]+= 360.0f;
+
+	_V[AI_DELTA_NEXT_CTS] = display360(_V[AI_DELTA_NEXT_CTS]);
 
 
 	_V[AI_DELTA_VWR] = MyPilot->getWindDir();
@@ -366,8 +370,9 @@ void BT::updateSpecialBT() {
 	// REGULATOR
 	if (_V[AI_DELTA_TARGET]!=0) {
 		_V[AI_DELTA_TARGET]+=_V[AI_HDT];
-		if (_V[AI_DELTA_TARGET]<0) _V[AI_DELTA_TARGET]+=360; // transform (-180,180) to (0, 360);
-		_V[AI_DELTA_TARGET] = fmod (_V[AI_DELTA_TARGET], double(360));
+		_V[AI_DELTA_TARGET] = fmod (_V[AI_DELTA_TARGET], 360.0f);
+		if (_V[AI_DELTA_TARGET]<0) _V[AI_DELTA_TARGET]+=360.0f; // transform (-180,180) to (0, 360);
+
 
 		Set_NextCourse(_V[AI_DELTA_TARGET]);
 		_V[AI_DELTA_TARGET] = 0;

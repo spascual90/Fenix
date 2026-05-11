@@ -190,6 +190,19 @@ protected:
 
 	float predictYawDelta(float dt);
 
+	float reduce360(float value) {
+		value = fmod (value, 360.0f);
+		if (value<0) value+= 360.0f;
+		return value;
+	}
+
+	float reduce180(float value) {
+	    // Normalizar primero al rango [0, 360)
+		value = reduce360(value);
+	    // Convertir a rango [-180, 180)
+	    if (value >= 180.0f) value -= 360.0f;
+	    return value;
+	}
 private:
 	IMUDevice *_imuDevice;
 
@@ -253,6 +266,5 @@ private:
 	float softFactor =10000;
 	float intertia = 0.5;
 };
-
 
 #endif /* BEARINGMONITOR_H_ */

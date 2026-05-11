@@ -69,6 +69,20 @@ private:
 	bool _allsensor = true;
 	int _sensor_count = 0;
 
+	float reduce360(float value) {
+		value = fmod (value, 360.0f);
+		if (value<0) value+= 360.0f;
+		return value;
+	}
+
+	float reduce180(float value) {
+	    // Normalizar primero al rango [0, 360)
+		value = fmod (value, 360.0f);
+		if (value<0) value+= 360.0f;
+	    // Convertir a rango [-180, 180)
+	    if (value >= 180.0f) value -= 360.0f;
+	    return value;
+	}
 };
 
 #endif /* DEVICM20948_H_ */

@@ -585,14 +585,21 @@ public:
 
 	//return delta value (-180, 179)
 	//on error, return -360
-	float delta180(float angle1, float angle2) {
-		if (angle1<0 or angle1>359) return -360;
-		if (angle2<0 or angle2>359) return -360;
+//	float delta180(float angle1, float angle2) {
+//		if (angle1<0 or angle1>359) return -360;
+//		if (angle2<0 or angle2>359) return -360;
+//
+//		float angle180 = angle1- angle2;
+//		if (angle180>180) angle180 -=360;
+//		if (angle180<=-180)  angle180 +=360;
+//		return angle180;
+//	}
 
-		float angle180 = angle1- angle2;
-		if (angle180>180) angle180 -=360;
-		if (angle180<=-180)  angle180 +=360;
-		return angle180;
+	float delta180(float angle1, float angle2) {
+	    if (angle1 < 0.0f || angle1 >= 360.0f) return -360.0f;
+	    if (angle2 < 0.0f || angle2 >= 360.0f) return -360.0f;
+
+	    return reduce180(angle1 - angle2);
 	}
 
 	// FUNCTIONAL MODULE: BOAT SPEED
@@ -893,6 +900,5 @@ private:
 	unsigned long _DelayLongLoopStart = millis();
 
 };
-
 
 #endif /* AUTOPILOT_H_ */

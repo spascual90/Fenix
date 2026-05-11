@@ -476,14 +476,19 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 }
 
 void Autopilot::setTargetBearing(float targetBearing) {
-		if (targetBearing<0) targetBearing+= 360;
-		if (targetBearing>359) targetBearing-= 360;
-		// If next course represents a big change in course...
-		float delta_tb = abs (delta180(_targetBearing, targetBearing));
-		// ...then OCA Alarm is deactivated until ship heading gets into OCA angle
-		if (delta_tb > getOffCourseAlarm()) {
+		targetBearing =reduce360(targetBearing);
+
+		//if (targetBearing<0) targetBearing+= 360;
+		//if (targetBearing>=360) targetBearing-= 360;
+
+		// If next course represents a big change in course (ie. 2 times OCA)
+		// then OCA Alarm is deactivated until ship heading gets into OCA angle
+		//float delta_tb = abs (delta180(_targetBearing, targetBearing));
+		float delta_tb = abs (delta180(getCurrentHeadingC(), targetBearing));
+		if (delta_tb > 2*getOffCourseAlarm()) {
 			_offCourseAlarmIDLE = false;
 #ifdef DEBUG_OCA
+			DEBUG_sprintf("delta_tb", delta_tb);
 			DEBUG_print(F("OCA: Deact\n"));
 #endif
 		}
@@ -493,7 +498,8 @@ void Autopilot::setTargetBearing(float targetBearing) {
 			DEBUG_print(F("OCA2: Deact\n"));
 #endif
 		}
-		_targetBearing = fmod (targetBearing, double(360));
+		//_targetBearing = fmod (targetBearing, double(360));
+		_targetBearing = reduce360(targetBearing);
 	}
 
 float Autopilot::getNextCourse() {

@@ -209,6 +209,26 @@ protected:
     void printPEMC_0304(uint8_t num, Stream * outStream);
     void printPEMC_0506(uint8_t num, Stream * outStream);
 
+    float display360(float angle) {
+    	// emulate display rounding
+    	angle = roundf(angle * 10.0f) / 10.0f;
+        // avoid displaying 360.0
+        if (angle >= 360.0f) angle = 0.0f;
+        return angle;
+    }
+
+    float display180(float angle) {
+
+        // apply display rounding
+        angle = roundf(angle * 10.0f) / 10.0f;
+
+        // avoid displaying +180.0
+        if (angle >= 180.0f)
+            angle = -180.0f;
+
+        return angle;
+    }
+
 
 private:
     //TIMER

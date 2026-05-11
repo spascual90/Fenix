@@ -174,6 +174,25 @@ public:
 	void setup();
 	void refresh();
 
+    float display360(float angle) {
+    	// emulate display rounding
+    	//angle = roundf(angle * 10.0f) / 10.0f;
+        // avoid displaying 360.0
+        if (angle >= 359.5f) angle = 0.0f;
+        return angle;
+    }
+
+    float display180(float angle) {
+
+        // apply display rounding
+        //angle = roundf(angle * 10.0f) / 10.0f;
+
+        // avoid displaying +180.0
+        if (angle >= 179.5f)
+            angle = -180.0f;
+
+        return angle;
+    }
 
 private:
 	Autopilot* MyPilot;

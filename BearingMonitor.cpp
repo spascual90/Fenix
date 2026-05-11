@@ -281,9 +281,10 @@ void BearingMonitor::updateHeadingINT(void){
 	if (delta_yaw_raw>180) delta_yaw_raw-=360;
 	// Apply low pass filter to the IMU results
 	yaw = reduce360 (yaw*HEADING_ALFA + (yaw+delta_yaw_raw)* (1-HEADING_ALFA));
-
 	_heading = yaw;
 	updateHeadingT();
+	//if (_heading>=360.0) DEBUG_sprintf("heading", _heading);
+	//if (getCurrentHeadingC()>=360.0) DEBUG_sprintf("getCurrentHeadingC", getCurrentHeadingC());
 }
 
 float BearingMonitor::predictYawDelta(float dt) {

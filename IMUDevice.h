@@ -16,22 +16,6 @@
 // All configurations are managed in Fenix_config.h
 #include "Fenix_config.h"
 
-inline float reduce360 (float value) {
-	value = fmod (value, 360.0f);
-	if (value<0) value+= 360.0f;
-	return value;
-}
-
-inline float reduce180(float value) {
-    // Normalizar primero al rango [0, 360)
-	value = fmod (value, 360.0f);
-	if (value<0) value+= 360.0f;
-    // Convertir a rango [-180, 180)
-    if (value >= 180.0f) value -= 360.0f;
-
-    return value;
-}
-
 #ifdef MINIMU9V5
 	#define IMUDEVICE_ID 2
 	#define IMUDEVICE_NAME "MiniIMU9v5"
