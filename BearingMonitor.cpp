@@ -57,6 +57,7 @@ e_IMU_status BearingMonitor::IMU_setup(long EE_address){
 			_IMU_status = OPERATIONAL;
 			_IMU_cal_status = CAL_NOT_STARTED;
 		}else {
+			// only for future capability to calibrate internally
 			_IMU_status = CAL_MODE;
 			_IMU_cal_status = CAL_START;
 		}
@@ -66,6 +67,7 @@ e_IMU_status BearingMonitor::IMU_setup(long EE_address){
 	}
 
 	IBIT();
+
 	return _IMU_status;
 }
 
@@ -99,7 +101,8 @@ bool BearingMonitor::compute_Cal_IMU(char sensor) {
 
 	switch (_IMU_cal_status) {
 	case CAL_NOT_STARTED:
-		ret=false;
+		_IMU_cal_status = CAL_START;
+		ret=true;
 		break;
 	case CAL_START:
 		ret=IMU_startCalibration(sensor);
@@ -178,7 +181,7 @@ bool BearingMonitor::IMU_startCalibration(char sensor) {
 	_IMU_cal_status = CAL_INPROGRESS;
 
 	//First iteration only
-	//DEBUG_print(F("Start IMU Calibration...\n"));
+	DEBUG_print(F("Start IMU Calibration...\n"));
 	return _imuDevice->IMU_startCalibration(sensor);
 }
 
@@ -283,8 +286,8 @@ void BearingMonitor::updateHeadingINT(void){
 	yaw = reduce360 (yaw*HEADING_ALFA + (yaw+delta_yaw_raw)* (1-HEADING_ALFA));
 	_heading = yaw;
 	updateHeadingT();
-	//if (_heading>=360.0) DEBUG_sprintf("heading", _heading);
-	//if (getCurrentHeadingC()>=360.0) DEBUG_sprintf("getCurrentHeadingC", getCurrentHeadingC());
+
+
 }
 
 float BearingMonitor::predictYawDelta(float dt) {

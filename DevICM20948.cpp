@@ -36,6 +36,10 @@ float DevICM20948::updateHeading(void){
 	return ICM20948AHRS_loop();
 }
 
+int DevICM20948::get_devMag(void){
+	return ICM20948AHRS_get_devMag();
+}
+
 float DevICM20948::predictYawDelta(float dt){
 	float DYaw = ICM20948AHRS_predictYawDelta(dt);
 	float psi_dot = get_filtered_psi_dot();

@@ -23,7 +23,7 @@ enum e_setup_status {SETUP_OK, IMU_ERROR, FEEDBACK_ERROR};
 enum e_working_status {RUNNING_OK, RUNNING_ERROR, RUN_OUT_OF_TIME};
 
 // working modes
-enum e_APmode {STAND_BY, CAL_IMU_COMPLETE, XXX_DEPRECATED, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE, WIND_MODE, CAL_AUTOTUNE};
+enum e_APmode {STAND_BY, CAL_IMU_COMPLETE, XXX_DEPRECATED, CAL_FEEDBACK, AUTO_MODE, TRACK_MODE, WIND_MODE};//, CAL_AUTOTUNE
 enum e_WindMode {MODE_AWA, MODE_TWA};
 // Error codes
 enum e_alarm {
@@ -687,22 +687,6 @@ public:
 		return _loop_millis;
 	}
 
-	void setLoopMillis(void) {
-		static int8_t counter =0;
-		_loop_millis = millis();
-		//#ifdef FREQ_MONITOR
-		if (isMonitorFreq()) {
-			static long ini_millis = millis();
-			if (counter++ == 100 ) {
-				float temp = 1000.0f/(_loop_millis-ini_millis)*100.0f ;//1000 ms/s. 100 times per cycle
-				DEBUG_sprintf("!Loop.Freq", int(temp));
-				ini_millis = _loop_millis;
-				counter=0;
-			}
-		}
-		//#endif
-	}
-
 	inline int getTargetWindDir() const {
 		return _targetWindDir;
 	}
@@ -898,6 +882,9 @@ private:
 	}
 
 	unsigned long _DelayLongLoopStart = millis();
+
+	void setLoopMillis(void);
+
 
 };
 

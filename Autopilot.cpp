@@ -109,7 +109,7 @@ e_setup_status Autopilot::setup() {
 	char sensor = EEload_ReqCal();
 	if (sensor == 'G' or sensor == 'A' or sensor == 'M' or sensor == '-') {
 		EEsave_ReqCal('0'); // Set flag to disabled to avoid entering into Calibration mode each time
-		DEBUG_print(F("!Calibration mode!\n"));
+		DEBUG_print(F("!Calibration mode\n"));
 		// Launch calibration
 		setCurrentMode (CAL_IMU_COMPLETE, sensor);
 		return SETUP_OK;
@@ -166,12 +166,12 @@ e_working_status Autopilot::Compute() {
 		ws = compute_Stand_By();
 		break;
 	case CAL_IMU_COMPLETE:
-		return RUNNING_OK;
+		ws = RUNNING_OK;
 		break;
 	case CAL_FEEDBACK:
 		ws = compute_Cal_Feedback();
 		break;
-	case CAL_AUTOTUNE:
+	//case CAL_AUTOTUNE:
 		//ws = compute_Autotune();
 		break;
 	}
@@ -320,6 +320,7 @@ bool Autopilot::setCurrentMode(e_APmode newMode, char sensor) {
 		break;
 	case CAL_IMU_COMPLETE:
 		//Start IMU calibration
+
 		//setInformation(IMU_CAL_INPROGRESS);
 		break;
 
@@ -328,10 +329,10 @@ bool Autopilot::setCurrentMode(e_APmode newMode, char sensor) {
 		start_calFeedback();
 		break;
 
-	case CAL_AUTOTUNE:
+	//case CAL_AUTOTUNE:
 		//startAutoTune();
-    	DEBUG_print(F("!SetCurrentMode: CAL_AUTOTUNE\n"));
-		break;
+    	//DEBUG_print(F("!SetCurrentMode: CAL_AUTOTUNE\n"));
+		//break;
 
 
 
@@ -378,6 +379,14 @@ void Autopilot::computeLongLoop() {
 
 		computeLongLoop_heading();
 
+		if (isEventTrigger()) {
+			static int8_t counter =0;
+			if (counter++ == 50 ) {
+				DEBUG_sprintf("!ModMxyz", get_devMag());
+				counter=0;
+			}
+		}
+
 		// Once each XX loops: Update target bearing (in track mode). Stores value for later use.
 		if (IsLongLooptime ()) {
 			computeLongLoop_WP();
@@ -410,9 +419,9 @@ bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode, char s
 		break;
 		}
 	case STAND_BY:
-		if (newMode == CAL_AUTOTUNE) {
-			setTargetBearing (getCurrentHeadingT());
-		}
+		//if (newMode == CAL_AUTOTUNE) {
+		//	setTargetBearing (getCurrentHeadingT());
+		//}
 
 		if (newMode == CAL_IMU_COMPLETE) {
 			_sensor = sensor;
@@ -445,6 +454,7 @@ bool Autopilot::after_changeMode(e_APmode currentMode, e_APmode preMode) {
 	if (preMode == CAL_IMU_COMPLETE) {
 		if (this->isExternalCalibration()) {
 			// Reset autopilot after external calibration (eg. ICM_20948)
+			DEBUG_print("afterCalReset\n");
 			reset();
 		} else {
 			// Print new calibration values after internal calibration
@@ -556,7 +566,7 @@ inline bool Autopilot::isCalMode(void){
 	switch (getCurrentMode()) {
 	case CAL_IMU_COMPLETE:
 	case CAL_FEEDBACK:
-	case CAL_AUTOTUNE:
+	//case CAL_AUTOTUNE:
 		return true;
 	default:
 		return false;
@@ -669,20 +679,20 @@ void Autopilot::Enter_Exit_FBK_Calib(void) {
 }
 
 
-void Autopilot::Start_Cancel_AutotunePID(void) {
-	switch (getCurrentMode()) {
-	// If in STAND_BY --> set AutotunePID mode
-	case STAND_BY:
-		setCurrentMode(CAL_AUTOTUNE);
-		break;
-	case CAL_AUTOTUNE:
-		setCurrentMode(STAND_BY);
-		break;
-		// In other case REJECT
-	default:
-		break;
-	}
-}
+//void Autopilot::Start_Cancel_AutotunePID(void) {
+//	switch (getCurrentMode()) {
+//	// If in STAND_BY --> set AutotunePID mode
+//	case STAND_BY:
+//		setCurrentMode(CAL_AUTOTUNE);
+//		break;
+//	case CAL_AUTOTUNE:
+//		setCurrentMode(STAND_BY);
+//		break;
+//		// In other case REJECT
+//	default:
+//		break;
+//	}
+//}
 
 // EXTERNAL COMPASS MODE
 
@@ -730,8 +740,8 @@ void Autopilot::evaluate_changeIMUstatus (void) {
 			} else {
 				//TODO: WARNING ALARM!
 				if (isOpsMode()) {
-					setAlarm(LOST_EXT_IMU);
 					setCurrentMode(STAND_BY);
+					setAlarm(LOST_EXT_IMU, true);
 				}
 				setIMUstatus (OPERATIONAL);
 			}
@@ -1585,3 +1595,16 @@ void Autopilot::printWarning(bool instant) {
 	return;
 }
 
+void Autopilot::setLoopMillis(void) {
+	static int8_t counter =0;
+	_loop_millis = millis();
+	if (isMonitorFreq()) {
+		static long ini_millis = millis();
+		if (counter++ == 100 ) {
+			float temp = 1000.0f/(_loop_millis-ini_millis)*100.0f ;//1000 ms/s. 100 times per cycle
+			DEBUG_sprintf("!Loop.Freq", int(temp));
+			ini_millis = _loop_millis;
+			counter=0;
+		}
+	}
+}

@@ -54,6 +54,7 @@ public:
     virtual bool getCalibrationStatus(uint8_t &system, uint8_t &gyro, uint8_t &accel, uint8_t &mag) = 0;
     virtual bool IMU_Cal_stopRequest(void) = 0;
     virtual bool set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor) = 0;
+    virtual int get_devMag(void);
 
     //virtual float get_filtered_psi_dot(void);
     //virtual float get_yaw_accel (void);

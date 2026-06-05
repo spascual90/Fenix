@@ -178,8 +178,14 @@ void HMIArq::ResetPID(){
 }
 
 void HMIArq::Start_Stop(e_start_stop type){
-	MyPilot->Start_Stop(type);
-	MyPilot->buzzer_Beep();
+	// If there is any alarm active, stop alarm
+	if (MyPilot->getAlarm()!=NO_ALARM) {
+		MyPilot->setAlarm(NO_ALARM);
+		//MyPilot->buzzer_Stop(); // Stop any sound alarm
+	} else {
+		MyPilot->Start_Stop(type);
+		MyPilot->buzzer_Beep();
+	}
 }
 
 void HMIArq::Start_Stop_wind(void){
@@ -192,10 +198,10 @@ void HMIArq::Enter_Exit_FBK_Calib() {
     MyPilot->buzzer_Beep();
 }
 
-void HMIArq::Start_Cancel_AutotunePID() {
-	MyPilot->Start_Cancel_AutotunePID();
-    MyPilot->buzzer_Beep();
-}
+//void HMIArq::Start_Cancel_AutotunePID() {
+//	MyPilot->Start_Cancel_AutotunePID();
+//    MyPilot->buzzer_Beep();
+//}
 
 
 

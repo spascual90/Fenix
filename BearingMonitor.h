@@ -140,7 +140,9 @@ public:
 		return diff - 180.0;
 	}
 
-
+	int get_devMag() const {
+		return _imuDevice->get_devMag();
+	}
 
 protected:
    e_IMU_status updateHeading(unsigned long HDT_RXtime);

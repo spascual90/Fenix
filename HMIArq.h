@@ -65,7 +65,7 @@ protected:
 	void Set_NewDeltaCourse(float newDCourse);
 	void Set_HeadingDev();
 	void Enter_Exit_FBK_Calib();
-	void Start_Cancel_AutotunePID();
+	//void Start_Cancel_AutotunePID();
 
 
 	void ResetPID();

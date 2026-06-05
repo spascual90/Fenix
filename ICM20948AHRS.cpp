@@ -48,10 +48,10 @@
 
 #define G_OFFSET_MAX 1000
 #define G_OFFSET_MIN -1000
-#define B_MAX 1000
-#define B_MIN -1000
-#define AINV_MAX 50
-#define AINV_MIN-50
+#define B_MAX 1500
+#define B_MIN -1500
+#define AINV_MAX 200 //50
+#define AINV_MIN-200 //50
 
 ICM_20948_I2C imu; // create an ICM_20948_I2C object imu;
 
@@ -104,11 +104,14 @@ float A_B[3];
 float A_Ainv[3][3];
 float M_B[3];
 float M_Ainv[3][3];
+float modMxyz;
+float maxDeltaModMxyz = 0;
+
 
 void get_scaled_IMU(float Gxyz[3], float Axyz[3], float Mxyz[3]);
 void MahonyQuaternionUpdate(float ax, float ay, float az, float gx, float gy, float gz, float mx, float my, float mz, float deltat);
 void vector_cross(float a[3], float b[3], float out[3]);
-void vector_normalize(float a[3]);
+float vector_normalize(float a[3]);
 float vector_dot(float a[3], float b[3]);
 
 
@@ -190,7 +193,7 @@ float ICM20948AHRS_loop()
 
   static float GAxyz[3], AAxyz[3], MAxyz[3]; //centered and scaled gyro/accel/mag data
   static float ACxyz[3], MCxyz[3]; //centered and scaled accel/mag data
-  static float deltat_avg=1;
+  static float deltat_avg=-1;//-1 value means first iteration
   float alfa = 0.7;
   // Update the sensor values whenever new data is available
   if ( imu.dataReady() ) {
@@ -208,6 +211,9 @@ float ICM20948AHRS_loop()
     deltat = (now - last) * 1.0e-6; //seconds since last update
     last = now;
 
+    //initialization
+    if (deltat_avg== -1.0) deltat_avg = deltat;
+
     deltat_avg = deltat_avg*alfa + deltat*(1-alfa);
 
     MahonyQuaternionUpdate(AAxyz[0], AAxyz[1], AAxyz[2], GAxyz[0], GAxyz[1], GAxyz[2],
@@ -215,10 +221,9 @@ float ICM20948AHRS_loop()
 
 
     if ((deltat-deltat_avg) > 0.03) {
-    	//DEBUG_print("!ICM20948: Time overflow\n");
+    	DEBUG_print("!ICM20948: Time overflow\n");
     	return yaw;
     }
-
 
 
       // Define Tait-Bryan angles. Strictly valid only for approximately level movement
@@ -289,6 +294,14 @@ float ICM20948AHRS_loop()
   return yaw;
 }
 
+int ICM20948AHRS_get_devMag() {
+	// return max deviation of mod.vector
+	int ret = int (maxDeltaModMxyz);
+	// reset max deviation
+	maxDeltaModMxyz = 0;
+	return ret;
+}
+
 //// Returns a heading (in degrees) given an acceleration vector a due to gravity, a magnetic vector m, and a facing vector p.
 //// applies magnetic declination
 //int get_heading(float acc[3], float mag[3], float p[3], float magdec){
@@ -319,11 +332,12 @@ void vector_cross(float a[3], float b[3], float out[3]){
   out[1] = a[2] * b[0] - a[0] * b[2];
   out[2] = a[0] * b[1] - a[1] * b[0];
 }
-void vector_normalize(float a[3]){
+float vector_normalize(float a[3]){
   float mag = sqrt(vector_dot(a, a));
   a[0] /= mag;
   a[1] /= mag;
   a[2] /= mag;
+  return mag;
 }
 
 // function to subtract offsets and apply scale/correction matrices to IMU data
@@ -343,12 +357,26 @@ void get_scaled_IMU(float Gxyz[3], float Axyz[3], float Mxyz[3]) {
   Mxyz[1] = imu.agmt.mag.axes.y;
   Mxyz[2] = imu.agmt.mag.axes.z;
 
+  // Get quality of magnetometer calibration
+  modMxyz = vector_normalize(Mxyz);
+  // Initialize avg
+  static float avgModMxyz = 0;
+  if (avgModMxyz == 0) avgModMxyz = modMxyz;
+  // calculate average
+  avgModMxyz = avgModMxyz * 0.9 + 0.1 * modMxyz;
+  // calculate delta
+  float delta = avgModMxyz - modMxyz;
+  delta = abs (delta);
+  // save only max delta
+  maxDeltaModMxyz = max(maxDeltaModMxyz, delta);
+
   //apply accel offsets (bias) and scale factors from Magneto
 
   for (i = 0; i < 3; i++) temp[i] = (Axyz[i] - A_B[i]);
   Axyz[0] = A_Ainv[0][0] * temp[0] + A_Ainv[0][1] * temp[1] + A_Ainv[0][2] * temp[2];
   Axyz[1] = A_Ainv[1][0] * temp[0] + A_Ainv[1][1] * temp[1] + A_Ainv[1][2] * temp[2];
   Axyz[2] = A_Ainv[2][0] * temp[0] + A_Ainv[2][1] * temp[1] + A_Ainv[2][2] * temp[2];
+  //modAxyz =
   vector_normalize(Axyz);
 
   //apply mag offsets (bias) and scale factors from Magneto
@@ -357,7 +385,6 @@ void get_scaled_IMU(float Gxyz[3], float Axyz[3], float Mxyz[3]) {
   Mxyz[0] = M_Ainv[0][0] * temp[0] + M_Ainv[0][1] * temp[1] + M_Ainv[0][2] * temp[2];
   Mxyz[1] = M_Ainv[1][0] * temp[0] + M_Ainv[1][1] * temp[1] + M_Ainv[1][2] * temp[2];
   Mxyz[2] = M_Ainv[2][0] * temp[0] + M_Ainv[2][1] * temp[1] + M_Ainv[2][2] * temp[2];
-  vector_normalize(Mxyz);
 }
 
 // Mahony orientation filter, assumed World Frame NWU (xNorth, yWest, zUp)
@@ -461,29 +488,29 @@ q4 += (qa * gz + qb * gy - qc * gx);
   q[3] = q4 * norm;
 }
 
-void get_scaled_IMU2(float Axyz[3], float Mxyz[3]) {
-  byte i;
-  float temp[3];
-  Axyz[0] = imu.agmt.acc.axes.x;
-  Axyz[1] = imu.agmt.acc.axes.y;
-  Axyz[2] = imu.agmt.acc.axes.z;
-  Mxyz[0] = imu.agmt.mag.axes.x;
-  Mxyz[1] = imu.agmt.mag.axes.y;
-  Mxyz[2] = imu.agmt.mag.axes.z;
-  //apply offsets (bias) and scale factors from Magneto
-  for (i = 0; i < 3; i++) temp[i] = (Axyz[i] - A_B[i]);
-  Axyz[0] = A_Ainv[0][0] * temp[0] + A_Ainv[0][1] * temp[1] + A_Ainv[0][2] * temp[2];
-  Axyz[1] = A_Ainv[1][0] * temp[0] + A_Ainv[1][1] * temp[1] + A_Ainv[1][2] * temp[2];
-  Axyz[2] = A_Ainv[2][0] * temp[0] + A_Ainv[2][1] * temp[1] + A_Ainv[2][2] * temp[2];
-  vector_normalize(Axyz);
-
-  //apply offsets (bias) and scale factors from Magneto
-  for (int i = 0; i < 3; i++) temp[i] = (Mxyz[i] - M_B[i]);
-  Mxyz[0] = M_Ainv[0][0] * temp[0] + M_Ainv[0][1] * temp[1] + M_Ainv[0][2] * temp[2];
-  Mxyz[1] = M_Ainv[1][0] * temp[0] + M_Ainv[1][1] * temp[1] + M_Ainv[1][2] * temp[2];
-  Mxyz[2] = M_Ainv[2][0] * temp[0] + M_Ainv[2][1] * temp[1] + M_Ainv[2][2] * temp[2];
-  vector_normalize(Mxyz);
-}
+//void get_scaled_IMU2(float Axyz[3], float Mxyz[3]) {
+//  byte i;
+//  float temp[3];
+//  Axyz[0] = imu.agmt.acc.axes.x;
+//  Axyz[1] = imu.agmt.acc.axes.y;
+//  Axyz[2] = imu.agmt.acc.axes.z;
+//  Mxyz[0] = imu.agmt.mag.axes.x;
+//  Mxyz[1] = imu.agmt.mag.axes.y;
+//  Mxyz[2] = imu.agmt.mag.axes.z;
+//  //apply offsets (bias) and scale factors from Magneto
+//  for (i = 0; i < 3; i++) temp[i] = (Axyz[i] - A_B[i]);
+//  Axyz[0] = A_Ainv[0][0] * temp[0] + A_Ainv[0][1] * temp[1] + A_Ainv[0][2] * temp[2];
+//  Axyz[1] = A_Ainv[1][0] * temp[0] + A_Ainv[1][1] * temp[1] + A_Ainv[1][2] * temp[2];
+//  Axyz[2] = A_Ainv[2][0] * temp[0] + A_Ainv[2][1] * temp[1] + A_Ainv[2][2] * temp[2];
+//  vector_normalize(Axyz);
+//
+//  //apply offsets (bias) and scale factors from Magneto
+//  for (int i = 0; i < 3; i++) temp[i] = (Mxyz[i] - M_B[i]);
+//  Mxyz[0] = M_Ainv[0][0] * temp[0] + M_Ainv[0][1] * temp[1] + M_Ainv[0][2] * temp[2];
+//  Mxyz[1] = M_Ainv[1][0] * temp[0] + M_Ainv[1][1] * temp[1] + M_Ainv[1][2] * temp[2];
+//  Mxyz[2] = M_Ainv[2][0] * temp[0] + M_Ainv[2][1] * temp[1] + M_Ainv[2][2] * temp[2];
+//  vector_normalize(Mxyz);
+//}
 
 
 
@@ -507,22 +534,52 @@ extern bool ICM20948AHRS_getOffsets(float aG_offset[3], float aA_B[3], float aA_
 
 extern bool ICM20948AHRS_checkOffsets(float aG_offset[3], float aA_B[3], float aA_Ainv[3][3], float aM_B[3], float aM_Ainv[3][3]){
 	for (int i = 0; i < 3; i++) {
-		if (aG_offset[i] > G_OFFSET_MAX) return false;
-		if (aG_offset[i] < G_OFFSET_MIN) return false;
-		if (aA_B[i] > B_MAX) return false;
-		if (aA_B[i] < B_MIN) return false;
-		if (aM_B[i] > B_MAX) return false;
-		if (aM_B[i] < B_MIN) return false;
+		if (aG_offset[i] > G_OFFSET_MAX) {
+			DEBUG_sprintf("G_OFFSET_MAX", aG_offset[i]);
+			return false;
+		}
+		if (aG_offset[i] < G_OFFSET_MIN) {
+			DEBUG_sprintf("G_OFFSET_MIN", aG_offset[i]);
+			return false;
+		}
+		if (aA_B[i] > B_MAX) {
+			DEBUG_sprintf("aA_B B_MAX", aA_B[i]);
+			return false;
+		}
+		if (aA_B[i] < B_MIN) {
+			DEBUG_sprintf("aA_B B_MIN",aA_B[i]);
+			return false;
+		}
+		if (aM_B[i] > B_MAX) {
+			DEBUG_sprintf("aM_B B_MAX",aM_B[i]);
+			return false;
+		}
+		if (aM_B[i] < B_MIN) {
+			DEBUG_sprintf("aM_B B_MIN",aM_B[i]);
+			return false;
+		}
 	}
 
     for (int i = 0; i < 3; i++)
     {
         for (int j = 0; j < 3; j++)
         {
-    		if (aA_Ainv[i][j] > AINV_MAX) return false;
-    		if (aA_Ainv[i][j] < AINV_MIN) return false;
-    		if (aM_Ainv[i][j] > AINV_MAX) return false;
-    		if (aM_Ainv[i][j] < AINV_MIN) return false;
+    		if (aA_Ainv[i][j] > AINV_MAX) {
+    			DEBUG_sprintf("aA_Ainv AINV_MAX",aA_Ainv[i][j]);
+    			return false;
+    		}
+    		if (aA_Ainv[i][j] < AINV_MIN) {
+    			DEBUG_sprintf("aA_Ainv AINV_MIN",aA_Ainv[i][j]);
+    			return false;
+    		}
+    		if (aM_Ainv[i][j] > AINV_MAX) {
+    			DEBUG_sprintf("aM_Ainv AINV_MAX",aM_Ainv[i][j]);
+    			return false;
+    		}
+    		if (aM_Ainv[i][j] < AINV_MIN) {
+    			DEBUG_sprintf("aM_Ainv AINV_MIN",aM_Ainv[i][j]);
+    			return false;
+    		}
         }
     }
 	return true;
