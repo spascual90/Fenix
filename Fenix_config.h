@@ -64,7 +64,7 @@
 // Adjusts configuration and rudder limits for improved control
 // Info: TELEMETRY_IF introduces predictive yaw delta calculation using IMU data for information only. Doesnt change PID logic
 // Deprecated: Deprecates unused PID autotune application
-//v4.2.B1
+//v4.2.B3
 // Serial port speed increased to 115200
 // Introduces user-configurable max rudder and feedback error parameters,
 // Refactors actuator and rudder feedback logic for improved calibration, safety, and ramping.
@@ -83,11 +83,11 @@
 //#define DEBUG
 //#define DEBUG_OCA
 //#define DEBUG_ACTUATOR
-#define DEBUG_SIMPLOT
+//#define DEBUG_SIMPLOT
 //#define DEBUG_SIMPLOT_CURRENT
 //#define DEBUG_SIMPLOT_HEADING
 //#define DEBUG_SIMPLOT_PHI
-#define DEBUG_SIMPLOT_MODM
+//#define DEBUG_SIMPLOT_MODM
 
 // Library to plot signals
 #ifdef DEBUG_SIMPLOT
