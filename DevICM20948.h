@@ -22,9 +22,9 @@
 TwoWire* ICM20948AHRS_setup(bool orientation = true); // true: COMPONENTS ON TOP false: COMPONENTS BOTTOM
 float ICM20948AHRS_loop(void); //Main Loop
 int ICM20948AHRS_get_devMag(void);
-float ICM20948AHRS_predictYawDelta(float dt);
-float get_filtered_psi_dot(void);
-float get_yaw_accel (void);
+//float ICM20948AHRS_predictYawDelta(float dt);
+//float get_filtered_psi_dot(void);
+//float get_yaw_accel (void);
 
 int16_t* ICM20948AHRS_calibration_loop(char sensor);
 
@@ -49,7 +49,7 @@ public:
     bool EEsave_Calib(long int &eeaddress);
     void displaySensorOffsets(void);
     float updateHeading(void);
-    float predictYawDelta(float dt);
+    //float predictYawDelta(float dt);
     bool IMU_Cal_Loop(void);
     bool getCalibrationStatus(uint8_t &system, uint8_t &gyro, uint8_t &accel, uint8_t &mag);
     bool IMU_Cal_stopRequest(void);

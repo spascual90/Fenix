@@ -226,15 +226,15 @@ bool PID_ext::Compute(int rudder_error, float speed)
     return false;
 }
 
-void PID_ext::calcKanticipContrib(double predictYawDelta) {
-	static float predicted =0;
-	predicted=predicted*0.995 + 0.005 * predictYawDelta;
-	static float integrated =0;
-
-	integrated = integrated*0.9 +predicted*abs(predicted);
-	_kanticipContrib = integrated/100;
-
-}
+//void PID_ext::calcKanticipContrib(double predictYawDelta) {
+//	static float predicted =0;
+//	predicted=predicted*0.995 + 0.005 * predictYawDelta;
+//	static float integrated =0;
+//
+//	integrated = integrated*0.9 +predicted*abs(predicted);
+//	_kanticipContrib = integrated/100;
+//
+//}
 
 // TRUE: El barco está dentro del deadband dinámico
 // FALSE: El barco está fuera del deadband dinámico

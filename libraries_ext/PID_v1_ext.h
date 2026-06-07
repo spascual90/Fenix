@@ -64,7 +64,7 @@ class PID_ext : public PID {
 	double getKdContrib();
 	double getKpContrib();
 	double getKanticipContrib();
-	void calcKanticipContrib(double predictYawDelta);
+	//void calcKanticipContrib(double predictYawDelta);
 
 
 	float getSpeed_ref() const {

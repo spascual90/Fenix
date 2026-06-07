@@ -45,7 +45,7 @@ public:
 	void startAutoMode();
 	void stopAutoMode();
 	int Compute(float setPoint, float processVariable, float speed, float predictedYaw);
-	int Compute(float PIDerrorPrima, float speed, float predictedYaw);
+	int Compute(float PIDerrorPrima, float speed);
 	//int Compute_Autotune(float PIDerrorPrima);
 	int compute_VA(void);
 	int controlActuator (int target);

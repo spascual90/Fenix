@@ -83,8 +83,11 @@
 //#define DEBUG
 //#define DEBUG_OCA
 //#define DEBUG_ACTUATOR
-//#define DEBUG_SIMPLOT
+#define DEBUG_SIMPLOT
 //#define DEBUG_SIMPLOT_CURRENT
+//#define DEBUG_SIMPLOT_HEADING
+//#define DEBUG_SIMPLOT_PHI
+#define DEBUG_SIMPLOT_MODM
 
 // Library to plot signals
 #ifdef DEBUG_SIMPLOT
@@ -134,6 +137,7 @@
 //Only one IMU driver shall be defined at a time.
 // Uncomment #define as applicable
 #define ICM20948
+#define IMU_ORIENTATION 0 // IMU Components on top
 
 // *** Autopilot.h ***
 

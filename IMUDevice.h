@@ -49,7 +49,7 @@ public:
     virtual bool EEsave_Calib(long int &eeaddress) = 0;
     virtual void displaySensorOffsets(void) = 0;
     virtual float updateHeading() = 0;
-    virtual float predictYawDelta(float dt) = 0;
+    //virtual float predictYawDelta(float dt) = 0;
     virtual bool IMU_Cal_Loop(void) = 0;
     virtual bool getCalibrationStatus(uint8_t &system, uint8_t &gyro, uint8_t &accel, uint8_t &mag) = 0;
     virtual bool IMU_Cal_stopRequest(void) = 0;

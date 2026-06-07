@@ -216,7 +216,8 @@ e_working_status Autopilot::compute_OperationalMode(void){
 //	plot2(NeoSerial,getCurrentHeadingT() ,getCurrentHeadingT() - getKanticipContrib());
 //#endif
 
-	if (ActuatorManager::Compute(PIDerrorPrima, get_boatSpeed(), BearingMonitor::predictYawDelta(1.0))!=1) return RUNNING_ERROR;
+	//if (ActuatorManager::Compute(PIDerrorPrima, get_boatSpeed(), BearingMonitor::predictYawDelta(1.0))!=1) return RUNNING_ERROR;
+	if (ActuatorManager::Compute(PIDerrorPrima, get_boatSpeed())!=1) return RUNNING_ERROR;
 
 #ifdef DEBUG_SIMPLOT
 	//plot3(NeoSerial, PIDerrorPrima*100, predicted, integrated);
@@ -381,8 +382,12 @@ void Autopilot::computeLongLoop() {
 
 		if (isEventTrigger()) {
 			static int8_t counter =0;
-			if (counter++ == 50 ) {
+			if (counter++ == 20 ) {
 				DEBUG_sprintf("!ModMxyz", get_devMag());
+				#ifdef DEBUG_SIMPLOT_MODM
+				plot1(NeoSerial, get_devMag());
+				#endif
+
 				counter=0;
 			}
 		}

@@ -24,8 +24,8 @@
 
 */
 #include "ICM_20948.h" // Click here to get the library: http://librarymanager/All#SparkFun_ICM_20948_IMU
-//#include <simplot.h> //SIMPLOT FOR DEBUGGING PURPOSE ONLY
 #include "GPSport.h"
+#include "Fenix_config.h"
 
 #if defined(ARDUINO_AVR_MEGA2560)
 	#define WIRE_PORT Wire // desired Wire port.
@@ -77,35 +77,28 @@ unsigned long lastPrint = 0; // Keep track of print time
 
 // Vector to hold quaternion
 static float q[4] = {1.0, 0.0, 0.0, 0.0};
-static float yaw, pitch, roll; //Euler angle output
 
-// --- START: add yaw-rate and yaw-acceleration calculation ---
-static float filtered_psi_dot = 0.0f;  // filtered yaw rate (rad/s)
-static float filtered_yaw_accel = 0.0f;// filtered yaw angular acceleration (rad/s^2)
+// Euler angle (ship attitude respect earth ref.system)
+// output in degrees and conventional nav, yaw increases CW(clock-wise) from North
+static float yaw, pitch, roll;
 
-
-////Gyro default scale 250 dps. Convert to radians/sec subtract offsets
-//float G_offset[3] = {240.7, 227.7, -4.8};
-////Accel scale: divide by 16604.0 to normalize
-//float A_B[3] = { 470.7 , -83.03 , 300.65 };
-//float A_Ainv[3][3] = {
-//{ 0.06232 , -0.00413 , -0.00479 },
-//{ -0.00413 , 0.0632 , -0.0017 },
-//{ -0.00479 , -0.0017 , 0.0589 }};
-////Mag scale divide by 369.4 to normalize
-//float M_B[3] = { -80.39 , -35.59 , 18.54 };
-//float M_Ainv[3][3] = {
-//{ 4.47829 , -0.06586 , 0.02004 },
-//{ -0.06586 , 4.53222 , 0.00443 },
-//{ 0.02004 , 0.00443 , 4.46886 }};
-// Hardcoded values are managed at DevICM20948.cpp
+// psi equals yaw in radians and increases CCW (counter-clock-wise)
+// --- add psi-rate and psi-acceleration calculation ---
+#define PSI_ALPHA 0.70f // Simple exponential filter for yaw rate to reduce noise (alpha between 0..1, smaller=>more smoothing)
+#define PSI_DOT_ALPHA 0.95f
+#define PSI_DOT_DOT_ALPHA 0.99f
+static float filtered_psi = 0.0f;  // filtered yaw (rad)
+static float filtered_psi_dot = 0.0f;// filtered yaw angular acceleration (rad/s^2)
+static float psi_dot_prev = 0.0f;
+static float filtered_psi_dot_dot = 0.0f;// filtered yaw angular acceleration (rad/s^2)
+static float r_prev = 0;
 float G_offset[3];
 float A_B[3];
 float A_Ainv[3][3];
 float M_B[3];
 float M_Ainv[3][3];
 float modMxyz;
-float maxDeltaModMxyz = 0;
+//float maxDeltaModMxyz = 0;
 
 
 void get_scaled_IMU(float Gxyz[3], float Axyz[3], float Mxyz[3]);
@@ -115,12 +108,37 @@ float vector_normalize(float a[3]);
 float vector_dot(float a[3], float b[3]);
 
 
+float reduce2PI(float value) {
+    value = fmod(value, TWO_PI);
+    if (value < 0.0f) value += TWO_PI;
+    return value;
+}
+
+float reducePI(float value) {
+    value = reduce2PI(value);
+    if (value >= PI) value -= TWO_PI;
+    return value;
+}
+
+float lowPassAngleRad(float current, float measurement, float alpha) {
+    float error = reducePI(measurement - current);
+    return reduce2PI(current + alpha * error);
+}
+
+float lowPass(float current, float measurement, float alpha) {
+    return current + alpha * (measurement - current);
+}
+
+float alphaFromTau(float dt, float tau) {
+    return dt / (tau + dt);
+}
+
 static void i2c_bus_recover(int sdaPin, int sclPin) {
   pinMode(sdaPin, INPUT_PULLUP);
   pinMode(sclPin, INPUT_PULLUP);
   delay(5);
 
-  // Si SDA está baja, intenta liberar con hasta 9 pulsos en SCL
+  // Si SDA esta baja, intenta liberar con hasta 9 pulsos en SCL
   if (digitalRead(sdaPin) == LOW) {
     pinMode(sclPin, OUTPUT);
     for (int i = 0; i < 9; i++) {
@@ -131,7 +149,7 @@ static void i2c_bus_recover(int sdaPin, int sclPin) {
     delay(5);
   }
 
-  // Genera condición STOP “manual”
+  // Genera condicion STOP  manual
   pinMode(sdaPin, OUTPUT);
   digitalWrite(sdaPin, LOW);
   delayMicroseconds(5);
@@ -163,28 +181,28 @@ extern bool ICM20948AHRS_setup(bool orientation = false)
   return true;
 }
 
-// Returns predicted yaw delta (degrees) after dt_future seconds
-float ICM20948AHRS_predictYawDelta(float dt_future= 1) {
-    // filtered_psi_dot: yaw rate (rad/s)
-    // yaw_accel: yaw acceleration (rad/s^2)
-
-    float delta_yaw_rad =
-          filtered_psi_dot * dt_future
-        + 0.5f * filtered_yaw_accel * dt_future * dt_future;
-
-    // Convert to degrees
-    float delta_yaw_deg = delta_yaw_rad * 180.0f / PI;
-
-    return delta_yaw_deg;
-}
-
-float get_filtered_psi_dot (void) {
-	return filtered_psi_dot;
-}
-
-float get_yaw_accel (void) {
-	return filtered_yaw_accel;
-}
+//// Returns predicted yaw delta (degrees) after dt_future seconds
+//float ICM20948AHRS_predictYawDelta(float dt_future= 1) {
+//    // filtered_psi_dot: yaw rate (rad/s)
+//    // yaw_accel: yaw acceleration (rad/s^2)
+//
+//    float delta_yaw_rad =
+//          filtered_psi_dot * dt_future
+//        + 0.5f * filtered_yaw_accel * dt_future * dt_future;
+//
+//    // Convert to degrees
+//    float delta_yaw_deg = delta_yaw_rad * 180.0f / PI;
+//
+//    return delta_yaw_deg;
+//}
+//
+//float get_filtered_psi_dot (void) {
+//	return filtered_psi_dot;
+//}
+//
+//float get_yaw_accel (void) {
+//	return filtered_yaw_accel;
+//}
 
 
 
@@ -248,35 +266,43 @@ float ICM20948AHRS_loop()
       yaw   = atan2((q[1] * q[2] + q[0] * q[3]), 0.5 - ( q[2] * q[2] + q[3] * q[3]));
 
       // Compute body rates p,q,r from GAxyz (these are already scaled in get_scaled_IMU)
-      float p = GAxyz[0]; // roll rate (rad/s)
-      float q = GAxyz[1]; // pitch rate (rad/s)
+      float p = GAxyz[0]; // roll rate  about body Z (rad/s)
+      float q = GAxyz[1]; // pitch rate  about body Z (rad/s)
       float r = GAxyz[2]; // yaw rate about body Z (rad/s)
+
+      float dt_local = deltat;
+      if (dt_local <= 0.0f) dt_local = 1e-6f;
+
+      float alphaPsi     = alphaFromTau(dt_local, 0.1f);
+      float alphaPsiDot  = alphaFromTau(dt_local, 0.5f);
+      float alphaPsiDDot = alphaFromTau(dt_local, 2.0f);
 
       // Avoid division by near-zero cos(pitch)
       float cos_pitch = cos(pitch);
       if (fabs(cos_pitch) < 1e-3f) cos_pitch = (cos_pitch >= 0) ? 1e-3f : -1e-3f;
 
-      // Convert body rates to Euler yaw rate (psi_dot) using standard transform:
-      // psi_dot = (sin(roll)/cos(pitch)) * q + (cos(roll)/cos(pitch)) * r
+      // calculate and filter psi (yaw), psi_dot, psi_dot_dot
+      //filtered_psi = PSI_ALPHA * filtered_psi + (1.0f - PSI_ALPHA) * yaw;//yaw = psi;
+      filtered_psi = lowPassAngleRad(filtered_psi, yaw, alphaPsi);// //0.02â€“0.10
+
+      // Convert body rates to earth using standard transform:
       float psi_dot = (sin(roll) / cos_pitch) * q + (cos(roll) / cos_pitch) * r;
+      //filtered_psi_dot = PSI_DOT_ALPHA * filtered_psi_dot + (1.0f - PSI_DOT_ALPHA) * psi_dot;
+      filtered_psi_dot = lowPass(filtered_psi_dot, psi_dot, alphaPsiDot);
 
-      // Simple exponential filter for yaw rate to reduce noise (alpha between 0..1, smaller=>more smoothing)
-      #define PSI_DOT_ALPHA 0.90f
+      // Aproximacion para velero con escora moderada y cabeceo pequeÃ±o
+      //float psi_dot_dot = (r-r_prev)/dt_local;
+      //r_prev = r;
+      //filtered_psi_dot_dot = PSI_DOT_DOT_ALPHA * filtered_psi_dot_dot + (1.0f- PSI_DOT_DOT_ALPHA) * psi_dot_dot;
+      float psi_dot_dot = (filtered_psi_dot-psi_dot_prev)/dt_local;
+      psi_dot_prev = filtered_psi_dot;
+      filtered_psi_dot_dot = lowPass(filtered_psi_dot_dot, psi_dot_dot, alphaPsiDDot);
 
-      float last_psi_dot = filtered_psi_dot;
-      filtered_psi_dot = PSI_DOT_ALPHA * filtered_psi_dot + (1.0f - PSI_DOT_ALPHA) * psi_dot;
+      // limites fÃ­sicos
+      //filtered_psi_dot = constrain(filtered_psi_dot, -0.20f, 0.20f);          // rad/s â‰ˆ Â±11.5 deg/s
+      //filtered_psi_dot_dot = constrain(filtered_psi_dot_dot, -0.20f, 0.20f);  // rad/sÂ²
 
-      // Compute yaw angular acceleration (difference divided by dt) with small safeguard
-      float dt_local = deltat;
-      if (dt_local <= 0.0f) dt_local = 1e-6f;
-
-      // original: // if ((deltat-deltat_avg) > 0.03) { ...
-       // if ((deltat-deltat_avg) > 0.03) { ...
-
-      // New: compute yaw acceleration
-	  #define YAW_ACCEL 0.95f
-      filtered_yaw_accel = filtered_yaw_accel*YAW_ACCEL + (1.0f-YAW_ACCEL)* (filtered_psi_dot - last_psi_dot) / dt_local;
-
+      yaw = filtered_psi;
       // to degrees
       yaw   *= 180.0 / PI;
       pitch *= 180.0 / PI;
@@ -289,17 +315,28 @@ float ICM20948AHRS_loop()
       if (yaw < 0) yaw += 360.0;
       if (yaw >= 360.0) yaw -= 360.0;
 
-      ICM20948AHRS_predictYawDelta();
+#ifdef DEBUG_SIMPLOT_PHI
+	static int a=0;
+	a++;
+	if (a==10) {
+		plot3(NeoSerial, filtered_psi*30, 200+filtered_psi_dot*20, 400+filtered_psi_dot_dot*20);
+		a=0;
+	}
+
+#endif
+
+      //ICM20948AHRS_predictYawDelta();
   }
   return yaw;
 }
 
 int ICM20948AHRS_get_devMag() {
-	// return max deviation of mod.vector
-	int ret = int (maxDeltaModMxyz);
-	// reset max deviation
-	maxDeltaModMxyz = 0;
-	return ret;
+//	// return max deviation of mod.vector
+//	int ret = int (maxDeltaModMxyz);
+//	// reset max deviation
+//	maxDeltaModMxyz = 0;
+//	return ret;
+	return int(modMxyz);
 }
 
 //// Returns a heading (in degrees) given an acceleration vector a due to gravity, a magnetic vector m, and a facing vector p.
@@ -357,18 +394,6 @@ void get_scaled_IMU(float Gxyz[3], float Axyz[3], float Mxyz[3]) {
   Mxyz[1] = imu.agmt.mag.axes.y;
   Mxyz[2] = imu.agmt.mag.axes.z;
 
-  // Get quality of magnetometer calibration
-  modMxyz = vector_normalize(Mxyz);
-  // Initialize avg
-  static float avgModMxyz = 0;
-  if (avgModMxyz == 0) avgModMxyz = modMxyz;
-  // calculate average
-  avgModMxyz = avgModMxyz * 0.9 + 0.1 * modMxyz;
-  // calculate delta
-  float delta = avgModMxyz - modMxyz;
-  delta = abs (delta);
-  // save only max delta
-  maxDeltaModMxyz = max(maxDeltaModMxyz, delta);
 
   //apply accel offsets (bias) and scale factors from Magneto
 
@@ -385,6 +410,19 @@ void get_scaled_IMU(float Gxyz[3], float Axyz[3], float Mxyz[3]) {
   Mxyz[0] = M_Ainv[0][0] * temp[0] + M_Ainv[0][1] * temp[1] + M_Ainv[0][2] * temp[2];
   Mxyz[1] = M_Ainv[1][0] * temp[0] + M_Ainv[1][1] * temp[1] + M_Ainv[1][2] * temp[2];
   Mxyz[2] = M_Ainv[2][0] * temp[0] + M_Ainv[2][1] * temp[1] + M_Ainv[2][2] * temp[2];
+  // Get quality of magnetometer calibration
+    modMxyz = vector_normalize(Mxyz);
+    // Initialize avg
+//    static float avgModMxyz = 0;
+//    if (avgModMxyz == 0) avgModMxyz = modMxyz;
+//    // calculate average
+//    avgModMxyz = avgModMxyz * 0.9 + 0.1 * modMxyz;
+//    // calculate delta
+//    float delta = avgModMxyz - modMxyz;
+//    delta = abs (delta);
+//    // save only max delta
+//    maxDeltaModMxyz = max(maxDeltaModMxyz, delta);
+
 }
 
 // Mahony orientation filter, assumed World Frame NWU (xNorth, yWest, zUp)

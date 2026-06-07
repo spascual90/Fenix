@@ -110,16 +110,17 @@ int ActuatorManager::Compute(float setPoint, float processVariable, float speed,
 		if (PIDerrorPrima>180) PIDerrorPrima -=360;
 		if (PIDerrorPrima<=-180)  PIDerrorPrima +=360;
 
-		return this->Compute(PIDerrorPrima, speed, predictedYawDelta);
+		//return this->Compute(PIDerrorPrima, speed, predictedYawDelta);
+		return this->Compute(PIDerrorPrima, speed);
 }
 
-int ActuatorManager::Compute(float PIDerrorPrima, float speed, float predictedYawDelta) {
+int ActuatorManager::Compute(float PIDerrorPrima, float speed) {
 
 		static int delta_rudder =0;
 		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 		//setSetpoint(0); If always 0 it is not necessary to update value...
 
-		PID_ext::calcKanticipContrib(predictedYawDelta);
+		//PID_ext::calcKanticipContrib(predictedYawDelta);
 		PID_ext::Compute(delta_rudder, speed);
 		delta_rudder = controlActuator (getOutput());
 

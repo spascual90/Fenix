@@ -7,18 +7,6 @@
 
 #include "BearingMonitor.h"
 
-//#include "GPSport.h" // Include this library to output to DEBUG_PORT
-
-#ifdef BNO055_INTERNAL_FUSION
-	#include "DevBNO055Int.h"
-#endif
-#ifdef BNO055_EXTERNAL_FUSION
-	#include "DevBNO055Ext.h"
-#endif
-#ifdef MINIMU9V5
-	#include "DevMinIMU9V5.h"
-#endif
-
 #ifdef ICM20948
 	#include "DevICM20948.h"
 #endif
@@ -252,7 +240,7 @@ e_IMU_status BearingMonitor::updateHeading(unsigned long NMEA_RXtime){
 	case CAL_MODE:
 		updateHeadingINT();
 		sb_ext_reset = true;
-		predictYawDelta(0.2);
+		//predictYawDelta(0.2);
 		break;
 
 	case EXTERNAL_IMU:
@@ -276,23 +264,34 @@ e_IMU_status BearingMonitor::updateHeading(unsigned long NMEA_RXtime){
 void BearingMonitor::updateHeadingINT(void){
 	_heading_isFrozen=false;
 	_heading_isValid=true;
-	float yaw = _heading;
-	float raw = _imuDevice->updateHeading();
-	//delta entre ángulos (-180, 180)
-	float delta_yaw_raw = raw-yaw;
-	if (delta_yaw_raw<-180) delta_yaw_raw+=360;
-	if (delta_yaw_raw>180) delta_yaw_raw-=360;
-	// Apply low pass filter to the IMU results
-	yaw = reduce360 (yaw*HEADING_ALFA + (yaw+delta_yaw_raw)* (1-HEADING_ALFA));
-	_heading = yaw;
+	_heading =  _imuDevice->updateHeading();
+//	float yaw = _heading;
+//	float raw = _imuDevice->updateHeading();
+//	//delta entre ángulos (-180, 180)
+//	float delta_yaw_raw = raw-yaw;
+//	if (delta_yaw_raw<-180) delta_yaw_raw+=360;
+//	if (delta_yaw_raw>180) delta_yaw_raw-=360;
+//	// Apply low pass filter to the IMU results
+//	yaw = reduce360 (yaw*HEADING_ALFA + (yaw+delta_yaw_raw)* (1-HEADING_ALFA));
+//	_heading = yaw;
+#ifdef DEBUG_SIMPLOT_HEADING
+	static int a=0;
+	a++;
+	if (a==10) {
+		plot1(NeoSerial, _heading);
+		//plot2(NeoSerial, raw, yaw);
+		a=0;
+	}
+
+#endif
 	updateHeadingT();
 
 
 }
 
-float BearingMonitor::predictYawDelta(float dt) {
-	return _imuDevice->predictYawDelta(dt);
-}
+//float BearingMonitor::predictYawDelta(float dt) {
+//	return _imuDevice->predictYawDelta(dt);
+//}
 
 // Function for external IMU only. For internal IMU use updateHeading(void) instead
 e_IMU_status BearingMonitor::updateHeadingEXT(unsigned long HDT_RXtime, bool firstTime){

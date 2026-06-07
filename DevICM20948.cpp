@@ -18,8 +18,8 @@ DevICM20948::~DevICM20948() {
 
 bool DevICM20948::IMU_setup(long EE_address){
 	bool orientation;
-//	if (IMU_ORIENTATION==0) orientation = true; //Components on top 0 //true: COMPONENTS ON TOP
-//	if (IMU_ORIENTATION==1) orientation = false;
+	if (IMU_ORIENTATION==0) orientation = true; //Components on top 0 //true: COMPONENTS ON TOP
+	if (IMU_ORIENTATION==1) orientation = false;
 	return ICM20948AHRS_setup(orientation);
 }
 
@@ -40,17 +40,17 @@ int DevICM20948::get_devMag(void){
 	return ICM20948AHRS_get_devMag();
 }
 
-float DevICM20948::predictYawDelta(float dt){
-	float DYaw = ICM20948AHRS_predictYawDelta(dt);
-	float psi_dot = get_filtered_psi_dot();
-	float yaw_accel = get_yaw_accel();
-	//DEBUG_sprintf("psi_dot,yaw_accel,DYaw", psi_dot*1000, yaw_accel*1000, DYaw*100);
-	//plot3(NeoSerial, int(psi_dot*1000), int(yaw_accel*1000), int(DYaw*100));
-	//plot1(NeoSerial, int(DYaw)*10);
-	//delay(40);
-	return DYaw;
-	//return ICM20948AHRS_predictYawDelta(dt);
-}
+//float DevICM20948::predictYawDelta(float dt){
+//	float DYaw = ICM20948AHRS_predictYawDelta(dt);
+//	float psi_dot = get_filtered_psi_dot();
+//	float yaw_accel = get_yaw_accel();
+//	//DEBUG_sprintf("psi_dot,yaw_accel,DYaw", psi_dot*1000, yaw_accel*1000, DYaw*100);
+//	//plot3(NeoSerial, int(psi_dot*1000), int(yaw_accel*1000), int(DYaw*100));
+//	//plot1(NeoSerial, int(DYaw)*10);
+//	//delay(40);
+//	return DYaw;
+//	//return ICM20948AHRS_predictYawDelta(dt);
+//}
 
 
 
@@ -129,15 +129,15 @@ bool DevICM20948::EEload_Calib(long int &eeAddress)
 	} else {
 		DEBUG_print(F("!Found Calibration data...\n"));
 		eeAddress += sizeof(id_IMU);
-		uint16_t calStat;
-		EEPROM.get(eeAddress, calStat);
-		_mag   = calStat / 100;          // quita decenas y unidades
-		_gyro  = (calStat / 10) % 10;    // toma solo la decena
-		_accel = calStat % 10;           // toma la unidad
+		//uint16_t calStat;
+		//EEPROM.get(eeAddress, calStat);
+		//_mag   = calStat / 100;          // quita decenas y unidades
+		//_gyro  = (calStat / 10) % 10;    // toma solo la decena
+		//_accel = calStat % 10;           // toma la unidad
 		//DEBUG_sprintf("Gyro, Acc, Mag",int(_gyro),int(_accel),int(_mag));
 
 	//ICM20948: Cargar valores de variables calibración
-	eeAddress += sizeof(calStat);
+	//eeAddress += sizeof(calStat);
 	EEPROM.get(eeAddress, G_offset);
 	eeAddress += sizeof(G_offset);
 	EEPROM.get(eeAddress, A_B);
@@ -178,10 +178,10 @@ bool DevICM20948::EEsave_Calib( long &eeAddress){
 
 	eeAddress += sizeof(id_IMU);
     //Calib Status
-	calStat =  _mag*100 + _gyro*10 + _accel;
+	//calStat =  _mag*100 + _gyro*10 + _accel;
 	//DEBUG_sprintf("Gyro, Acc, Mag",int(_gyro),int(_accel),int(_mag));
-	EEPROM.put(eeAddress, calStat);
-	eeAddress += sizeof(calStat);
+	//EEPROM.put(eeAddress, calStat);
+	//eeAddress += sizeof(calStat);
 
     //ICM20948: Recibir valores de variables calibración
     ICM20948AHRS_getOffsets(G_offset, A_B, A_Ainv, M_B,  M_Ainv);
