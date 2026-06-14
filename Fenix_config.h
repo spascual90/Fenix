@@ -76,7 +76,7 @@
 //DEBUGGING OPTIONS
 // Commented for Release version
 //#define SILENT_TXNMEA //Comment this line to stop periodic NMEA Transmission
-//#define SNOOZE_BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
+#define SNOOZE_BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
 //#define PRINT_FREE_MEM
 //#define SHIP_SIM // Uncomment to simulate boat to tune PID
 //#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available

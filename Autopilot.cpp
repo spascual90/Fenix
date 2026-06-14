@@ -61,32 +61,38 @@ e_setup_status Autopilot::setup() {
 	//Setup EEPROM
 	EEPROM_setup();
 
-
-
-	// Setup linear actuator
-	//ActuatorController::setup();
-
-	// Setup Actuator manager
-	ActuatorManager::setup();
-
-	// Setup rudder feedback
-	e_feedback_status f_status = RudderFeedback::setup(true);
-
-	switch (f_status) {
-	case ERROR_TOO_BIG:
-		DEBUG_print(F("!W: L.Actuator error too big!\n")); //Check your linear actuator is powered-on and connected
-		setWarning(FBK_ERROR_HIGH, true);
-		//return FEEDBACK_ERROR; Not considered an error
-		break;
-	case OK_VIRTUAL:
-		DEBUG_print(F("!Debug:Virt.actuator\n"));
-		break;
-	case FEEDBACK_OK:
-		break;
+	// read status of calibration mode flag in EEPROM
+	bool cal_reboot = false;
+	char sensor = EEload_ReqCal();
+	//Enter into calibration mode
+	if (sensor == 'G' or sensor == 'A' or sensor == 'M' or sensor == '-') {
+		EEsave_ReqCal('0'); // Set flag to disabled to avoid entering into Calibration mode each time
+		cal_reboot =  true;
+		DEBUG_print(F("!Calibration reboot\n"));
 	}
 
-	// For debuging purpose only
-	//reset_calibration(EE_address.IMU);
+	if (cal_reboot == false) {
+		// Setup Actuator manager
+		ActuatorManager::setup();
+
+		// Setup rudder feedback
+		e_feedback_status f_status = RudderFeedback::setup(true);
+
+		switch (f_status) {
+		case ERROR_TOO_BIG:
+			DEBUG_print(F("!W: Error too big!\n")); //Check your linear actuator is powered-on and connected
+			setWarning(FBK_ERROR_HIGH, true);
+			//return FEEDBACK_ERROR; Not considered an error
+			break;
+		case OK_VIRTUAL:
+			DEBUG_print(F("!Debug:Virt.actuator\n"));
+			break;
+		case FEEDBACK_OK:
+			break;
+		}
+	} else {
+		DEBUG_print(F("!Setup actuator:skip\n"));
+	}
 
 	// Setup IMU
 	switch (IMU_setup(EE_address.IMU)) {
@@ -106,10 +112,7 @@ e_setup_status Autopilot::setup() {
 	}
 
 	//Enter into calibration mode
-	char sensor = EEload_ReqCal();
-	if (sensor == 'G' or sensor == 'A' or sensor == 'M' or sensor == '-') {
-		EEsave_ReqCal('0'); // Set flag to disabled to avoid entering into Calibration mode each time
-		DEBUG_print(F("!Calibration mode\n"));
+	if (cal_reboot == true) {
 		// Launch calibration
 		setCurrentMode (CAL_IMU_COMPLETE, sensor);
 		return SETUP_OK;
@@ -122,8 +125,6 @@ e_setup_status Autopilot::setup() {
 		setWarning(EE_IMU_NOTFOUND, true);
 		return SETUP_OK;
 	}
-
-	//setInformation(NO_MESSAGE);
 
 	return SETUP_OK;
 }

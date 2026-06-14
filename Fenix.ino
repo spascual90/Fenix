@@ -71,7 +71,7 @@ void setup()
 	#if GPS_HAS_ISR
 		gpsPort.attachInterrupt( NMEAisr );
 	#endif
-	gpsPort.begin(115200);//9600) ;
+	gpsPort.begin(115200);
 #endif
 
 	// Setup LCDKeypad if defined

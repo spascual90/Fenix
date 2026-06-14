@@ -38,7 +38,7 @@ bool CurrentFeedback::setup(bool b_ibit){
 
 bool CurrentFeedback::IBIT(){
 	// Check parameters
-	sprintf(DEBUG_buffer,"Current status: %i A(max:%i A)\n",getActualCurrent(),getMaxCurrent() );
+	sprintf(DEBUG_buffer,"Current status: %i mA(max:%i mA)\n",getActualCurrent(),getMaxCurrent() );
 	DEBUG_print();
 
 	return INA_OK;
