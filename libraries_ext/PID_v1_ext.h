@@ -63,8 +63,15 @@ class PID_ext : public PID {
   //Display functions ****************************************************************
 	double getKdContrib();
 	double getKpContrib();
-	double getKanticipContrib();
-	//void calcKanticipContrib(double predictYawDelta);
+
+
+	double getRefFeedForward() {
+		return _refFeedForward;
+	}
+	void setRefFeedForward(float a_FF) {
+		// in degrees*10 in line with rudder angles
+		_refFeedForward = a_FF*10.0f;
+	}
 
 
 	float getSpeed_ref() const {
@@ -95,7 +102,7 @@ class PID_ext : public PID {
   private:
     //SPM INI
     double _kpContrib, _kdContrib;
-    double _kanticipContrib;
+    double _refFeedForward;
     //Limit I contribution to PID
     double IoutMin, IoutMax;
     // speed reference for PID performance

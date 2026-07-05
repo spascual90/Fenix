@@ -56,8 +56,7 @@ public:
     virtual bool set_calibrate_py_offsets(float B[3], float Ainv[3][3], char sensor) = 0;
     virtual int get_devMag(void);
 
-    //virtual float get_filtered_psi_dot(void);
-    //virtual float get_yaw_accel (void);
+    virtual float get_filtered_psi_dot(void);
 
     //I2C Configuration
     int get_PIN_SDA() {return SDA;}

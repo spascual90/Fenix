@@ -83,11 +83,13 @@
 //#define DEBUG
 //#define DEBUG_OCA
 //#define DEBUG_ACTUATOR
-//#define DEBUG_SIMPLOT
+
+#define DEBUG_SIMPLOT
 //#define DEBUG_SIMPLOT_CURRENT
 //#define DEBUG_SIMPLOT_HEADING
 //#define DEBUG_SIMPLOT_PHI
 //#define DEBUG_SIMPLOT_MODM
+//#define DEBUG_SIMPLOT_FOSSEN
 
 // Library to plot signals
 #ifdef DEBUG_SIMPLOT
@@ -163,7 +165,7 @@
 
 // emcNMEA.h
 # define DELAY_TX_TIME 1000 // period of NMEA transmission in millisecs (1000 = 1sec)
-# define DELAY_TX1_TIME 5000 // period of PEMC transmission in millisecs (5000 = 3sec)
+# define DELAY_TX1_TIME 5000 // period of PEMC transmission in millisecs (5000 = 5sec)
 
 // autotune
 # define ATUNE_NOISE 5 // magnetic degrees (input signal noise). Maximum bandwith value recommended

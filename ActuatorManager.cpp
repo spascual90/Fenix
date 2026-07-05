@@ -9,20 +9,53 @@
 
 ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback, float refSpeed, int maxCurrent)
 	: PID_ext(&_Input, &_Output, &_Setpoint, Kp, Ki, Kd, ControllerDirection, refSpeed),
-	  PID_ATune(&_ATune_Input, &_ATune_Output),
 	  RudderFeedback(MRA, error, deltaCenterOfRudder, minFeedback, maxFeedback),
-	  CurrentFeedback(maxCurrent)
+	  CurrentFeedback(maxCurrent),
+	  referenceModel(),
+	  feedForward()
 {
 
-	// Implement PID gain initial values
+// *** 1. Implement PID gain initial values
 	SetOutputLimits(getMinRudder(), getMaxRudder());
-	//Default Sample Time is 100 millisecs //TODO: Allow user to change sample time
-	setSetpoint(0);
-	// SPPrima =0 //If always 0 it is not necessary to update value...
+	//Default Sample Time is 100 millisecs
+	setSetpoint(0);// Always 0 it is not necessary to update value afterwards
 
 	_KpIni = Kp;
 	_KiIni = Ki;
 	_KdIni = Kd;
+
+//*** 2. Implement Reference Model initial parameters
+    referenceModel.setReferenceModelParams(0.3, 1.0);
+    referenceModel.setLimits(radians(3.0), radians(0.5));
+
+    referenceModel.setFinishTolerances(
+        radians(0.5),
+        radians(0.05),
+        radians(0.02));
+
+//*** 3. Configurar parámetros del modelo Feedfordward Fossen
+    // m: inercia efectiva de guiñada aproximada del barco
+    // T: constante de tiempo Nomoto aproximada
+    feedForward.setDirectDeltaParams(9.45f, 5.17f);
+
+    // Limitar el ángulo de timón feedforward
+    // En este ejemplo, el feedforward de referencia no puede aportar más de ±10 grados
+    feedForward.setDeltaLimits(
+        -radians(10.0f),   // delta mínimo [rad]
+		radians(10.0f));    // delta máximo [rad]
+
+
+    // 4. Parametros para inferir por minimos cuadrados los valores de T y K de Nomoto
+    // Controlled identification test at approximately constant speed:
+    //nomotoId.setForgettingFactor(1.0f);
+
+    // For online adaptation during navigation, try:
+    nomotoId.setForgettingFactor(0.995f);
+
+    nomotoId.setMinSamples(30);
+    nomotoId.setPhysicalLimits(0.1f, 60.0f, 10.0f);
+    nomotoId.setUseDeltaAverage(true);
+
 
 }
 
@@ -65,6 +98,9 @@ void ActuatorManager::setup(void){
 		DEBUG_print(F("W: L.actuator over limit\n"));
 	}
 
+	// Print Reference Model parameters
+	referenceModel.printParam();
+
 }
 
 
@@ -77,69 +113,109 @@ void ActuatorManager::SetMode(int Mode)
 	PID_ext::SetMode(Mode);
 }
 
-void ActuatorManager::startAutoMode(){
-	//turn the PID on
-	SetMode(AUTOMATIC);
-
-}
-
-void ActuatorManager::stopAutoMode(){
-	//turn the PID on
-	SetMode(MANUAL);
-	setTargetRudder(getCurrentRudder());
-}
-
-int ActuatorManager::Compute(float setPoint, float processVariable, float speed, float predictedYawDelta) {
-
-//			PID FACTOR
-//		  1. Target Bearing(TB) is considered the 0 reference (TB' reference system) instead of magnetic North.
-//			To express PV and SP in TB reference system,
-//		 		Process Variable (PV') = PV-SP (also expressed as CB-TB (Current Bearing with reference Target Bearing))
-//		 		Setpoint (SP') = SP-SP=0
+//int ActuatorManager::Compute(float setPoint, float processVariable, float speed, float predictedYawDelta) {
 //
-//		  2. In TB reference system, Process Variable (PV') is expressed as an angle from -180 to 180
-//			if PV'<=180 then PV'=PV'+360
-//			if PV'>180 then PV'=PV'-360
+////			PID FACTOR
+////		  1. Target Bearing(TB) is considered the 0 reference (TB' reference system) instead of magnetic North.
+////			To express PV and SP in TB reference system,
+////		 		Process Variable (PV') = PV-SP (also expressed as CB-TB (Current Bearing with reference Target Bearing))
+////		 		Setpoint (SP') = SP-SP=0
+////
+////		  2. In TB reference system, Process Variable (PV') is expressed as an angle from -180 to 180
+////			if PV'<=180 then PV'=PV'+360
+////			if PV'>180 then PV'=PV'-360
+////
+////			3. In TB reference system,
+////		 		PIDError' = SP'-PV'=0-PV'=-PV'=SP-PV.
+////			Out of deadband: Target Rudder = PIDError'
+////			In deadband: To be defined
 //
-//			3. In TB reference system,
-//		 		PIDError' = SP'-PV'=0-PV'=-PV'=SP-PV.
-//			Out of deadband: Target Rudder = PIDError'
-//			In deadband: To be defined
+//		float PIDerrorPrima = setPoint- processVariable;
+//		if (PIDerrorPrima>180) PIDerrorPrima -=360;
+//		if (PIDerrorPrima<=-180)  PIDerrorPrima +=360;
+//
+//		//return this->Compute(PIDerrorPrima, speed, predictedYawDelta);
+//		return this->Compute(PIDerrorPrima, speed);
+//}
 
-		float PIDerrorPrima = setPoint- processVariable;
-		if (PIDerrorPrima>180) PIDerrorPrima -=360;
-		if (PIDerrorPrima<=-180)  PIDerrorPrima +=360;
+int ActuatorManager::Compute(float TargetBearing, float CurrentHeadingT, float boatSpeed) {
 
-		//return this->Compute(PIDerrorPrima, speed, predictedYawDelta);
-		return this->Compute(PIDerrorPrima, speed);
+    // Update reference model
+	referenceModel.update();
+
+    float psi_d = referenceModel.getDesiredYaw();// rumbo_deseado
+    float rd = referenceModel.getDesiredYawRate();// velocidad_deseada
+    float ad = referenceModel.getDesiredYawAcceleration();// aceleracion_deseada
+
+    // Update feedforward (FF)
+    feedForward.update(rd, ad); // heading is not an input of the FF
+    // FF: Obtener salida como ángulo de timón
+    float delta_FF = degrees (feedForward.getDeltaFF());
+
+	float PIDerrorPrima = delta180(reduce360(degrees(psi_d)+360.0f), CurrentHeadingT);
+	static int delta_PID;
+	setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
+	//setSetpoint(0); If always 0 it is not necessary to update value...
+	PID_ext::setRefFeedForward(delta_FF/5.0f);
+	PID_ext::Compute(delta_PID, boatSpeed);
+	delta_PID = controlActuator (getOutput());
+
+#ifdef DEBUG_SIMPLOT_FOSSEN
+	static int a=0;
+	a++;
+	if (a==50) {
+		float psi_d_degrees = reduce360(degrees(psi_d)+360.0f);
+		plot4(NeoSerial, TargetBearing, psi_d_degrees, CurrentHeadingT, delta_FF);
+		//DEBUG_sprintf ("psi_d, Target, FF", float(degrees(psi_d)), float(getOutput()), float(getRefFeedForward()));
+		a=0;
+	}
+#endif
+
+	return 1;
 }
 
-int ActuatorManager::Compute(float PIDerrorPrima, float speed) {
+int ActuatorManager::Compute_TK (float deltaReal, float r, float boatSpeed) {
 
-		static int delta_rudder =0;
-		setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
-		//setSetpoint(0); If always 0 it is not necessary to update value...
+	bool valid = false;
+	if (fabs(deltaReal)>radians(5.0f)) {
+		valid = nomotoId.update(millis(), deltaReal, r);
+	}
 
-		//PID_ext::calcKanticipContrib(predictedYawDelta);
-		PID_ext::Compute(delta_rudder, speed);
-		delta_rudder = controlActuator (getOutput());
-
-		//predictedYaw
+	static int a;
+	a++;
+	if (nomotoId.isValid() and a>50) {
+		a=0;
+		float Kff = feedForward.getKff() * ALFA_90 + ALFA_10 * nomotoId.getKff();
+		float T =  feedForward.getT() * ALFA_90 + ALFA_10 * nomotoId.getT();
+		//DEBUG_sprintf("Kff,T", Kff, T);
+		feedForward.setDirectDeltaParams(Kff, T);
 
 		return 1;
 	}
+}
 
-//int ActuatorManager::Compute_Autotune(float PIDerrorPrima) {
-//
-//		//setATuneInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
-//		//setSetpoint(0); If always 0 it is not necessary to update value...
-//
-//		//evaluateAutoTune();
-//
-//		//controlActuator (int(_ATune_Output), false, 0);
-//
-//		return 1;
-//	}
+void ActuatorManager::startAutoMode(float currentHeadingT){
+	//turn the PID on
+	SetMode(AUTOMATIC);
+    referenceModel.begin(radians(currentHeadingT));
+    referenceModel.setTargetYaw(radians(currentHeadingT));
+    feedForward.enable();
+    if (!feedForward.isValid()) {
+        DEBUG_print(F("!RefFF not valid"));
+    }
+
+}
+
+void ActuatorManager::stopAutoMode(float currentHeadingT){
+	//turn the PID on
+	SetMode(MANUAL);
+	referenceModel.cancelProcess(currentHeadingT);
+	setTargetRudder(getCurrentRudder());
+}
+
+void ActuatorManager::changeDesiredHeadingT(float targetHeadingT){
+	referenceModel.changeTargetYaw(radians(targetHeadingT));
+}
 
 int ActuatorManager::compute_VA() {
 	// Refresh virtual actuator status
@@ -249,14 +325,14 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 		if (now - t_last_dir_change < change_delay)
 		{
 			#ifdef DEBUG_ACTUATOR
-			DEBUG_print("t.w\n");//waiting
+			DEBUG_print(F("t.w\n"));//waiting
 			delay(10);
 			#endif
 		}
 		else
 		{
 			#ifdef DEBUG_ACTUATOR
-			DEBUG_print("t.f\n");// finished
+			DEBUG_print(F("t.f\n"));// finished
 			delay(10);
 			#endif
 			estado_timer = 2;
@@ -268,7 +344,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
         (desired_dir == EXTEND  && max_limit))
     {
     	#ifdef DEBUG_ACTUATOR
-    	DEBUG_print("2.\n");
+    	DEBUG_print(F("2.\n"));
     	delay(10);
     	#endif
 
@@ -291,7 +367,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 	if (current_speed ==0 and restart_threshold > abs(delta))
 	{
 		#ifdef DEBUG_ACTUATOR
-		DEBUG_sprintf("3.dont_start\n");
+		DEBUG_sprintf(F("3.dont_start\n"));
 		delay(10);
 		#endif
 		setSpeed(0, true);
@@ -326,7 +402,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     			estados=2;
 
 				#ifdef DEBUG_ACTUATOR
-				DEBUG_print("4.!w\n");
+				DEBUG_print(F("4.!w\n"));
 				delay(10);
 				#endif
 
@@ -337,7 +413,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 			if (estado_timer==2)//(now - t_last_dir_change < change_delay)
 			{
 				#ifdef DEBUG_ACTUATOR
-				DEBUG_print("4.f\n");// finished
+				DEBUG_print(F("4.f\n"));// finished
 				delay(10);
 				#endif
 				estados = 0;
@@ -405,7 +481,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     {
         new_speed = current_speed + 5;  // rampa de aceleración
 		#ifdef DEBUG_ACTUATOR
-		DEBUG_print("6.a\n");
+		DEBUG_print(F("6.a\n"));
 		delay(10);
 		#endif
     } else
@@ -414,17 +490,16 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     	{
 			new_speed = current_speed - 5;  // rampa de frenado
 			#ifdef DEBUG_ACTUATOR
-			DEBUG_print("6.f\n");
+			DEBUG_print(F("6.f\n"));
 			delay(10);
 			#endif
 		} else  //delta_speed == 0
 		{
 			new_speed = current_speed;
 			#ifdef DEBUG_ACTUATOR
-			DEBUG_print("6.0\n");
+			DEBUG_print(F("6.0\n"));
 			delay(10);
 			#endif
-			//return delta;
 		}
     }
     // Limitar velocidad final

@@ -56,6 +56,7 @@ e_IMU_status BearingMonitor::IMU_setup(long EE_address){
 
 	IBIT();
 
+
 	return _IMU_status;
 }
 
@@ -240,7 +241,6 @@ e_IMU_status BearingMonitor::updateHeading(unsigned long NMEA_RXtime){
 	case CAL_MODE:
 		updateHeadingINT();
 		sb_ext_reset = true;
-		//predictYawDelta(0.2);
 		break;
 
 	case EXTERNAL_IMU:
@@ -265,15 +265,8 @@ void BearingMonitor::updateHeadingINT(void){
 	_heading_isFrozen=false;
 	_heading_isValid=true;
 	_heading =  _imuDevice->updateHeading();
-//	float yaw = _heading;
-//	float raw = _imuDevice->updateHeading();
-//	//delta entre ángulos (-180, 180)
-//	float delta_yaw_raw = raw-yaw;
-//	if (delta_yaw_raw<-180) delta_yaw_raw+=360;
-//	if (delta_yaw_raw>180) delta_yaw_raw-=360;
-//	// Apply low pass filter to the IMU results
-//	yaw = reduce360 (yaw*HEADING_ALFA + (yaw+delta_yaw_raw)* (1-HEADING_ALFA));
-//	_heading = yaw;
+	update_angularSpeed();
+
 #ifdef DEBUG_SIMPLOT_HEADING
 	static int a=0;
 	a++;
@@ -337,7 +330,7 @@ e_IMU_status BearingMonitor::updateHeadingEXT(unsigned long HDT_RXtime, bool fir
 	}
 
 	updateHeadingT();
-	//DEBUG_sprintf("total,hDev, mVar", _totalDev, _ext_headingDev, _ext_magneticVariation);
+	update_angularSpeed(radians(pendiente));
 
 
 	return _IMU_status;
@@ -419,7 +412,103 @@ void BearingMonitor::SIM_updateShip(int tillerAngle) {
 
 }
 
+// WAVE MODULE
+void BearingMonitor::setup_WaveObserver() {
+    waveCfg.Tnomoto = 5.0f;
+    waveCfg.Knomoto = 0.25f;
+    waveCfg.Tbias = 120.0f;
 
+    // Initial wave period 6 s.
+    waveCfg.omega0Initial = TWO_PI / 6.0f;
+    waveCfg.omega0Min = TWO_PI / 15.0f;
+    waveCfg.omega0Max = TWO_PI / 2.0f;
+    waveCfg.zetaWave = 0.10f;
+
+    waveCfg.kPsi = 0.08f;
+    waveCfg.kR = 0.04f;
+    waveCfg.kBias = 0.001f;
+    waveCfg.waveGain = 0.6f;
+
+    // Important requested configuration variable:
+    // true  => use the reliable rIMU measurement in the observer.
+    // false => ignore rIMU and use only heading + model.
+    waveCfg.useRimu = true;
+    waveCfg.kRimuWave = 0.5f;
+    waveCfg.kRimuLF = 0.1f;
+
+    waveCfg.enableAdaptiveOmega = true;
+    waveCfg.alphaOmega = 0.02f;
+    waveCfg.minWaveAmplitude = radians(0.5f);
+    waveCfg.zeroCrossHysteresis = radians(0.4f);
+    waveCfg.minWavePeriod = 2.0f;
+    waveCfg.maxWavePeriod = 15.0f;
+    waveCfg.minSpeed = 0.5f;
+
+    waveCfg.innovationLimit = radians(10.0f);
+    waveCfg.rateInnovationLimit = radians(20.0f);
+    waveCfg.maxWaveYaw = radians(15.0f);
+    waveCfg.maxWaveRate = radians(25.0f);
+    waveCfg.maxLFRate = radians(15.0f);
+    waveCfg.maxBias = radians(5.0f);
+
+    waveCfg.waveRmsAlpha = 0.01f;
+
+    waveObserver.begin(waveCfg);
+
+    const float psi0 = readHeadingRad();
+    const float r0 = readYawRateRadS();
+    waveObserver.reset(psi0, r0);
+}
+
+void BearingMonitor::loop_WaveObserver(float rudder, float boat_speed) {
+    const unsigned long now = micros();
+    float dt = (now - lastMicros) * 1.0e-6f;
+    lastMicros = now;
+
+    // Optional: enforce a sane dt if loop stalls.
+    if (dt <= 0.0f || dt > 0.5f) {
+        return;
+    }
+
+    const float psiMeasured = readHeadingRad();
+    const float rIMU = readYawRateRadS();
+    const float deltaRudder = radians (rudder/10.0f);//readRudderAngleRad();
+    const float speed = boat_speed * 0.514444f; //readBoatSpeedMS();
+    const bool allowAdapt = allowWaveAdaptation();
+
+    // Since waveCfg.useRimu = true, this call will use rIMU.
+    // If useRimu were false, rIMU would be ignored.
+    waveObserver.update(
+        psiMeasured,
+        rIMU,
+        deltaRudder,
+        speed,
+        allowAdapt,
+        dt
+    );
+
+    // These are the signals to feed into the autopilot PID/reference controller.
+    const float psiForControl = waveObserver.getPsiLF();
+    const float rForControl = waveObserver.getRLF();
+
+    // Example:
+    // autopilot.compute(psiForControl, psiReference, rForControl);
+
+    // Debug at low rate.
+    static unsigned long lastPrint = 0;
+    if (millis() - lastPrint > 1000) {
+        lastPrint = millis();
+
+        DEBUG_sprintf("psiRaw_deg", float (degrees(psiMeasured)));
+        DEBUG_sprintf("psiLF_deg", float (degrees(psiForControl)));
+        DEBUG_sprintf("rLF_deg_s", float (degrees(rForControl)));
+        DEBUG_sprintf("psiWave_deg", float (degrees(waveObserver.getPsiWave())));
+        DEBUG_sprintf("wavePeriod_s", waveObserver.getWavePeriod());
+        DEBUG_sprintf("conf", waveObserver.getWaveConfidence());
+        DEBUG_sprintf("e_deg", waveObserver.getInnovation());
+        DEBUG_sprintf("eR_deg_s", float (degrees(waveObserver.getRateInnovation())));
+    }
+}
 
 
 

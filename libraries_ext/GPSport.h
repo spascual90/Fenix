@@ -25,7 +25,8 @@
 #if defined(ARDUINO_AVR_MEGA2560)
 // ===== AVR (Mega): NeoHWSerial disponible =====
 
-             #include <NeoHWSerial.h>
+             #include <NeoHWSerial_2.h>
+			 //#include <NeoHWSerial.h>
 
              #define gpsPort NeoSerial
              #define GPS_PORT_NAME "NeoSerial"// (USB D0, D1)"
@@ -41,7 +42,8 @@
 			#define BT_PORT_NAME "NeoSerial1"// (D18, D19)
 
 			// Define mechanism to poll incoming data
-			#define GPS_HAS_ISR 1
+			// SPM: Low performance with long strings of incoming NMEA data. Dont use ISR
+			//#define GPS_HAS_ISR 1
 
 #elif defined(ARDUINO_NANO)
 				//SPM ATENCION AÑADIR PARA DEBUG NANO

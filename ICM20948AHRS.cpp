@@ -88,7 +88,7 @@ static float yaw, pitch, roll;
 #define PSI_DOT_ALPHA 0.95f
 #define PSI_DOT_DOT_ALPHA 0.99f
 static float filtered_psi = 0.0f;  // filtered yaw (rad)
-static float filtered_psi_dot = 0.0f;// filtered yaw angular acceleration (rad/s^2)
+static float filtered_psi_dot = 0.0f;// filtered yaw angular speed (rad/s)
 static float psi_dot_prev = 0.0f;
 static float filtered_psi_dot_dot = 0.0f;// filtered yaw angular acceleration (rad/s^2)
 static float r_prev = 0;
@@ -181,29 +181,9 @@ extern bool ICM20948AHRS_setup(bool orientation = false)
   return true;
 }
 
-//// Returns predicted yaw delta (degrees) after dt_future seconds
-//float ICM20948AHRS_predictYawDelta(float dt_future= 1) {
-//    // filtered_psi_dot: yaw rate (rad/s)
-//    // yaw_accel: yaw acceleration (rad/s^2)
-//
-//    float delta_yaw_rad =
-//          filtered_psi_dot * dt_future
-//        + 0.5f * filtered_yaw_accel * dt_future * dt_future;
-//
-//    // Convert to degrees
-//    float delta_yaw_deg = delta_yaw_rad * 180.0f / PI;
-//
-//    return delta_yaw_deg;
-//}
-//
-//float get_filtered_psi_dot (void) {
-//	return filtered_psi_dot;
-//}
-//
-//float get_yaw_accel (void) {
-//	return filtered_yaw_accel;
-//}
-
+float ICM20948AHRS_get_filtered_psi_dot (void) {
+	return filtered_psi_dot;
+}
 
 
 float ICM20948AHRS_loop()
@@ -299,7 +279,7 @@ float ICM20948AHRS_loop()
       filtered_psi_dot_dot = lowPass(filtered_psi_dot_dot, psi_dot_dot, alphaPsiDDot);
 
       // limites físicos
-      //filtered_psi_dot = constrain(filtered_psi_dot, -0.20f, 0.20f);          // rad/s ≈ ±11.5 deg/s
+      filtered_psi_dot = constrain(filtered_psi_dot, -0.35f, 0.35f);          // rad/s
       //filtered_psi_dot_dot = constrain(filtered_psi_dot_dot, -0.20f, 0.20f);  // rad/s²
 
       yaw = filtered_psi;

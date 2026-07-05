@@ -10,8 +10,8 @@
 
 //#include <utility/imumaths.h>
 #include <Arduino.h>
-
 #include <EEPROM.h>
+#include "WavePassiveObserver.h"
 
 //#if defined(ARDUINO_AVR_MEGA2560)
 //#include ".\Mega\EEPROM\src\EEPROM.h"
@@ -24,7 +24,7 @@
 #include "GPSport.h" // Ports configuration
 #include "IMUDevice.h"
 
-constexpr float HEADING_ALFA = 0.99; //Higher: more stable but slower
+//constexpr float HEADING_ALFA = 0.99; //Higher: more stable but slower
 
 enum e_IMU_status {NOT_DETECTED, OPERATIONAL, SIMULATED, CAL_MODE, EXTERNAL_IMU};
 enum e_IMU_cal_status {CAL_NOT_STARTED, CAL_START, CAL_INPROGRESS, CAL_RESULT_RECALIBRATED, CAL_RESULT_NOT_CALIBRATED};
@@ -144,6 +144,14 @@ public:
 		return _imuDevice->get_devMag();
 	}
 
+	void update_angularSpeed(float angularSpeed=0) { // rad/seg
+		_angularSpeed = (_IMU_status ==EXTERNAL_IMU?angularSpeed:_imuDevice->get_filtered_psi_dot());
+	}
+
+	float get_angularSpeed(void) {// rad/seg
+		return _angularSpeed;
+	}
+
 protected:
    e_IMU_status updateHeading(unsigned long HDT_RXtime);
 	e_IMU_cal_status EEload_Calib(long int eeaddress);
@@ -205,13 +213,20 @@ protected:
 	    if (value >= 180.0f) value -= 360.0f;
 	    return value;
 	}
+	// WAVE MODULE
+	void setup_WaveObserver();
+	void loop_WaveObserver(float rudder, float boat_speed);
+
 private:
 	IMUDevice *_imuDevice;
+	WavePassiveObserver waveObserver;
+	WaveObserverConfig waveCfg;
 
 	float _roll=0;
 	float _pitch=0;
 	//variables independientes
 	float _heading=0; // Raw magnetic heading value without mag.dev correction nor IMU installation heading correction
+	float _angularSpeed=0;
 	// Permanent deviation
 	float _ext_heading_dt=0; // Static value of heading received from HDG/HDT. Value will be extrapolated to _heading until new message is received
 	float _headingDev=0; // Magnetic Deviation: IMU installation/disturbances heading correction
@@ -267,6 +282,48 @@ private:
 	unsigned long deltaT=100;//	mseg
 	float softFactor =10000;
 	float intertia = 0.5;
+
+	// WAVE MODULE
+	// Example state for fixed-rate loop.
+	unsigned long lastMicros = 0;
+
+	float readHeadingRad() {
+	    // Example placeholder: heading from IMU/magnetometer fusion, radians [-pi, pi].
+		return convert360to180(getCurrentHeadingT());
+	}
+
+	//return angle360 in value (-180, 179)
+	float convert360to180(float angle360) {
+		// asume angulo valido
+		//if (angle<0 or angle1>359) return -360;
+		if (angle360>180) return (angle360 -=360.0);
+		//if (angle360<=180) return (angle360 +=360.0);
+		return angle360;
+	}
+
+	float readYawRateRadS() {
+	    // Example placeholder: reliable yaw rate rIMU from gyro/IMU, rad/s.
+	    return get_angularSpeed();
+	}
+
+	float readRudderAngleRad() {
+	    // Example placeholder: rudder angle, radians.
+	    // Positive sign must match your Nomoto K sign convention.
+	    return 0.0f;
+	}
+
+	float readBoatSpeedMS() {
+	    // Example placeholder: boat speed in m/s.
+	    return 2.0f;
+	}
+
+	bool allowWaveAdaptation() {
+	    // Freeze adaptation during turns, tacks, gybes, large setpoint changes,
+	    // rudder saturation, manual mode, very low speed, etc.
+	    return true;
+	}
+
+
 };
 
 #endif /* BEARINGMONITOR_H_ */

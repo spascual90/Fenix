@@ -744,6 +744,8 @@ bool NMEAGPS::parseField(char chr)
 
 	  // INI SPM
 	  #if defined(NMEA_PARSE_HDG)
+
+        //case NMEA_HDG: return Test_parse( chr );
 		case NMEA_HDG: return parseHDG( chr );
 
 	  #endif
@@ -765,6 +767,7 @@ bool NMEAGPS::parseField(char chr)
 
       #if defined(NMEA_PARSE_VTG)
         case NMEA_VTG: return parseVTG( chr );
+        //case NMEA_VTG: return Test_parse( chr );
       #endif
 
 	  #if defined(NMEA_PARSE_VWR)

@@ -117,8 +117,6 @@ bool emcNMEA::parseField(char chr)
 
   } else
 
-    // Delegate
-	//DEBUG_sprintf("&", int(nmeaMessage), int(chr));
     return NMEAGPS::parseField(chr);
 
 

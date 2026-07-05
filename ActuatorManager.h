@@ -12,9 +12,9 @@
 #include "RudderFeedback.h"
 #include "CurrentFeedback.h"
 #include "ActuatorController.h"
-//#include "DeadbandTrim.h"
-#include "PID_AutoTune_v0.h"
-
+#include "FossenReferenceModel.h"
+#include "ReferenceFeedforward.h"
+#include "OnlineNomotoIdentifier.h"
 
 // All configurations are managed in Fenix_config.h
 #include "Fenix_config.h"
@@ -32,21 +32,25 @@
 
 // TODO: Installation side always STARBOARD. Implement PORTBOARD
 // Installation side
+
 typedef enum type_instSide {STARBOARD, PORTBOARD} type_instSide;
 
-class ActuatorManager: public PID_ext, public PID_ATune,
+class ActuatorManager: public PID_ext,
 		public RudderFeedback,
 		public ActuatorController,
-		public CurrentFeedback {
+		public CurrentFeedback
+{
 public:
 	ActuatorManager(double Kp, double Ki, double Kd, int ControllerDirection, int MRA, int error, int deltaCenterOfRudder, int minFeedback, int maxFeedback, float refSpeed, int maxCurrent);
 	virtual ~ActuatorManager();
 	void setup(void);
-	void startAutoMode();
-	void stopAutoMode();
-	int Compute(float setPoint, float processVariable, float speed, float predictedYaw);
-	int Compute(float PIDerrorPrima, float speed);
-	//int Compute_Autotune(float PIDerrorPrima);
+	void startAutoMode(float currentHeadingT);
+	void stopAutoMode(float currentHeadingT);
+	void changeDesiredHeadingT(float targetHeadingT);
+	//int Compute(float setPoint, float processVariable, float speed, float predictedYaw);
+	//int Compute(float PIDerrorPrima, float speed);
+	int Compute(float TargetBearing, float CurrentHeadingT, float boatSpeed);
+	int Compute_TK (float deltaReal, float rImu, float boatSpeed);
 	int compute_VA(void);
 	int controlActuator (int target);
 	void ResetTunings();
@@ -88,16 +92,6 @@ public:
 		_installation_side = installationSide;
 	}
 
-//	void setupAutoTune(double aTuneNoise, double aTuneStep, double aTuneLookBack);
-//	void startAutoTune(void);
-//	void stopAutoTune (void);
-//	bool evaluateAutoTune (void);
-//	bool CopyToPIDAutoTune(void);
-//
-//	void setATuneInput(double aTuneInput) {
-//		_ATune_Input = aTuneInput;
-//	}
-
 protected:
 	int changeRudder(int delta_rudder);
 	bool checkBlockage(void);
@@ -114,12 +108,31 @@ private:
 	//Installation side
 	type_instSide _installation_side = STARBOARD;
 
-	//ATunePID
-	boolean _tuning = false;
-	//ATune PID: Define Variables we'll be connecting to
-	double _ATune_Input, _ATune_Output;
-
 	void SetMode(int Mode);
+	FossenReferenceModel referenceModel;
+	ReferenceFeedforward feedForward;
+	OnlineNomotoIdentifier nomotoId;
+
+	float reduce360(float value) {
+		value = fmod (value, 360.0f);
+		if (value<0) value+= 360.0f;
+		return value;
+	}
+
+	float reduce180(float value) {
+	    // Normalizar primero al rango [0, 360)
+		value = reduce360(value);
+	    // Convertir a rango [-180, 180)
+	    if (value >= 180.0f) value -= 360.0f;
+	    return value;
+	}
+
+	float delta180(float angle1, float angle2) {
+	    if (angle1 < 0.0f || angle1 >= 360.0f) return -360.0f;
+	    if (angle2 < 0.0f || angle2 >= 360.0f) return -360.0f;
+
+	    return reduce180(angle1 - angle2);
+	}
 
 };
 

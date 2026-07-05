@@ -65,35 +65,6 @@ void PID_ext::SetTunings(double Kp, double Ki, double Kd) {
 	PID::SetTunings(Kp, Ki, Kd);
 }
 
-#ifdef PID_BASIC
-bool PID_ext::Compute(int rudder_error, float speed) {
-	if(!inAuto) return false;
-	unsigned long now = millis();
-	unsigned long timeChange = (now - lastTime);
-	if(timeChange>=SampleTime) {
-	   /*Compute all the working error variables*/
-		  double input = *myInput;
-	   double error = *mySetpoint - input;
-	   ITerm+= (ki * error);
-	   if(ITerm > outMax) ITerm= outMax;
-	   else if(ITerm < outMin) ITerm= outMin;
-	   double dInput = (input - lastInput);
-
-	   double output = kp * error + ITerm -kd * dInput;
-		  if(output > outMax) output = outMax;
-	   else if(output < outMin) output = outMin;
-		  *myOutput = output;
-
-	   /*Remember some variables for next time*/
-	   lastInput = input;
-	   lastTime = now;
-
-		  return true;
-		}
-	else return false;
-}
-#endif
-
 #ifdef PID_ADVANCED1
 bool PID_ext::Compute(int rudder_error, float speed)
 {
@@ -110,7 +81,11 @@ bool PID_ext::Compute(int rudder_error, float speed)
     unsigned long timeChange = (now - lastTime);
 
     if (timeChange >= SampleTime) {
-        /* Entrada y error */
+
+        // Captura contribución feedforward
+    	double FF = getRefFeedForward();
+
+    	/* Entrada y error */
         double input = *myInput;
         double error = *mySetpoint - input;
 
@@ -122,25 +97,23 @@ bool PID_ext::Compute(int rudder_error, float speed)
         /* Escalado dinámico de ganancias */
         factor = (getSpeed_ref() / fmax(speed, 1))* ALFA_10 + ALFA_90 * factor;
         factor = fmin (factor, abs(outMax/(kp*MAX_PID_TURN)));
-        double kp_eff = kp * factor;
-        double ki_eff = ki * factor;
+        // ATENCION: SOLO PARA TEST!
+        //factor = 1; // DESABILITA SPEED GAIN
+
+        double kp_eff = kp * factor * factor;
+        double ki_eff = ki * factor * factor;
         double kd_eff = kd / factor;
 
-        double outMaxeff = fmin (outMax * factor, outMax);
-        double outMineff = fmax (outMin * factor, outMin);
+        double outMaxeff = fmin (outMax * factor* factor, outMax);
+        double outMineff = fmax (outMin * factor* factor, outMin);
         //TODO: Si no se modifica se puede simplificar
+        //double IoutMaxeff = fmin (IoutMax * factor * factor, IoutMax);
+        //double IoutMineff = fmax (IoutMin * factor * factor, IoutMin);
         double IoutMaxeff = IoutMax;
         double IoutMineff = IoutMin;
 
         double error_eff = error;
 
-        // Si dentro de la banda salimos de compute al principio
-        //if (isInDeadband()) {
-        //    error_eff = 0; // dentro de la banda, no actuamos
-
-        //} else {
-        //    error_eff = error - _deadband * ((error > 0) ? 1 : -1);
-        //}
         error_eff = error - _deadband * ((error > 0) ? 1 : -1);
 
         _kpContrib = kp_eff * error_eff;
@@ -161,13 +134,18 @@ bool PID_ext::Compute(int rudder_error, float speed)
         avg_rudder_error = double (rudder_error) * ALFA_10 + ALFA_90 * avg_rudder_error;
 
         bool sin_reaccion = ((fabs(derr) < D_DERR_UMBRAL) && (abs (avg_rudder_error) <= D_RUDDER_ERROR_UMBRAL));
-
+//        if (sin_reaccion) {
+//        	DEBUG_sprintf("derr,avg_rudder_error", float(fabs(derr)), float(abs(avg_rudder_error)));
+//        	sin_reaccion = false;
+//        }
         /* Condición de integración */
         bool permitir_integral = !(clamp_I or isInDeadband());
 
         if (timon_en_posicion && !sin_reaccion) permitir_integral = false;
-        //DEBUG_print("DEBUG:--\n");
-        //if (permitir_integral) DEBUG_print("DEBUG:permitir_integrar\n");
+
+        // No permite integrar cuando el modelo de referencia está trabajando
+        if (FF!= 0) permitir_integral =false;
+
         if (permitir_integral) ITerm += (ki_eff * error_eff);
 
         /* Límite integral */
@@ -181,7 +159,8 @@ bool PID_ext::Compute(int rudder_error, float speed)
         _kdContrib = (-kd_eff * dInput) * ALFA_20 + _kdContrib_prev * ALFA_80;
 
         /* Salida PID */
-        double output_libre = _kpContrib + ITerm + _kdContrib + getKanticipContrib();
+
+        double output_libre = _kpContrib + ITerm + _kdContrib + getRefFeedForward();
         *myOutput = output_libre;
         bool saturated = false;
         if (output_libre > outMaxeff) {
@@ -197,14 +176,6 @@ bool PID_ext::Compute(int rudder_error, float speed)
         // Atención: al_mismo_lado=true en caso de que error_eff y MyOutput tengan signos opuestos!
         bool al_mismo_lado = !(((error_eff > 0 ? 1 : -1) * (*myOutput > 0 ? 1 : -1)) == 1);
         clamp_I = ((saturated && al_mismo_lado) || actuator_busy);
-
-        //int l=8, d=4;
-        //char c3[l+3];
-        //char c4[l+3];
-        //char c5[l+3];
-        //sprintf(DEBUG_buffer,"DEBUG:kd*factor=kd_eff %s*%s=%s\n",dtostrf(kd,l,d,c3),dtostrf(factor,l,d,c4),dtostrf(kd_eff,l,d,c5));
-		//sprintf(DEBUG_buffer,"DEBUG:dInput*-kd_eff=_kdContrib %s*%s=%s\n",dtostrf(dInput,l,d,c3),dtostrf(-kd_eff,l,d,c4),dtostrf(_kdContrib,l,d,c5));
-        //DEBUG_print();
 
         // --- Implementación de anti-windup por back-calculation ---
 
@@ -225,16 +196,6 @@ bool PID_ext::Compute(int rudder_error, float speed)
     }
     return false;
 }
-
-//void PID_ext::calcKanticipContrib(double predictYawDelta) {
-//	static float predicted =0;
-//	predicted=predicted*0.995 + 0.005 * predictYawDelta;
-//	static float integrated =0;
-//
-//	integrated = integrated*0.9 +predicted*abs(predicted);
-//	_kanticipContrib = integrated/100;
-//
-//}
 
 // TRUE: El barco está dentro del deadband dinámico
 // FALSE: El barco está fuera del deadband dinámico
@@ -288,10 +249,6 @@ void PID_ext::resetITerm(void) {
 
 	double PID_ext::getKpContrib() {
 		return _kpContrib;
-	}
-
-	double PID_ext::getKanticipContrib() {
-		return _kanticipContrib;
 	}
 
     unsigned long PID_ext::GetSampleTime() {
