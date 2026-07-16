@@ -36,27 +36,17 @@ ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int Controller
 //*** 3. Configurar parámetros del modelo Feedfordward Fossen
     // m: inercia efectiva de guiñada aproximada del barco
     // T: constante de tiempo Nomoto aproximada
-    feedForward.setDirectDeltaParams(9.45f, 5.17f);
+    // Kff,T:   6.51,   2.65
+    //feedForward.setDirectDeltaParams(9.45f, 5.17f);
+    feedForward.setDirectDeltaParams(6.51f, 2.65f);
+
+    feedForward.setRudderGain(-5);// (-5,5) cuanto más gain tenga el timón, menos FF se aplica
 
     // Limitar el ángulo de timón feedforward
     // En este ejemplo, el feedforward de referencia no puede aportar más de ±10 grados
     feedForward.setDeltaLimits(
         -radians(10.0f),   // delta mínimo [rad]
 		radians(10.0f));    // delta máximo [rad]
-
-
-    // 4. Parametros para inferir por minimos cuadrados los valores de T y K de Nomoto
-    // Controlled identification test at approximately constant speed:
-    //nomotoId.setForgettingFactor(1.0f);
-
-    // For online adaptation during navigation, try:
-    nomotoId.setForgettingFactor(0.995f);
-
-    nomotoId.setMinSamples(30);
-    nomotoId.setPhysicalLimits(0.1f, 60.0f, 10.0f);
-    nomotoId.setUseDeltaAverage(true);
-
-
 }
 
 ActuatorManager::~ActuatorManager() {
@@ -138,9 +128,9 @@ void ActuatorManager::SetMode(int Mode)
 //		return this->Compute(PIDerrorPrima, speed);
 //}
 
-int ActuatorManager::Compute(float TargetBearing, float CurrentHeadingT, float boatSpeed) {
+int ActuatorManager::Compute(float TargetBearing, float CurrentHeadingT, float boatSpeedRatio) {
 
-    // Update reference model
+	// Update reference model
 	referenceModel.update();
 
     float psi_d = referenceModel.getDesiredYaw();// rumbo_deseado
@@ -156,8 +146,8 @@ int ActuatorManager::Compute(float TargetBearing, float CurrentHeadingT, float b
 	static int delta_PID;
 	setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 	//setSetpoint(0); If always 0 it is not necessary to update value...
-	PID_ext::setRefFeedForward(delta_FF/5.0f);
-	PID_ext::Compute(delta_PID, boatSpeed);
+	PID_ext::setRefFeedForward(delta_FF);
+	PID_ext::Compute(delta_PID, boatSpeedRatio);
 	delta_PID = controlActuator (getOutput());
 
 #ifdef DEBUG_SIMPLOT_FOSSEN
@@ -165,33 +155,13 @@ int ActuatorManager::Compute(float TargetBearing, float CurrentHeadingT, float b
 	a++;
 	if (a==50) {
 		float psi_d_degrees = reduce360(degrees(psi_d)+360.0f);
-		plot4(NeoSerial, TargetBearing, psi_d_degrees, CurrentHeadingT, delta_FF);
-		//DEBUG_sprintf ("psi_d, Target, FF", float(degrees(psi_d)), float(getOutput()), float(getRefFeedForward()));
+		//plot4(NeoSerial, TargetBearing, psi_d_degrees, CurrentHeadingT, delta_FF);
+		DEBUG_sprintf ("psid, rd, ad, FF", degrees(psi_d), degrees(rd), degrees(ad), delta_FF);
 		a=0;
 	}
 #endif
 
 	return 1;
-}
-
-int ActuatorManager::Compute_TK (float deltaReal, float r, float boatSpeed) {
-
-	bool valid = false;
-	if (fabs(deltaReal)>radians(5.0f)) {
-		valid = nomotoId.update(millis(), deltaReal, r);
-	}
-
-	static int a;
-	a++;
-	if (nomotoId.isValid() and a>50) {
-		a=0;
-		float Kff = feedForward.getKff() * ALFA_90 + ALFA_10 * nomotoId.getKff();
-		float T =  feedForward.getT() * ALFA_90 + ALFA_10 * nomotoId.getT();
-		//DEBUG_sprintf("Kff,T", Kff, T);
-		feedForward.setDirectDeltaParams(Kff, T);
-
-		return 1;
-	}
 }
 
 void ActuatorManager::startAutoMode(float currentHeadingT){
@@ -293,7 +263,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     const unsigned long change_delay = ACTUATOR_STOP_TIME; // 300–500 ms típico
     const uint8_t slow_threshold = 30;   // grados para entrar en modo SLOW
     const uint8_t stop_threshold = max (1, toRudder(getErrorFeedback ()));   // en este rango paramos
-    const uint8_t restart_threshold = stop_threshold * 10;
+    const uint8_t restart_threshold = stop_threshold * 5;
 
     bool min_limit = getCurrentFeedback() < getLimitMinFeedback();
     bool max_limit = getCurrentFeedback() > getLimitMaxFeedback();
@@ -367,7 +337,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 	if (current_speed ==0 and restart_threshold > abs(delta))
 	{
 		#ifdef DEBUG_ACTUATOR
-		DEBUG_sprintf(F("3.dont_start\n"));
+		DEBUG_print(F("3.dont_start\n"));
 		delay(10);
 		#endif
 		setSpeed(0, true);
@@ -519,4 +489,8 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 
 void ActuatorManager::ResetTunings(){
 	SetTunings (_KpIni, _KiIni, _KdIni);
+}
+
+void ActuatorManager::setDirectDeltaParams(float Kffeff, float Teff) {
+	feedForward.setDirectDeltaParams(Kffeff, Teff);
 }

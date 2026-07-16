@@ -37,7 +37,6 @@ WavePassiveObserver::WavePassiveObserver()
     _cfg.zeroCrossHysteresis = radians(0.4f);
     _cfg.minWavePeriod = 2.0f;
     _cfg.maxWavePeriod = 15.0f;
-    _cfg.minSpeed = 0.5f;
 
     _cfg.innovationLimit = radians(10.0f);
     _cfg.rateInnovationLimit = radians(20.0f);
@@ -77,22 +76,20 @@ void WavePassiveObserver::reset(float psiInitial, float rInitial) {
 void WavePassiveObserver::update(
     float psiMeasured,
     float deltaRudder,
-    float boatSpeed,
     bool allowAdaptation,
     float dt
 ) {
-    updateInternal(psiMeasured, 0.0f, false, deltaRudder, boatSpeed, allowAdaptation, dt);
+    updateInternal(psiMeasured, 0.0f, false, deltaRudder, allowAdaptation, dt);
 }
 
 void WavePassiveObserver::update(
     float psiMeasured,
     float rIMU,
     float deltaRudder,
-    float boatSpeed,
     bool allowAdaptation,
     float dt
 ) {
-    updateInternal(psiMeasured, rIMU, true, deltaRudder, boatSpeed, allowAdaptation, dt);
+    updateInternal(psiMeasured, rIMU, true, deltaRudder, allowAdaptation, dt);
 }
 
 void WavePassiveObserver::updateInternal(
@@ -100,7 +97,6 @@ void WavePassiveObserver::updateInternal(
     float rIMU,
     bool hasRimu,
     float deltaRudder,
-    float boatSpeed,
     bool allowAdaptation,
     float dt
 ) {
@@ -114,7 +110,7 @@ void WavePassiveObserver::updateInternal(
         return;
     }
 
-    if (badNumber(psiMeasured) || badNumber(deltaRudder) || badNumber(boatSpeed)) {
+    if (badNumber(psiMeasured) || badNumber(deltaRudder)) {
         return;
     }
 
@@ -151,6 +147,7 @@ void WavePassiveObserver::updateInternal(
 
     // Low-frequency yaw dynamics: simple Nomoto-like model plus slow bias.
     const float psiLF_dot = _rLF + _cfg.kPsi * e;
+    //TODO: Add effect of rudder gain config to WavePassive replace _cfg.Knomoto by _cfg.Nnomoto * _cfg.Knomoto
     const float rLF_dot =
         (-_rLF + _cfg.Knomoto * deltaRudder) / _cfg.Tnomoto
         + _bias
@@ -192,7 +189,7 @@ void WavePassiveObserver::updateInternal(
     const float waveSignal = 0.7f * _psiW + 0.3f * waveCandidate;
 
     updateWaveConfidence(waveSignal);
-    updateAdaptiveOmega(waveSignal, boatSpeed, allowAdaptation, dt);
+    updateAdaptiveOmega(waveSignal, allowAdaptation, dt);
 }
 
 void WavePassiveObserver::updateWaveConfidence(float waveSignal) {
@@ -219,17 +216,12 @@ void WavePassiveObserver::updateWaveConfidence(float waveSignal) {
 
 void WavePassiveObserver::updateAdaptiveOmega(
     float waveSignal,
-    float boatSpeed,
     bool allowAdaptation,
     float dt
 ) {
     (void)dt;
 
     if (!_cfg.enableAdaptiveOmega || !allowAdaptation) {
-        return;
-    }
-
-    if (boatSpeed < _cfg.minSpeed) {
         return;
     }
 
@@ -379,4 +371,38 @@ void WavePassiveObserver::validateConfig() {
 
 bool WavePassiveObserver::badNumber(float x) const {
     return isnan(x) || isinf(x);
+}
+
+bool WavePassiveObserver::setBoatYawModel(float Tnomoto_s, float Knomoto_rad_s_per_rad)
+{
+    // Protección contra valores absurdos
+    if (!isfinite(Tnomoto_s) || !isfinite(Knomoto_rad_s_per_rad)) {
+        return false;
+    }
+
+    // T no puede ser cero ni negativa
+    if (Tnomoto_s < 0.1f || Tnomoto_s > 60.0f) {
+        return false;
+    }
+
+    // K puede ser positivo o negativo según convención de signo,
+    // pero no debe ser absurdo.
+    if (fabs(Knomoto_rad_s_per_rad) > 10.0f) {
+        return false;
+    }
+
+    _cfg.Tnomoto = Tnomoto_s;
+    _cfg.Knomoto = Knomoto_rad_s_per_rad;
+
+    return true;
+}
+
+float WavePassiveObserver::getTnomoto() const
+{
+    return _cfg.Tnomoto;
+}
+
+float WavePassiveObserver::getKnomoto() const
+{
+    return _cfg.Knomoto;
 }

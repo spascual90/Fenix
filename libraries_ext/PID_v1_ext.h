@@ -69,18 +69,18 @@ class PID_ext : public PID {
 		return _refFeedForward;
 	}
 	void setRefFeedForward(float a_FF) {
-		// in degrees*10 in line with rudder angles
-		_refFeedForward = a_FF*10.0f;
+		// in degrees not in rudder units!
+		_refFeedForward = a_FF;
 	}
 
 
-	float getSpeed_ref() const {
-		return _speed_ref;
-	}
-
-	void setSpeed_ref(float speed_ref) {
-		_speed_ref = speed_ref;
-	}
+//	float getSpeed_ref() const {
+//		return _speed_ref;
+//	}
+//
+//	void setSpeed_ref(float speed_ref) {
+//		_speed_ref = speed_ref;
+//	}
 
     double getDeadband(void) const {
     	return _deadband;
@@ -106,7 +106,7 @@ class PID_ext : public PID {
     //Limit I contribution to PID
     double IoutMin, IoutMax;
     // speed reference for PID performance
-    float _speed_ref = 5.0;                   // velocidad de referencia (valor se define en el constructor)
+//    float _speed_ref = 5.0;                   // velocidad de referencia (valor se define en el constructor)
     double _deadband = MIN_DEADBAND;
     type_DBConfig _type_DB;
     bool _inDeadband = false;

@@ -68,7 +68,6 @@ struct WaveObserverConfig {
     float zeroCrossHysteresis; // rad, hysteresis threshold for zero crossing
     float minWavePeriod;       // s, physically allowed min period. Example: 2
     float maxWavePeriod;       // s, physically allowed max period. Example: 15
-    float minSpeed;            // m/s, below this adaptation is frozen
 
     // Safety limits.
     float innovationLimit;     // rad, max heading innovation used by observer
@@ -89,11 +88,15 @@ public:
     void begin(const WaveObserverConfig& cfg);
     void reset(float psiInitial, float rInitial = 0.0f);
 
+    bool setBoatYawModel(float Tnomoto_s, float Knomoto_rad_s_per_rad);
+
+    float getTnomoto() const;
+    float getKnomoto() const;
+
     // Update without rIMU. If config.useRimu is true, rate correction is simply skipped.
     void update(
         float psiMeasured,
         float deltaRudder,
-        float boatSpeed,
         bool allowAdaptation,
         float dt
     );
@@ -103,7 +106,6 @@ public:
         float psiMeasured,
         float rIMU,
         float deltaRudder,
-        float boatSpeed,
         bool allowAdaptation,
         float dt
     );
@@ -162,12 +164,11 @@ private:
         float rIMU,
         bool hasRimu,
         float deltaRudder,
-        float boatSpeed,
         bool allowAdaptation,
         float dt
     );
 
-    void updateAdaptiveOmega(float waveSignal, float boatSpeed, bool allowAdaptation, float dt);
+    void updateAdaptiveOmega(float waveSignal, bool allowAdaptation, float dt);
     void updateWaveConfidence(float waveSignal);
     void validateConfig();
     bool badNumber(float x) const;

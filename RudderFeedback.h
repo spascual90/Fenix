@@ -51,6 +51,7 @@ public:
 		return _errorFeedback;
 	}
 
+	// returns int with rudder angle in degrees*10
 	int getCurrentRudder() const {
 		return (_currentRudder  - _center_of_rudder);
 	}

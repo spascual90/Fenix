@@ -31,6 +31,17 @@ Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
 	setAvgSpeed (ip.avgSpeed);
 
 
+    // Parametros para inferir por minimos cuadrados los valores de T y K de Nomoto
+    // Controlled identification test at approximately constant speed:
+
+    // For online adaptation during navigation, try:
+    nomotoId.setForgettingFactor(0.995f);
+
+    nomotoId.setMinSamples(30);
+    nomotoId.setPhysicalLimits(0.1f, 60.0f, 10.0f);
+    nomotoId.setUseDeltaAverage(true);
+    nomotoId.setTK (2.65, 0.42,1.0f);//Kff=T/K
+
 }
 
 Autopilot::~Autopilot() {
@@ -108,8 +119,15 @@ e_setup_status Autopilot::setup() {
 		break;
 	}
 
+	//TODO: Recuperar parámetros T, K experimentales de EEPROM
+	DEBUG_sprintf("K,T,Kff", nomotoId.getK(), nomotoId.getT(), nomotoId.getKff());
+
+	// REFERENCE MODEL SETUP
+	ActuatorManager::setDirectDeltaParams(nomotoId.getKffeff(), nomotoId.getTeff());
+
 	// WAVE MODEL SETUP
 	setup_WaveObserver();
+	BearingMonitor::setBoatYawModel(nomotoId.getTeff(), nomotoId.getKeff());
 
 	//Enter into calibration mode
 	if (cal_reboot == true) {
@@ -199,25 +217,27 @@ e_working_status Autopilot::compute_Cal_Feedback(){
 }
 
 e_working_status Autopilot::compute_Stand_By(){
-	//if (changeRudder(0)!=1) return RUNNING_ERROR;
+
 	changeRudder(0);
+	// Recalcula T y K que serán utilizados por Feedforward y por el filtro olas en modo operativo
+	Compute_Nomoto ();
+
 	return RUNNING_OK;
 }
 
 e_working_status Autopilot::compute_OperationalMode(void){
 
 	// FossenReference: instead of TargetBearing (psi_r), consider psi_d
-
 	//TargetBearing: Which direction users wants to go (could be different to TargetHeading)
-	//CurrentHeading: Direction of the bow of the boat.
-	if (ActuatorManager::Compute(getTargetBearing(), BearingMonitor::getCurrentHeadingT(), get_boatSpeed())!=1) return RUNNING_ERROR;
+	//getHeadingTforControl: Direction of the bow of the boat after filtering wave efects
+
+	if (ActuatorManager::Compute(getTargetBearing(), BearingMonitor::getHeadingTforControl(), getAvgSpeedFactor())!=1) return RUNNING_ERROR;
+	//if (ActuatorManager::Compute(getTargetBearing(), BearingMonitor::getCurrentHeadingT(), getAvgSpeedFactor())!=1) return RUNNING_ERROR;
 
 	// error of heading required by user vs current heading
 	float error_psi_r = delta180(getTargetBearing(), BearingMonitor::getCurrentHeadingT());
 	compute_OCA (error_psi_r);
-
-	Compute_TK ( radians(ActuatorManager::getCurrentRudder()/10.0f),  BearingMonitor::get_angularSpeed(), 5.0f); // rudder in rad, yaw rate in rad, boat speed in miles
-
+	//compute_OCA (get_error_heading_req());
 
 	if (isBlocked()) setCurrentMode(STAND_BY);
 
@@ -257,7 +277,6 @@ void Autopilot::computeLongLoop_WindDir(void) {
 
 			// ALARM DUE TO BIG CHANGE OF WIND DIRECTION
 			float fWindDir360= getWindDir()+getCurrentHeadingT();
-			//compute_WCA (int(fWindDir360));
 			float deltaCTS = getNextCourse()-getTargetBearing();
 			if (deltaCTS<-180) deltaCTS+= 360;
 			if (deltaCTS>180) deltaCTS-= 360;
@@ -272,7 +291,6 @@ void Autopilot::computeLongLoop_WindDir(void) {
 		}
 	}
 }
-
 
 // RETURN true = Mode changed successfully
 // false = Change mode aborted
@@ -298,6 +316,7 @@ bool Autopilot::setCurrentMode(e_APmode newMode, char sensor) {
 	switch (_currentMode) {
 	case AUTO_MODE:
 		//DEBUG_print(F("!setCurrentMode: AUTO_MODE\n"));
+		BearingMonitor::waveObserver_reset();
 		break;
 	case WIND_MODE:
 		//DEBUG_print(F("!setCurrentMode: WIND_MODE\n"));
@@ -315,19 +334,9 @@ bool Autopilot::setCurrentMode(e_APmode newMode, char sensor) {
 		//set_calFeedback();
 		start_calFeedback();
 		break;
-
-	//case CAL_AUTOTUNE:
-		//startAutoTune();
-    	//DEBUG_print(F("!SetCurrentMode: CAL_AUTOTUNE\n"));
-		//break;
-
-
-
 	default:
 		break;
 	}
-
-
 	//POST-CHANGE MODE
 	rt = after_changeMode(_currentMode, preMode);
 
@@ -360,54 +369,9 @@ void Autopilot::computeLongLoop() {
 		refreshCalStatus();
 #endif
 		if (_currentMode == CAL_IMU_COMPLETE) compute_Cal_IMU();
-		//if (_currentMode == CAL_AUTOTUNE) computeLongLoop_heading();
-
 		if (isCalMode()) return;
 
 		computeLongLoop_heading();
-
-		//$PEMC,99,E*5E
-		if (isEventTrigger()) {
-			static int8_t counter =0;
-			if (counter++ == 100 ) {
-				//DEBUG_sprintf("!ModMxyz", get_devMag());
-				#ifdef DEBUG_SIMPLOT_MODM
-				plot1(NeoSerial, get_devMag());
-				#endif
-
-				//int free_mem = freeMemory();
-				//DEBUG_sprintfree("!Free memory: %i/8192 bytes\n", free_mem );
-
-				BTPort.updateBufferMonitor();
-				DEBUG_PORT.updateBufferMonitor();
-
-				NeoHWSerial_2BufferReport r = BTPort.getAndResetBufferReport();
-				//if (BTPort.isTxSuppressed()) BTPort.suppressTx(false);
-				//if (DEBUG_PORT.isTxSuppressed()) DEBUG_PORT.suppressTx(false);
-
-				if (r.flags & NEO_HW_SERIAL_BUFFER_RX_OVER_THRESHOLD) {
-					DEBUG_sprintf("BT_RX",int(r.rxMaxUsed), int(r.rxCapacity));
-					//BTPort.suppressTx(true);
-				}
-				if (r.flags & NEO_HW_SERIAL_BUFFER_TX_OVER_THRESHOLD) {
-					DEBUG_sprintf("BT_TX",int(r.txMaxUsed), int(r.txCapacity));
-				}
-
-				r = DEBUG_PORT.getAndResetBufferReport();
-
-				if (r.flags & NEO_HW_SERIAL_BUFFER_RX_OVER_THRESHOLD) {
-					DEBUG_sprintf("SERIAL_RX",int(r.rxMaxUsed), int(r.rxCapacity));
-					//DEBUG_PORT.suppressTx(true);
-				}
-				if (r.flags & NEO_HW_SERIAL_BUFFER_TX_OVER_THRESHOLD) {
-					DEBUG_sprintf("SERIAL_TX",int(r.txMaxUsed), int(r.txCapacity));
-				}
-
-
-
-				counter=0;
-			}
-		}
 
 		// Once each XX loops: Update target bearing (in track mode). Stores value for later use.
 		if (IsLongLooptime ()) {
@@ -415,6 +379,52 @@ void Autopilot::computeLongLoop() {
 			computeLongLoop_TrackMode();
 			computeLongLoop_WindDir();
 
+			// Apply limits and smooth changes of boat speed ratio
+			float const ratio = get_boatSpeed()/getAvgSpeed();
+			_avgSpeedFactor = ALFA_90 * _avgSpeedFactor + ALFA_10*(constrain(ratio, 0.4f, 1.6f));
+			//DEBUG_sprintf("factor", factor);
+			// Aplica Kff, K y T efectivos a Feedforward y Wavemodel ajustando la velocidad
+			if (nomotoId.isValid()) {
+				nomotoId.scaleKTeff(_avgSpeedFactor);
+				ActuatorManager::setDirectDeltaParams(nomotoId.getKffeff(), nomotoId.getTeff());
+				BearingMonitor::setBoatYawModel(nomotoId.getTeff(), nomotoId.getKeff());
+			}
+
+			//$PEMC,99,E*5E
+			if (isEventTrigger()) {
+				//static int8_t counter =0;
+				//if (counter++ == 100 ) {
+					float const deltaRudder = float(getCurrentRudder())/10.0f;
+					float const ROT = get_RateOfTurn();
+
+					//if (deltaRudder>4.0f) DEBUG_sprintf("factor,deltaRudder,ROT", getAvgSpeedFactor(), deltaRudder, ROT);
+//					//DEBUG_sprintf("!ModMxyz", get_devMag());
+//					#ifdef DEBUG_SIMPLOT_MODM
+//					plot1(NeoSerial, get_devMag());
+//					#endif
+//
+//					//int free_mem = freeMemory();
+//					//DEBUG_sprintfree("!Free memory: %i/8192 bytes\n", free_mem );
+//
+//					BTPort.updateBufferMonitor();
+//					DEBUG_PORT.updateBufferMonitor();
+//					NeoHWSerial_2BufferReport r = BTPort.getAndResetBufferReport();
+//					if (r.flags & NEO_HW_SERIAL_BUFFER_RX_OVER_THRESHOLD) {
+//						DEBUG_sprintf("BT_RX",int(r.rxMaxUsed), int(r.rxCapacity));
+//					}
+//					if (r.flags & NEO_HW_SERIAL_BUFFER_TX_OVER_THRESHOLD) {
+//						DEBUG_sprintf("BT_TX",int(r.txMaxUsed), int(r.txCapacity));
+//					}
+//					r = DEBUG_PORT.getAndResetBufferReport();
+//					if (r.flags & NEO_HW_SERIAL_BUFFER_RX_OVER_THRESHOLD) {
+//						DEBUG_sprintf("SERIAL_RX",int(r.rxMaxUsed), int(r.rxCapacity));
+//					}
+//					if (r.flags & NEO_HW_SERIAL_BUFFER_TX_OVER_THRESHOLD) {
+//						DEBUG_sprintf("SERIAL_TX",int(r.txMaxUsed), int(r.txCapacity));
+//					}
+				//	counter=0;
+				//}
+			}
 
 			LongLoopReset();
 		}
@@ -441,9 +451,7 @@ bool Autopilot::before_changeMode(e_APmode newMode, e_APmode currentMode, char s
 		break;
 		}
 	case STAND_BY:
-		//if (newMode == CAL_AUTOTUNE) {
-		//	setTargetBearing (getCurrentHeadingT());
-		//}
+
 
 		if (newMode == CAL_IMU_COMPLETE) {
 			_sensor = sensor;
@@ -511,9 +519,6 @@ void Autopilot::setTargetBearing(float targetBearing) {
 		_targetBearing = BearingMonitor::reduce360(targetBearing);
 		changeDesiredHeadingT(_targetBearing);
 
-		//if (targetBearing<0) targetBearing+= 360;
-		//if (targetBearing>=360) targetBearing-= 360;
-
 		// If next course represents a big change in course (ie. 2 times OCA)
 		// then OCA Alarm is deactivated until ship heading gets into OCA angle
 		//float delta_tb = abs (delta180(_targetBearing, targetBearing));
@@ -531,9 +536,6 @@ void Autopilot::setTargetBearing(float targetBearing) {
 			DEBUG_print(F("OCA2: Deact\n"));
 #endif
 		}
-		//_targetBearing = fmod (targetBearing, double(360));
-		//_targetBearing = BearingMonitor::reduce360(targetBearing);
-
 	}
 
 float Autopilot::getNextCourse() {
@@ -702,22 +704,6 @@ void Autopilot::Enter_Exit_FBK_Calib(void) {
 	}
 }
 
-
-//void Autopilot::Start_Cancel_AutotunePID(void) {
-//	switch (getCurrentMode()) {
-//	// If in STAND_BY --> set AutotunePID mode
-//	case STAND_BY:
-//		setCurrentMode(CAL_AUTOTUNE);
-//		break;
-//	case CAL_AUTOTUNE:
-//		setCurrentMode(STAND_BY);
-//		break;
-//		// In other case REJECT
-//	default:
-//		break;
-//	}
-//}
-
 // EXTERNAL COMPASS MODE
 
 void Autopilot::set_extHeading(s_HDG HDG) {
@@ -777,7 +763,6 @@ void Autopilot::evaluate_changeIMUstatus (void) {
 void Autopilot::set_boatSpeed(s_SOG SOG) {
 	_boatSpeed.SOG = SOG;
 	_boatSpeed.t0 = getLoopMillis();
-	//DEBUG_print ("!ext Speed received\n");
 }
 
 float Autopilot::get_boatSpeed (void) {
@@ -809,9 +794,6 @@ void Autopilot::set_windInfo(s_AWA AWA) {
 	}
 	_windInfo.AWA = AWA;
 	_windInfo.AWA_t0 = getLoopMillis();
-	//DEBUG_print ("!RW received\n");
-	//DEBUG_sprintf("DEBUG", _windInfo.RW.windSpeed.float_00() );
-	//DEBUG_sprintf("DEBUG", _windInfo.RW.windDirDeg.whole,_windInfo.RW.windDirDeg.frac);
 }
 
 void Autopilot::set_windInfo(s_TWD TWD) {
@@ -823,8 +805,6 @@ void Autopilot::set_windInfo(s_TWD TWD) {
 	}
 	_windInfo.TWD = TWD;
 	_windInfo.TWD_t0 = getLoopMillis();
-	//DEBUG_print ("!AW received\n");
-	//DEBUG_sprintf("DEBUG", _windInfo.AW.windSpeed.float_00() );
 
 }
 
@@ -941,13 +921,8 @@ void Autopilot::APBreceived(s_APB APB) {
 		setWPnext(APB);
 		setInformation (TRACKMODE_AVAILABLE);
 	}
-//	sprintf(DEBUG_buffer,"CTS %i.%i\n", APB.CTS.whole, APB.CTS.frac );
-//	DEBUG_print();
-}
 
-//void Autopilot::HDTreceived(s_HDT HDT) {
-//	set_extHeading(HDT);
-//}
+}
 
 void Autopilot::HDGTreceived(s_HDG HDG) {
 	set_extHeading(HDG);
@@ -967,8 +942,20 @@ void Autopilot::computeLongLoop_heading(void) {
 	//only changes compass source (internal/ external) in STAND_BY
 
 	evaluate_changeIMUstatus();
+
+	float deltaRudder = getCurrentRudder()/10.0f;
+
+    // Freeze adaptation during turns, tacks, gybes, large setpoint changes,
+    // rudder saturation, manual mode, very low speed, etc.
+    bool allowAdapt =
+    	isOpsMode() &&
+        fabs(get_error_heading_req()) < 10.0f &&
+        fabs(deltaRudder) < 5.0f &&
+        fabs(get_RateOfTurn()) < 5.0f &&
+		getAvgSpeedFactor() > 0.5f;
+
+	BearingMonitor::loop_WaveObserver(allowAdapt, deltaRudder);//, nomotoId.getTeff(), nomotoId.getKeff());// deg
 	BearingMonitor::updateHeading(_extHeading.t0);
-	BearingMonitor::loop_WaveObserver(getCurrentRudder(), get_boatSpeed());
 
 	//If heading value is not valid in operational mode set STAND BY mode
 	if (!isHeadingValid() and !isCalMode() and getCurrentMode()!=STAND_BY) {
@@ -976,6 +963,69 @@ void Autopilot::computeLongLoop_heading(void) {
 		setWarning(IMU_LOW);
 		setCurrentMode(STAND_BY);
 	}
+}
+
+void Autopilot::Compute_Nomoto (void){ //float deltaRudder, float ROT, float deltaSpeed) { // deg, deg/seg, knots
+
+	bool valid = false;
+	// only valid around Average speed, relevant rudder angles and moderate ROT
+	float const deltaRudder = float(getCurrentRudder())/10.0f;
+	float const ROT = get_RateOfTurn();
+	static int status = 0;
+	bool start = fabs(deltaRudder) < 3.0f;
+	// starting from rudder<3 go to rudder between 9 and 12 and stay there
+	bool allowNomotoIdentification =
+		getAvgSpeedFactor() > 0.5f &&
+		getAvgSpeedFactor() < 1.5f &&
+		fabs(deltaRudder) > 9.0f &&
+		fabs(deltaRudder) < 12.0f &&
+		fabs(ROT) > 1.0f &&
+		fabs(ROT) < 8.0f;
+
+	if (start and status==0) {
+		status=1;
+	}
+
+	if (allowNomotoIdentification and status==1) {
+		status=2;
+		DEBUG_print(F("!Start boat calib.\n"));
+	}
+
+	if (status==2) {
+		valid = nomotoId.update(millis(), deltaRudder, ROT);
+	}
+
+		// Actualiza Kff y T linearizando performance
+	if (valid and (status==2)) {
+		valid = false;
+		status = 3;
+		//Kff cambia con T por lo que K es el valor implicito que interesa monitorizar
+		DEBUG_sprintf("!K,T,resid", nomotoId.getK(), nomotoId.getT(), nomotoId.getResidualRms());
+		DEBUG_print(F("!Boat params updated\n"));
+	}
+
+	// resetea proceso si no obtiene resultados en un período razonable de tiempo
+	static int a=0;
+	if (!valid and (status==2)) {
+		a++;
+		if (a>10000) {
+			a=0;
+			status=3;
+			DEBUG_print(F("!Time exceeded\n"));
+		}
+	}
+
+	// restart process if rudder is back to normal position
+	if (start and status==3) {
+		status=0;
+		DEBUG_print(F("!Stopped boat calib.\n"));
+	}
+
+}
+
+float Autopilot::get_error_heading_req(void){
+	return delta180(getTargetBearing(), BearingMonitor::getHeadingTforControl());
+	//return delta180(getTargetBearing(), BearingMonitor::getCurrentHeadingT());
 }
 
 void Autopilot::computeLongLoop_WP(void) {

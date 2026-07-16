@@ -10,7 +10,7 @@ PID_ext::PID_ext(double* Input, double* Output, double* Setpoint,
         double Kp, double Ki, double Kd, int ControllerDirection, float speed_ref)
 :PID(Input, Output, Setpoint,
         Kp, Ki, Kd, ControllerDirection){
-	setSpeed_ref(speed_ref);
+	//setSpeed_ref(speed_ref);
 
 }
 
@@ -66,7 +66,7 @@ void PID_ext::SetTunings(double Kp, double Ki, double Kd) {
 }
 
 #ifdef PID_ADVANCED1
-bool PID_ext::Compute(int rudder_error, float speed)
+bool PID_ext::Compute(int rudder_error, float factor)
 {
     if (!inAuto) return false;
     static bool timon_en_posicion = false;
@@ -74,7 +74,7 @@ bool PID_ext::Compute(int rudder_error, float speed)
     static double derr_prev = 0.0;
     static double avg_rudder_error = 0.0;
     static double output_prev = 0.0;
-    static double factor = 1.0;
+    //static double factor = 1.0;
     static bool clamp_I = false;
 
     unsigned long now = millis();
@@ -82,8 +82,8 @@ bool PID_ext::Compute(int rudder_error, float speed)
 
     if (timeChange >= SampleTime) {
 
-        // Captura contribución feedforward
-    	double FF = getRefFeedForward();
+        // Captura contribución feedforward en grados y pasa a unidades de timon
+    	double FF = getRefFeedForward()*10.0f;
 
     	/* Entrada y error */
         double input = *myInput;
@@ -95,11 +95,12 @@ bool PID_ext::Compute(int rudder_error, float speed)
         }
 
         /* Escalado dinámico de ganancias */
-        factor = (getSpeed_ref() / fmax(speed, 1))* ALFA_10 + ALFA_90 * factor;
+        // limits and smoothen applied out of the function
+        //factor = (getSpeed_ref() / fmax(speed, 1))* ALFA_10 + ALFA_90 * factor;
+        //factor = speedRatio* ALFA_10 + ALFA_90 * factor;
         factor = fmin (factor, abs(outMax/(kp*MAX_PID_TURN)));
         // ATENCION: SOLO PARA TEST!
         //factor = 1; // DESABILITA SPEED GAIN
-
         double kp_eff = kp * factor * factor;
         double ki_eff = ki * factor * factor;
         double kd_eff = kd / factor;
@@ -160,7 +161,7 @@ bool PID_ext::Compute(int rudder_error, float speed)
 
         /* Salida PID */
 
-        double output_libre = _kpContrib + ITerm + _kdContrib + getRefFeedForward();
+        double output_libre = _kpContrib + ITerm + _kdContrib + FF;
         *myOutput = output_libre;
         bool saturated = false;
         if (output_libre > outMaxeff) {

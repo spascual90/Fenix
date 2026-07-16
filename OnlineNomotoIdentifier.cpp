@@ -328,6 +328,21 @@ float OnlineNomotoIdentifier::getKff() const
     return Kff;
 }
 
+float OnlineNomotoIdentifier::getTeff() const
+{
+    return Teff;
+}
+
+float OnlineNomotoIdentifier::getKeff() const
+{
+    return Keff;
+}
+
+float OnlineNomotoIdentifier::getKffeff() const
+{
+    return Kffeff;
+}
+
 float OnlineNomotoIdentifier::getDtMean() const
 {
     if (weightSum <= 0.0f) {
@@ -369,4 +384,26 @@ float OnlineNomotoIdentifier::getResidualRms() const
 bool OnlineNomotoIdentifier::isFiniteFloat(float value) const
 {
     return !isnan(value) && !isinf(value);
+}
+
+void OnlineNomotoIdentifier::scaleKTeff(float ratio)
+{
+// Ya viene con constrain aplicado
+//    const float minRatio = 0.5f;  // evita ganancias absurdas a baja velocidad
+//    const float maxRatio = 1.5f;  // evita extrapolar demasiado
+//
+//    if (ratio < minRatio) ratio = minRatio;
+//    if (ratio > maxRatio) ratio = maxRatio;
+
+    Teff = getT() / ratio;
+    Keff = getK() * ratio;
+    Kffeff = getKff() * ratio;
+}
+
+void OnlineNomotoIdentifier::setTK(float aT, float aK, float ratio) {
+    T = aT;
+    K = aK;
+    Kff = aT/aK;
+    scaleKTeff(ratio);
+
 }

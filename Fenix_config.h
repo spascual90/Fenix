@@ -83,6 +83,8 @@
 //#define DEBUG
 //#define DEBUG_OCA
 //#define DEBUG_ACTUATOR
+//#define DEBUG_WAVE
+
 
 #define DEBUG_SIMPLOT
 //#define DEBUG_SIMPLOT_CURRENT

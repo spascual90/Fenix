@@ -82,7 +82,9 @@ public:
      * If N_delta is zero or too close to zero, delta_ff will not be calculated
      * and getDeltaFFAvailable() will return false.
      */
-    void setRudderGain(float N_delta);
+    void setRudderGain(int N_delta);
+    int getRudderGain() const;
+
 
     /**
      * @brief Sets the saturation limits for the rudder angle feedforward output.

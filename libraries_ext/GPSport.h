@@ -159,6 +159,19 @@ inline void DEBUG_sprintf(const char* label, float v1, float v2, float v3, int l
     DEBUG_sprintf("%s: %s, %s, %s\n", label, c1, c2, c3);
 }
 
+inline void DEBUG_sprintf(const char* label, float v1, float v2, float v3,float v4, int l = 6, int d = 2) {
+    char c1[l + 3];
+    char c2[l + 3];
+    char c3[l + 3];
+    char c4[l + 3];
+    dtostrf(v1, l, d, c1);
+    dtostrf(v2, l, d, c2);
+    dtostrf(v3, l, d, c3);
+    dtostrf(v4, l, d, c4);
+    DEBUG_sprintf("%s: %s, %s, %s, %s\n", label, c1, c2, c3, c4);
+}
+
+
 static void DEBUG_flush (void){
 	#ifdef DEBUG_PORT
 	DEBUG_PORT.flush();

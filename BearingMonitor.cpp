@@ -265,14 +265,13 @@ void BearingMonitor::updateHeadingINT(void){
 	_heading_isFrozen=false;
 	_heading_isValid=true;
 	_heading =  _imuDevice->updateHeading();
-	update_angularSpeed();
+	update_RateOfTurn();
 
 #ifdef DEBUG_SIMPLOT_HEADING
 	static int a=0;
 	a++;
 	if (a==10) {
 		plot1(NeoSerial, _heading);
-		//plot2(NeoSerial, raw, yaw);
 		a=0;
 	}
 
@@ -281,10 +280,6 @@ void BearingMonitor::updateHeadingINT(void){
 
 
 }
-
-//float BearingMonitor::predictYawDelta(float dt) {
-//	return _imuDevice->predictYawDelta(dt);
-//}
 
 // Function for external IMU only. For internal IMU use updateHeading(void) instead
 e_IMU_status BearingMonitor::updateHeadingEXT(unsigned long HDT_RXtime, bool firstTime){
@@ -300,9 +295,6 @@ e_IMU_status BearingMonitor::updateHeadingEXT(unsigned long HDT_RXtime, bool fir
 
 	unsigned long tiempo = millis();
 
-	//sprintf(DEBUG_buffer,"RXtime, prev:%ld,%ld\n", HDT_RXtime, prev_HDT_RXtime);
-	//DEBUG_print();
-
 	if (firstTime) {
 		//DEBUG_print("First time\n");
 		_heading = _ext_heading_dt;
@@ -313,7 +305,6 @@ e_IMU_status BearingMonitor::updateHeadingEXT(unsigned long HDT_RXtime, bool fir
 	}
 
 	if (prev_HDT_RXtime!=HDT_RXtime) {
-		//DEBUG_print("HDG Update\n");
 		//ajustamos heading al valor recibido
 		_heading = _ext_heading_dt;
 		//Calculamos pendiente cada vez que se reciba un nuevo mensaje HDT
@@ -324,14 +315,16 @@ e_IMU_status BearingMonitor::updateHeadingEXT(unsigned long HDT_RXtime, bool fir
 
 	} else {
 		// Extrapolamos heading con la última pendiente calculada
-		_heading += (pendiente*(tiempo-prev_tiempo))/1000.0;
+		float delta_heading = (pendiente*(tiempo-prev_tiempo))/1000.0;
+		// limitamos delta a algo físicamente razonable
+		delta_heading = fmin(delta_heading, 15.0);
+		_heading += delta_heading;
 		_heading = reduce360(_heading);
 		prev_tiempo = tiempo;
 	}
 
+	update_RateOfTurn(pendiente);
 	updateHeadingT();
-	update_angularSpeed(radians(pendiente));
-
 
 	return _IMU_status;
 }
@@ -442,7 +435,6 @@ void BearingMonitor::setup_WaveObserver() {
     waveCfg.zeroCrossHysteresis = radians(0.4f);
     waveCfg.minWavePeriod = 2.0f;
     waveCfg.maxWavePeriod = 15.0f;
-    waveCfg.minSpeed = 0.5f;
 
     waveCfg.innovationLimit = radians(10.0f);
     waveCfg.rateInnovationLimit = radians(20.0f);
@@ -455,12 +447,18 @@ void BearingMonitor::setup_WaveObserver() {
 
     waveObserver.begin(waveCfg);
 
-    const float psi0 = readHeadingRad();
-    const float r0 = readYawRateRadS();
-    waveObserver.reset(psi0, r0);
+    waveObserver_reset();
 }
 
-void BearingMonitor::loop_WaveObserver(float rudder, float boat_speed) {
+void BearingMonitor::waveObserver_reset(void){
+	waveObserver.reset(
+			radians(convert360to180(getCurrentHeadingT())),
+			radians(get_RateOfTurn())
+	);
+}
+
+void BearingMonitor::loop_WaveObserver(bool allowAdapt, float deltaRudder) {// , float Teff, float Keff) { // bool, deg
+
     const unsigned long now = micros();
     float dt = (now - lastMicros) * 1.0e-6f;
     lastMicros = now;
@@ -470,45 +468,64 @@ void BearingMonitor::loop_WaveObserver(float rudder, float boat_speed) {
         return;
     }
 
-    const float psiMeasured = readHeadingRad();
-    const float rIMU = readYawRateRadS();
-    const float deltaRudder = radians (rudder/10.0f);//readRudderAngleRad();
-    const float speed = boat_speed * 0.514444f; //readBoatSpeedMS();
-    const bool allowAdapt = allowWaveAdaptation();
+    const float yaw_rad = radians(convert360to180(getCurrentHeadingT()));
+    const float ROT_rad = radians(get_RateOfTurn());
+
+    // Sobrescribe con valores experimentales reales
+    //waveObserver.setBoatYawModel(Teff, Keff);
+    //waveObserver.setBoatYawModel(0.42f, 0.0722f);
 
     // Since waveCfg.useRimu = true, this call will use rIMU.
     // If useRimu were false, rIMU would be ignored.
+    //DEBUG_sprintf("yaw,ROT,rudd", degrees(yaw_rad), degrees(ROT_rad), deltaRudder);
+
     waveObserver.update(
-        psiMeasured,
-        rIMU,
-        deltaRudder,
-        speed,
+    	yaw_rad,
+		ROT_rad,
+        radians(deltaRudder),
         allowAdapt,
         dt
     );
 
     // These are the signals to feed into the autopilot PID/reference controller.
-    const float psiForControl = waveObserver.getPsiLF();
-    const float rForControl = waveObserver.getRLF();
+    //waveObserver.getPsiLF();
+    //waveObserver.getRLF();
 
-    // Example:
-    // autopilot.compute(psiForControl, psiReference, rForControl);
-
+#ifdef DEBUG_WAVE
     // Debug at low rate.
     static unsigned long lastPrint = 0;
     if (millis() - lastPrint > 1000) {
         lastPrint = millis();
 
-        DEBUG_sprintf("psiRaw_deg", float (degrees(psiMeasured)));
-        DEBUG_sprintf("psiLF_deg", float (degrees(psiForControl)));
-        DEBUG_sprintf("rLF_deg_s", float (degrees(rForControl)));
+        (allowAdapt?DEBUG_print(F("Adapting...\n")):DEBUG_print(F("Still.\n")));
+        DEBUG_sprintf("T,K", waveObserver.getTnomoto(), waveObserver.getKnomoto());
+        DEBUG_sprintf("psiRaw_deg", float (degrees(yaw_rad)));
+        DEBUG_sprintf("psiLF_deg", getHeadingTforControl());
+        DEBUG_sprintf("rLF_deg_s", get_angularSpeedforControl());
         DEBUG_sprintf("psiWave_deg", float (degrees(waveObserver.getPsiWave())));
         DEBUG_sprintf("wavePeriod_s", waveObserver.getWavePeriod());
         DEBUG_sprintf("conf", waveObserver.getWaveConfidence());
         DEBUG_sprintf("e_deg", waveObserver.getInnovation());
         DEBUG_sprintf("eR_deg_s", float (degrees(waveObserver.getRateInnovation())));
     }
+#endif
+
 }
+
+// Sobrescribe con valores experimentales reales
+void BearingMonitor::setBoatYawModel(float Teff, float Keff) {
+	waveObserver.setBoatYawModel(Teff, Keff);
+}
+
+
+float BearingMonitor::getHeadingTforControl(void) {
+	return convert180to360(degrees(waveObserver.getPsiLF()));
+}
+
+float BearingMonitor::get_angularSpeedforControl(void) {
+	return waveObserver.getRLF();
+}
+
 
 
 

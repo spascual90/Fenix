@@ -14,7 +14,6 @@
 #include "ActuatorController.h"
 #include "FossenReferenceModel.h"
 #include "ReferenceFeedforward.h"
-#include "OnlineNomotoIdentifier.h"
 
 // All configurations are managed in Fenix_config.h
 #include "Fenix_config.h"
@@ -50,7 +49,6 @@ public:
 	//int Compute(float setPoint, float processVariable, float speed, float predictedYaw);
 	//int Compute(float PIDerrorPrima, float speed);
 	int Compute(float TargetBearing, float CurrentHeadingT, float boatSpeed);
-	int Compute_TK (float deltaReal, float rImu, float boatSpeed);
 	int compute_VA(void);
 	int controlActuator (int target);
 	void ResetTunings();
@@ -92,6 +90,12 @@ public:
 		_installation_side = installationSide;
 	}
 
+	void setDirectDeltaParams(float Kffeff, float Teff);
+//	float getKeff() const {return nomotoId.getKeff();	}
+//	float getTeff() const {return nomotoId.getTeff();	}
+//	float getKffeff() const {return nomotoId.getKffeff();	}
+
+
 protected:
 	int changeRudder(int delta_rudder);
 	bool checkBlockage(void);
@@ -111,7 +115,6 @@ private:
 	void SetMode(int Mode);
 	FossenReferenceModel referenceModel;
 	ReferenceFeedforward feedForward;
-	OnlineNomotoIdentifier nomotoId;
 
 	float reduce360(float value) {
 		value = fmod (value, 360.0f);

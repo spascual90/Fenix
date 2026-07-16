@@ -51,7 +51,12 @@ public:
     float getT() const;
     float getK() const;
     float getKff() const;
+    float getTeff() const;
+    float getKeff() const;
+    float getKffeff() const;
     float getDtMean() const;
+    void setTK(float aT, float aK, float ratio);
+
 
     unsigned long getSampleCount() const;
     float getWeightSum() const;
@@ -60,7 +65,7 @@ public:
 
     float getLastResidual() const;
     float getResidualRms() const;
-
+    void scaleKTeff(float ratio);
 private:
     // Normal-equation accumulated sums:
     // [S00 S01] [A] = [q0]
@@ -77,9 +82,8 @@ private:
 
     float A;
     float B;
-    float T;
-    float K;
-    float Kff;
+    float T, K, Kff;
+    float Teff, Keff, Kffeff;
 
     unsigned long lastTimeMs;
     float lastR;

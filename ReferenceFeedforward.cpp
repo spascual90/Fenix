@@ -69,14 +69,46 @@ void ReferenceFeedforward::setModelParams(float Kff, float T) {
  *
  * For direct rudder-angle feedforward, use N_delta = 1.0f.
  */
-void ReferenceFeedforward::setRudderGain(float N_delta) {
-    _N_delta = N_delta;
+void ReferenceFeedforward::setRudderGain(int N_delta) {
+    N_delta = saturate(N_delta, -5, 5);
+
+    if (N_delta >= 0) {
+        _N_delta = 1.0f + (float)(N_delta);
+    } else {
+        _N_delta = 1.0f / (1.0f - (float)(N_delta));
+    }
+
     refreshValidity();
 
     if (!_deltaAvailable) {
         _deltaFF = 0.0f;
     }
 }
+
+
+int ReferenceFeedforward::getRudderGain() const
+{
+    if (_N_delta <= 0.0f) {
+        // Valor inválido: una ganancia multiplicativa debería ser positiva.
+        return 0;
+    }
+
+    float setting;
+
+    if (_N_delta >= 1.0f) {
+        setting = _N_delta - 1.0f;
+    } else {
+        setting = 1.0f - (1.0f / _N_delta);
+    }
+
+
+    float temp = constrain(
+            (int) roundf(setting),-5,5);
+    DEBUG_sprintf("\n!!!N_delta", temp);
+
+    return temp;
+}
+
 
 /**
  * Sets the saturation limits for the rudder angle feedforward output.
@@ -179,6 +211,12 @@ void ReferenceFeedforward::update(float r_d, float r_dot_d) {
 
     if (_deltaAvailable) {
         float rawDeltaFF = _Kff * (r_dot_d + (r_d / _T)) / _N_delta;
+//    	static int a=0;
+//    	a++;
+//    	if (a==50) {
+//    		DEBUG_sprintf ("Kff,T,N_delta,rawDeltaFF", _Kff,_T,_N_delta,rawDeltaFF);
+//    		a=0;
+//    	}
         _deltaFF = saturate(rawDeltaFF, _deltaMin, _deltaMax);
     } else {
         _deltaFF = 0.0f;

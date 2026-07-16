@@ -144,11 +144,11 @@ public:
 		return _imuDevice->get_devMag();
 	}
 
-	void update_angularSpeed(float angularSpeed=0) { // rad/seg
-		_angularSpeed = (_IMU_status ==EXTERNAL_IMU?angularSpeed:_imuDevice->get_filtered_psi_dot());
+	void update_RateOfTurn(float angularSpeed=0) { // deg/seg
+		_angularSpeed = (_IMU_status ==EXTERNAL_IMU?angularSpeed:_imuDevice->get_yaw_rate());
 	}
 
-	float get_angularSpeed(void) {// rad/seg
+	float get_RateOfTurn(void) {// deg/seg
 		return _angularSpeed;
 	}
 
@@ -215,7 +215,11 @@ protected:
 	}
 	// WAVE MODULE
 	void setup_WaveObserver();
-	void loop_WaveObserver(float rudder, float boat_speed);
+	void waveObserver_reset();
+	void loop_WaveObserver(bool allowAdapt, float rudder);
+	float getHeadingTforControl(void);
+	float get_angularSpeedforControl(void);
+	void setBoatYawModel(float Teff, float Keff);
 
 private:
 	IMUDevice *_imuDevice;
@@ -245,6 +249,7 @@ private:
 		_headingT = reduce360(_heading + getTotalDev());
 
 	}
+
 
 	bool _heading_isValid = false; // Availability of heading
 	bool _heading_isFrozen = true; // Quality of heading value
@@ -287,11 +292,6 @@ private:
 	// Example state for fixed-rate loop.
 	unsigned long lastMicros = 0;
 
-	float readHeadingRad() {
-	    // Example placeholder: heading from IMU/magnetometer fusion, radians [-pi, pi].
-		return convert360to180(getCurrentHeadingT());
-	}
-
 	//return angle360 in value (-180, 179)
 	float convert360to180(float angle360) {
 		// asume angulo valido
@@ -301,26 +301,20 @@ private:
 		return angle360;
 	}
 
-	float readYawRateRadS() {
-	    // Example placeholder: reliable yaw rate rIMU from gyro/IMU, rad/s.
-	    return get_angularSpeed();
-	}
+	float convert180to360(float angle180)
+	{
+	    float angle360 = fmodf(angle180, 360.0f);
 
-	float readRudderAngleRad() {
-	    // Example placeholder: rudder angle, radians.
-	    // Positive sign must match your Nomoto K sign convention.
-	    return 0.0f;
-	}
+	    if (angle360 < 0.0f) {
+	        angle360 += 360.0f;
+	    }
 
-	float readBoatSpeedMS() {
-	    // Example placeholder: boat speed in m/s.
-	    return 2.0f;
-	}
+	    // Evita devolver 360.0 por pequeños errores numéricos
+	    if (angle360 >= 360.0f) {
+	        angle360 -= 360.0f;
+	    }
 
-	bool allowWaveAdaptation() {
-	    // Freeze adaptation during turns, tacks, gybes, large setpoint changes,
-	    // rudder saturation, manual mode, very low speed, etc.
-	    return true;
+	    return angle360;
 	}
 
 

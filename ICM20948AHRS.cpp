@@ -81,6 +81,7 @@ static float q[4] = {1.0, 0.0, 0.0, 0.0};
 // Euler angle (ship attitude respect earth ref.system)
 // output in degrees and conventional nav, yaw increases CW(clock-wise) from North
 static float yaw, pitch, roll;
+static float yaw_rate;
 
 // psi equals yaw in radians and increases CCW (counter-clock-wise)
 // --- add psi-rate and psi-acceleration calculation ---
@@ -89,8 +90,8 @@ static float yaw, pitch, roll;
 #define PSI_DOT_DOT_ALPHA 0.99f
 static float filtered_psi = 0.0f;  // filtered yaw (rad)
 static float filtered_psi_dot = 0.0f;// filtered yaw angular speed (rad/s)
-static float psi_dot_prev = 0.0f;
-static float filtered_psi_dot_dot = 0.0f;// filtered yaw angular acceleration (rad/s^2)
+//static float psi_dot_prev = 0.0f;
+//static float filtered_psi_dot_dot = 0.0f;// filtered yaw angular acceleration (rad/s^2)
 static float r_prev = 0;
 float G_offset[3];
 float A_B[3];
@@ -181,8 +182,8 @@ extern bool ICM20948AHRS_setup(bool orientation = false)
   return true;
 }
 
-float ICM20948AHRS_get_filtered_psi_dot (void) {
-	return filtered_psi_dot;
+float ICM20948AHRS_get_yaw_rate (void) { // deg/sec
+	return yaw_rate; // value is previously filtered and limited
 }
 
 
@@ -261,45 +262,45 @@ float ICM20948AHRS_loop()
       float cos_pitch = cos(pitch);
       if (fabs(cos_pitch) < 1e-3f) cos_pitch = (cos_pitch >= 0) ? 1e-3f : -1e-3f;
 
-      // calculate and filter psi (yaw), psi_dot, psi_dot_dot
-      //filtered_psi = PSI_ALPHA * filtered_psi + (1.0f - PSI_ALPHA) * yaw;//yaw = psi;
-      filtered_psi = lowPassAngleRad(filtered_psi, yaw, alphaPsi);// //0.02–0.10
-
       // Convert body rates to earth using standard transform:
+      // calculate and filter psi (yaw), psi_dot, psi_dot_dot
       float psi_dot = (sin(roll) / cos_pitch) * q + (cos(roll) / cos_pitch) * r;
-      //filtered_psi_dot = PSI_DOT_ALPHA * filtered_psi_dot + (1.0f - PSI_DOT_ALPHA) * psi_dot;
+      filtered_psi = lowPassAngleRad(filtered_psi, yaw, alphaPsi);// //0.02–0.10
       filtered_psi_dot = lowPass(filtered_psi_dot, psi_dot, alphaPsiDot);
 
       // Aproximacion para velero con escora moderada y cabeceo pequeño
-      //float psi_dot_dot = (r-r_prev)/dt_local;
-      //r_prev = r;
-      //filtered_psi_dot_dot = PSI_DOT_DOT_ALPHA * filtered_psi_dot_dot + (1.0f- PSI_DOT_DOT_ALPHA) * psi_dot_dot;
-      float psi_dot_dot = (filtered_psi_dot-psi_dot_prev)/dt_local;
-      psi_dot_prev = filtered_psi_dot;
-      filtered_psi_dot_dot = lowPass(filtered_psi_dot_dot, psi_dot_dot, alphaPsiDDot);
+      //float psi_dot_dot = (filtered_psi_dot-psi_dot_prev)/dt_local;
+      //filtered_psi_dot_dot = lowPass(filtered_psi_dot_dot, psi_dot_dot, alphaPsiDDot);
+      //psi_dot_prev = filtered_psi_dot;
 
       // limites físicos
       filtered_psi_dot = constrain(filtered_psi_dot, -0.35f, 0.35f);          // rad/s
       //filtered_psi_dot_dot = constrain(filtered_psi_dot_dot, -0.20f, 0.20f);  // rad/s²
 
-      yaw = filtered_psi;
-      // to degrees
-      yaw   *= 180.0 / PI;
-      pitch *= 180.0 / PI;
-      roll *= 180.0 / PI;
 
+      // to degrees + yaw convencion
       // http://www.ngdc.noaa.gov/geomag-web/#declination
       //conventional nav, yaw increases CW from North, corrected for local magnetic declination
-
-      yaw = -(yaw);// + declination);
+      yaw = -degrees(filtered_psi);
       if (yaw < 0) yaw += 360.0;
       if (yaw >= 360.0) yaw -= 360.0;
+      pitch = degrees(pitch);
+      roll = degrees(roll);
+
+      // same convention for yaw rate (CW and degrees)
+      yaw_rate = -degrees(filtered_psi_dot);
+
+      // to degrees
+//      yaw   *= 180.0 / PI;
+//      pitch *= 180.0 / PI;
+//      roll *= 180.0 / PI;
+
 
 #ifdef DEBUG_SIMPLOT_PHI
 	static int a=0;
 	a++;
 	if (a==10) {
-		plot3(NeoSerial, filtered_psi*30, 200+filtered_psi_dot*20, 400+filtered_psi_dot_dot*20);
+		plot2(NeoSerial, degrees(filtered_psi), 200+filtered_psi_dot*20);
 		a=0;
 	}
 

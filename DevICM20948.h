@@ -22,7 +22,7 @@
 TwoWire* ICM20948AHRS_setup(bool orientation = true); // true: COMPONENTS ON TOP false: COMPONENTS BOTTOM
 float ICM20948AHRS_loop(void); //Main Loop
 int ICM20948AHRS_get_devMag(void);
-float ICM20948AHRS_get_filtered_psi_dot(void);
+float ICM20948AHRS_get_yaw_rate(void);
 
 int16_t* ICM20948AHRS_calibration_loop(char sensor);
 
@@ -60,7 +60,7 @@ public:
     	return true;
     }
     int get_devMag(void);
-    float get_filtered_psi_dot (void);
+    float get_yaw_rate (void);
 private:
     //Magnetometer calibration variables
 	//long _start_cal_time = 0;

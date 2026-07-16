@@ -368,7 +368,7 @@ void IF_NMEA::reportTelemetry(void) {
 				millis(),dtostrf(MyPilot->getKpContrib(),0,d,c3),
 				dtostrf(MyPilot->getITerm(),0,d,c4),
 				dtostrf(MyPilot->getKdContrib(),0,d,c5),
-				dtostrf(MyPilot->getRefFeedForward(),0,d,c6));
+				dtostrf(MyPilot->getRefFeedForward()*10.0f,0,d,c6));// recibe en grados y reporta en unidades de timon
 
 		DEBUG_print();
 		DEBUG_flush();

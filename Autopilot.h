@@ -15,6 +15,7 @@
 #include "BearingMonitor.h"
 #include "DevBuzzer.h"
 #include "GPSport.h" // Serial NMEA IF Configuration in GPSPort.h not in Fenix.ino!
+#include "OnlineNomotoIdentifier.h"
 
 // setup status
 enum e_setup_status {SETUP_OK, IMU_ERROR, FEEDBACK_ERROR};
@@ -474,11 +475,10 @@ public:
 		return _windMode;
 	}
 
-
-
 	String getCurrentModeStr() const {
 		return _status[_currentMode];
 	}
+
 	inline float getTargetBearing() const {
 		return _targetBearing;
 	}
@@ -720,6 +720,8 @@ private:
 	    return output;
 	}
 
+	OnlineNomotoIdentifier nomotoId;
+
 	// SPECIAL ACTIONS
 	bool _telemetry= false;
 	bool _event_trigger= false;
@@ -732,9 +734,8 @@ private:
 	e_working_status compute_Stand_By(void);
 	e_working_status compute_Cal_IMU(void);
 	e_working_status compute_Cal_Feedback(void);
-	//e_working_status compute_Autotune(void);
-
 	void computeLongLoop(void);
+	void Compute_Nomoto (void);
 
 	//TRACK MODE
 	s_WP _WPactive, _WPnext;
@@ -780,16 +781,6 @@ private:
 	// FUNCTIONAL MODULE: BUZZER
 	void buzzer_setup();
 	void buzzer_IBIT();
-	//int get_PIN_BUZZER() {return PIN_BUZZER;}
-	//void buzzer_tone_start (unsigned long frequency=1000, int duration=0);
-	//void buzzer_play();
-	//unsigned long _buzzFrec = 1000;
-	//int _buzzDur = 0;
-	//void BuzzReset(void);
-	//bool IsBuzzTime (void);
-	//bool _Buzz=false;
-	//unsigned long _DelayBuzzStart = millis();
-
 
 //	// FUNCTIONAL MODULE: WIND CHANGE ALARM
 //	int _WCAlarm_ref; // Angulo de referencia
@@ -845,6 +836,11 @@ private:
 	}
 	// FUNCTIONAL MODULE: BOAT SPEED
 	uint8_t _avgSpeed;
+	float _avgSpeedFactor = 1.0f; // speed/avg_speed
+
+	inline float getAvgSpeedFactor (void) {
+		return _avgSpeedFactor;
+	}
 
 	// FUNCTIONAL MODE: MILLIS
 	long _loop_millis;
@@ -873,6 +869,8 @@ private:
 	unsigned long _DelayLongLoopStart = millis();
 
 	void setLoopMillis(void);
+
+	float get_error_heading_req(void);
 
 
 };

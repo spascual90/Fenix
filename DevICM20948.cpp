@@ -40,8 +40,8 @@ int DevICM20948::get_devMag(void){
 	return ICM20948AHRS_get_devMag();
 }
 
-float DevICM20948::get_filtered_psi_dot(void){
-	return ICM20948AHRS_get_filtered_psi_dot();
+float DevICM20948::get_yaw_rate(void){
+	return ICM20948AHRS_get_yaw_rate();
 }
 
 bool DevICM20948::EEload_Calib(long int &eeAddress)
