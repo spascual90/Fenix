@@ -1,7 +1,5 @@
 #include "OnlineNomotoIdentifier.h"
-#include "Fenix_config.h"
 
-#include <math.h>
 
 OnlineNomotoIdentifier::OnlineNomotoIdentifier()
     : S00(0.0f),

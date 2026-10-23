@@ -23,8 +23,9 @@ FossenReferenceModel::FossenReferenceModel()
 }
 
 void FossenReferenceModel::printParam(void) {
-	DEBUG_sprintf("wb, wn, z", omega_b, omega_n, zeta);
-	DEBUG_sprintf("Kp, Ki, Kd", getKp(), getKi(), getKd());
+	DEBUG_print(F("Ref.Model:\n"));
+	DEBUG_sprintf("wb,wn,z", omega_b, omega_n, zeta);
+	DEBUG_sprintf("Kp,Ki,Kd", Kp, Ki, Kd);
 }
 
 void FossenReferenceModel::begin(float initialPsi)

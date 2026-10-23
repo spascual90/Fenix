@@ -20,12 +20,15 @@ ActuatorController::~ActuatorController() {
 
 
 void ActuatorController::setup(){
+#ifndef VIRTUAL_ACTUATOR
 	IBIT();
+#endif
 	_currentDirection= RETRACT;
 	setDir(EXTEND);
 	setSpeed(MIN_SPEED, false);
 
 }
+
 void ActuatorController::IBIT(){
 	DEBUG_print(F("Linear actuator... Started\n"));
 	DEBUG_sprintf("PWM,DIR",get_PIN_PWM(),get_PIN_DIR());

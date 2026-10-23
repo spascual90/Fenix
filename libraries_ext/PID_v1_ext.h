@@ -65,7 +65,7 @@ class PID_ext : public PID {
 	double getKpContrib();
 
 
-	double getRefFeedForward() {
+	double getRefFeedForward() const {
 		return _refFeedForward;
 	}
 	void setRefFeedForward(float a_FF) {
@@ -73,14 +73,14 @@ class PID_ext : public PID {
 		_refFeedForward = a_FF;
 	}
 
-
-//	float getSpeed_ref() const {
-//		return _speed_ref;
-//	}
-//
-//	void setSpeed_ref(float speed_ref) {
-//		_speed_ref = speed_ref;
-//	}
+	double getWindFeedForward() const {
+		// in degrees not in rudder units!
+		return _windFeedForward;
+	}
+	void setWindFeedForward(float a_windFF, float a_ratio) {
+		// in degrees not in rudder units!
+		_windFeedForward = a_windFF * a_ratio * a_ratio;
+	}
 
     double getDeadband(void) const {
     	return _deadband;
@@ -88,6 +88,14 @@ class PID_ext : public PID {
 
 	bool isInDeadband() const {
 		return _inDeadband;
+	}
+
+	bool isPermitirIntegral() const {
+		return _permitir_integral;
+	}
+
+	bool isIntegralSaturada() const {
+		return _integral_saturada;
 	}
 
   protected:
@@ -103,8 +111,11 @@ class PID_ext : public PID {
     //SPM INI
     double _kpContrib, _kdContrib;
     double _refFeedForward;
+    double _windFeedForward;
     //Limit I contribution to PID
     double IoutMin, IoutMax;
+    bool _permitir_integral = true;
+    bool _integral_saturada = true;
     // speed reference for PID performance
 //    float _speed_ref = 5.0;                   // velocidad de referencia (valor se define en el constructor)
     double _deadband = MIN_DEADBAND;

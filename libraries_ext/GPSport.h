@@ -22,6 +22,9 @@
 #define SERIAL_IF_AVAILABLE // Comment this line to avoid SERIAL IF compilation: NMEA and debugging will not be available
 #include <PString.h> /// http://arduiniana.org/libraries/pstring/
 #ifdef SERIAL_IF_AVAILABLE
+
+#include "FrequencyTimer.h"
+
 #if defined(ARDUINO_AVR_MEGA2560)
 // ===== AVR (Mega): NeoHWSerial disponible =====
 
@@ -170,7 +173,6 @@ inline void DEBUG_sprintf(const char* label, float v1, float v2, float v3,float 
     dtostrf(v4, l, d, c4);
     DEBUG_sprintf("%s: %s, %s, %s, %s\n", label, c1, c2, c3, c4);
 }
-
 
 static void DEBUG_flush (void){
 	#ifdef DEBUG_PORT

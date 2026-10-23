@@ -2,7 +2,8 @@
 #define ONLINE_NOMOTO_IDENTIFIER_H
 
 #include <Arduino.h>
-
+#include "Fenix_config.h"
+#include <math.h>
 /**
  * @class OnlineNomotoIdentifier
  * @brief Online least-squares identifier for a first-order Nomoto yaw model.

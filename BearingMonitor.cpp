@@ -24,15 +24,10 @@ BearingMonitor::~BearingMonitor() {
 e_IMU_status BearingMonitor::IMU_setup(long EE_address){
 
 #ifdef SHIP_SIM
-		_IMU_status = SIMULATED;
-		_internalIMU_status= INT_NOT_DETECTED;
+	_IMU_status = SIMULATED;
+	_internalIMU_status= INT_NOT_DETECTED;
 
-		return _IMU_status;
-#endif
-
-//#ifdef MINIMU9V5
-//	_imuDevice= (DevMinIMU9V5 *) IMUDevice::createIMUDevice();    // create the imu_device object
-//#endif
+#else
 
 #ifdef ICM20948
 	_imuDevice= (DevICM20948 *) IMUDevice::createIMUDevice();    // create the imu_device object
@@ -56,6 +51,7 @@ e_IMU_status BearingMonitor::IMU_setup(long EE_address){
 
 	IBIT();
 
+#endif
 
 	return _IMU_status;
 }
@@ -408,7 +404,7 @@ void BearingMonitor::SIM_updateShip(int tillerAngle) {
 // WAVE MODULE
 void BearingMonitor::setup_WaveObserver() {
     waveCfg.Tnomoto = 5.0f;
-    waveCfg.Knomoto = 0.25f;
+    waveCfg.Knomoto= 0.25f;
     waveCfg.Tbias = 120.0f;
 
     // Initial wave period 6 s.

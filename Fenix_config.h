@@ -78,13 +78,13 @@
 //#define SILENT_TXNMEA //Comment this line to stop periodic NMEA Transmission
 #define SNOOZE_BUZZER //Comment this line to silent buzzer. SAFETY NOTICE: Only for DEBUGGING purposes!
 //#define PRINT_FREE_MEM
-//#define SHIP_SIM // Uncomment to simulate boat to tune PID
+//#define SHIP_SIM // Uncomment to simulate boat heading (w/o IMU)
 //#define VIRTUAL_ACTUATOR // Uncomment to simulate rudder. Useful when linear actuator is not available
 //#define DEBUG
 //#define DEBUG_OCA
 //#define DEBUG_ACTUATOR
 //#define DEBUG_WAVE
-
+//#define DEBUG_WINDFF
 
 #define DEBUG_SIMPLOT
 //#define DEBUG_SIMPLOT_CURRENT
@@ -102,11 +102,14 @@
 #include "GPSport.h" // Some libraries requires to uncomment this line to print debug messages to serial monitor
 
 #if defined(ARDUINO_AVR_MEGA2560)
-	// PIN Configuration
 	#define PIN_RUDDER A8
+#ifndef VIRTUAL_ACTUATOR
 	#define PIN_RUDDER_NAME "A8"
-	#define PIN_BUZZER A12
+#else
+	#define PIN_RUDDER_NAME "VIRTUAL"
+#endif
 
+	#define PIN_BUZZER A12
 	#define PIN_CURRENT A9
 	#define PIN_CURRENT_NAME "A9"
 

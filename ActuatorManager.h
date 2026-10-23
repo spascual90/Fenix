@@ -14,6 +14,7 @@
 #include "ActuatorController.h"
 #include "FossenReferenceModel.h"
 #include "ReferenceFeedforward.h"
+#include "WindFeedforward.h"
 
 // All configurations are managed in Fenix_config.h
 #include "Fenix_config.h"
@@ -76,12 +77,23 @@ public:
 
 	void setTargetRudder(int targetRudder) {
 
-		if (targetRudder > getMaxRudder())  {targetRudder = getMaxRudder();}
-		else if (targetRudder < getMinRudder()) {targetRudder = getMinRudder();}
-		//DEBUG_sprintf("_targetRudder",_targetRudder);
+		if (targetRudder > getMaxRudder())  {
+			targetRudder = getMaxRudder();
+			_rudderSaturated = true;
+		}
+		else if (targetRudder < getMinRudder()) {
+			targetRudder = getMinRudder();
+			_rudderSaturated = true;
+		} else {
+			_rudderSaturated = false;
+		}
 		_targetRudder = targetRudder;
 	}
 
+	bool isRudderSaturated () const {
+		return _rudderSaturated;
+
+	}
 	type_instSide getInstallationSide() const {
 		return _installation_side;
 	}
@@ -94,6 +106,21 @@ public:
 //	float getKeff() const {return nomotoId.getKeff();	}
 //	float getTeff() const {return nomotoId.getTeff();	}
 //	float getKffeff() const {return nomotoId.getKffeff();	}
+
+	void update_windFF(float windSpeed, float windDir, bool valid);
+
+	float ActuatorManager::get_windFF() const {
+		return windFF.getWindFF();
+	}
+
+
+	bool isWindFFSaturated() const {
+		return windFF.isWindFFSaturated();
+	}
+
+	void setWindFFratio (float ratio) {windFF.setWindFFratio (ratio);}
+
+	float getWindFFratio () const { return windFF.getWindFFratio();}
 
 
 protected:
@@ -108,13 +135,14 @@ private:
 
 	// target rudder in manual mode
 	int _targetRudder=1;
-
+	bool _rudderSaturated = false;
 	//Installation side
 	type_instSide _installation_side = STARBOARD;
 
 	void SetMode(int Mode);
 	FossenReferenceModel referenceModel;
 	ReferenceFeedforward feedForward;
+	WindFeedforward windFF;
 
 	float reduce360(float value) {
 		value = fmod (value, 360.0f);

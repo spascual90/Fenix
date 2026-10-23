@@ -179,8 +179,8 @@ DevBuzzer::~DevBuzzer() {
 void DevBuzzer::setUp(int pin) {
 	_pin = pin;
 	//Setup Buzzer
+	digitalWrite(_pin, LOW);
 	pinMode(_pin, OUTPUT); // Set buzzer - pin PIN_BUZZER as an output
-
 }
 
 

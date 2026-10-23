@@ -353,23 +353,25 @@ void IF_NMEA::printAPB(Stream * outStream, s_APB APB) {
 	OUTorder.APB.isValid= true;
 	emcNMEA::printAPB(outStream);
 }
-
+//telemetry
 void IF_NMEA::reportTelemetry(void) {
 		static unsigned long DelayCalcStart = millis();
+
+		if ((millis() -DelayCalcStart) < 100) return;
 		int l=7, d=2;
 		char c3[l+3];
 		char c4[l+3];
 		char c5[l+3];
 		char c6[l+3];
+		char c7[l+3];
 
-		if ((millis() -DelayCalcStart) < 100) return;
-
-		sprintf(DEBUG_buffer,"#1,%ld,%s,%s,%s,%s\n",
-				millis(),dtostrf(MyPilot->getKpContrib(),0,d,c3),
+		sprintf(DEBUG_buffer,"#1,%ld,%s,%s,%s,%s,%s\n",
+				millis(),
+				dtostrf(MyPilot->getKpContrib(),0,d,c3),
 				dtostrf(MyPilot->getITerm(),0,d,c4),
 				dtostrf(MyPilot->getKdContrib(),0,d,c5),
-				dtostrf(MyPilot->getRefFeedForward()*10.0f,0,d,c6));// recibe en grados y reporta en unidades de timon
-
+				dtostrf(MyPilot->getRefFeedForward()*10.0f,0,d,c6),// recibe en grados y reporta en unidades de timon
+				dtostrf(MyPilot->get_windFF()*10.0f,0,d,c7));//  recibe en grados y reporta en unidades de timon
 		DEBUG_print();
 		DEBUG_flush();
 		DelayCalcStart = millis();

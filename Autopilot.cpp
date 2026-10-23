@@ -40,7 +40,8 @@ Autopilot::Autopilot( s_gain gain, int ControllerDirection, s_instParam ip)
     nomotoId.setMinSamples(30);
     nomotoId.setPhysicalLimits(0.1f, 60.0f, 10.0f);
     nomotoId.setUseDeltaAverage(true);
-    nomotoId.setTK (2.65, 0.42,1.0f);//Kff=T/K
+    //nomotoId.setTK (2.65, 0.42,1.0f);//Barco 7m//Kff=T/K
+    nomotoId.setTK (2.26, 0.19,1.0f);//Barco 12m//Kff=T/K
 
 }
 
@@ -79,27 +80,30 @@ e_setup_status Autopilot::setup() {
 		DEBUG_print(F("!Calibration reboot\n"));
 	}
 
-	if (cal_reboot == false) {
-		// Setup Actuator manager
-		ActuatorManager::setup();
+	//Enter into IMU calibration mode
+	if (cal_reboot == true) {
+		// Launch calibration
+		setCurrentMode (CAL_IMU_COMPLETE, sensor);
+		return SETUP_OK;
+	}
 
-		// Setup rudder feedback
-		e_feedback_status f_status = RudderFeedback::setup(true);
+	// Setup Actuator manager
+	ActuatorManager::setup();
 
-		switch (f_status) {
-		case ERROR_TOO_BIG:
-			DEBUG_print(F("!W: Error too big!\n")); //Check your linear actuator is powered-on and connected
-			setWarning(FBK_ERROR_HIGH, true);
-			//return FEEDBACK_ERROR; Not considered an error
-			break;
-		case OK_VIRTUAL:
-			DEBUG_print(F("!Debug:Virt.actuator\n"));
-			break;
-		case FEEDBACK_OK:
-			break;
-		}
-	} else {
-		DEBUG_print(F("!Setup actuator:skip\n"));
+	// Setup rudder feedback
+	e_feedback_status f_status = RudderFeedback::setup(true);
+
+	switch (f_status) {
+	case ERROR_TOO_BIG:
+		DEBUG_print(F("!W: Error too big!\n")); //Check your linear actuator is powered-on and connected
+		setWarning(FBK_ERROR_HIGH, true);
+		//return FEEDBACK_ERROR; Not considered an error
+		break;
+	case OK_VIRTUAL:
+		DEBUG_print(F("!Debug:Virt.actuator\n"));
+		break;
+	case FEEDBACK_OK:
+		break;
 	}
 
 	// Setup IMU
@@ -108,18 +112,27 @@ e_setup_status Autopilot::setup() {
 		// There was a problem detecting the IMU ... check your connections */
 		DEBUG_print(F("!W: IMU Not detected\n")); // Check your wiring or I2C ADDR
 		setWarning(IMU_NOTFOUND, true);
-		//return IMU_ERROR; Lack of IMU is not an error anymore. External IMU can be used instead
-		return SETUP_OK;
 		break;
 	case SIMULATED:
 		DEBUG_print(F("!Debug: IMU simulator\n"));
-		return SETUP_OK;
 		break;
+	case EXTERNAL_IMU:
+		DEBUG_print(F("!Debug: IMU external\n"));
+		break;
+
 	default:
+		//  Get and restore IMU Calibration offsets
+		if (EEload_Calib()==CAL_RESULT_NOT_CALIBRATED) {
+			// There was a problem reading IMU calibration values
+			DEBUG_print(F("!Enter Calibration Mode\n")); // System is not reset automatically to avoid recurrent writing EEPROM
+			setWarning(EE_IMU_NOTFOUND, true);
+		}
 		break;
 	}
 
+
 	//TODO: Recuperar parámetros T, K experimentales de EEPROM
+	DEBUG_print(F("Dynamic:\n"));
 	DEBUG_sprintf("K,T,Kff", nomotoId.getK(), nomotoId.getT(), nomotoId.getKff());
 
 	// REFERENCE MODEL SETUP
@@ -128,21 +141,6 @@ e_setup_status Autopilot::setup() {
 	// WAVE MODEL SETUP
 	setup_WaveObserver();
 	BearingMonitor::setBoatYawModel(nomotoId.getTeff(), nomotoId.getKeff());
-
-	//Enter into calibration mode
-	if (cal_reboot == true) {
-		// Launch calibration
-		setCurrentMode (CAL_IMU_COMPLETE, sensor);
-		return SETUP_OK;
-	}
-
-	//  Get and restore IMU Calibration offsets
-	if (EEload_Calib()==CAL_RESULT_NOT_CALIBRATED) {
-		// There was a problem reading IMU calibration values
-		DEBUG_print(F("!Enter Calibration Mode\n")); // System is not reset automatically to avoid recurrent writing EEPROM
-		setWarning(EE_IMU_NOTFOUND, true);
-		return SETUP_OK;
-	}
 
 	int free_mem = freeMemory();
 	DEBUG_sprintfree("!Free memory: %i/8192 bytes\n", free_mem );
@@ -226,6 +224,12 @@ e_working_status Autopilot::compute_Stand_By(){
 }
 
 e_working_status Autopilot::compute_OperationalMode(void){
+
+
+	float ws = getWindSpeed();
+	float wd = getWindDir();
+	bool windInfo = (ws!=-1 and wd!=-360); // windInfo is true if windSpeed is available
+	ActuatorManager::update_windFF(ws, radians(wd), windInfo); // m/s and (-PI,PI)
 
 	// FossenReference: instead of TargetBearing (psi_r), consider psi_d
 	//TargetBearing: Which direction users wants to go (could be different to TargetHeading)
@@ -382,7 +386,6 @@ void Autopilot::computeLongLoop() {
 			// Apply limits and smooth changes of boat speed ratio
 			float const ratio = get_boatSpeed()/getAvgSpeed();
 			_avgSpeedFactor = ALFA_90 * _avgSpeedFactor + ALFA_10*(constrain(ratio, 0.4f, 1.6f));
-			//DEBUG_sprintf("factor", factor);
 			// Aplica Kff, K y T efectivos a Feedforward y Wavemodel ajustando la velocidad
 			if (nomotoId.isValid()) {
 				nomotoId.scaleKTeff(_avgSpeedFactor);
@@ -390,12 +393,15 @@ void Autopilot::computeLongLoop() {
 				BearingMonitor::setBoatYawModel(nomotoId.getTeff(), nomotoId.getKeff());
 			}
 
+			// recalculate WindFF calibration
+			updateWindFeedforwardEvaluation();
+
 			//$PEMC,99,E*5E
 			if (isEventTrigger()) {
 				//static int8_t counter =0;
 				//if (counter++ == 100 ) {
-					float const deltaRudder = float(getCurrentRudder())/10.0f;
-					float const ROT = get_RateOfTurn();
+					//float const deltaRudder = float(getCurrentRudder())/10.0f;
+					//float const ROT = get_RateOfTurn();
 
 					//if (deltaRudder>4.0f) DEBUG_sprintf("factor,deltaRudder,ROT", getAvgSpeedFactor(), deltaRudder, ROT);
 //					//DEBUG_sprintf("!ModMxyz", get_devMag());
@@ -403,8 +409,8 @@ void Autopilot::computeLongLoop() {
 //					plot1(NeoSerial, get_devMag());
 //					#endif
 //
-//					//int free_mem = freeMemory();
-//					//DEBUG_sprintfree("!Free memory: %i/8192 bytes\n", free_mem );
+//					int free_mem = freeMemory();
+//					DEBUG_sprintfree("!Free memory: %i/8192 bytes\n", free_mem );
 //
 //					BTPort.updateBufferMonitor();
 //					DEBUG_PORT.updateBufferMonitor();
@@ -863,6 +869,7 @@ void Autopilot::setTargetWindDir_delta(int deltaWindDir) {
 	if (_targetWindDir<-180) _targetWindDir+=360;
 }
 
+// wind speed in m/s
 float Autopilot::getWindSpeed(void) {
 	if (_windMode == MODE_AWA and _windInfo.AWA.isValid) return _windInfo.AWA.windSpeed.float_00();
 	if (_windMode == MODE_TWA and _windInfo.TWD.isValid) return _windInfo.TWD.windSpeed.float_00();
@@ -1169,7 +1176,6 @@ void Autopilot::Request_PIDgain(s_PIDgain & PIDgain) {
 void Autopilot::buzzer_setup() {
 	//Setup Buzzer
 	buzzer.setUp(PIN_BUZZER);
-	//pinMode(PIN_BUZZER, OUTPUT); // Set buzzer - pin PIN_BUZZER as an output
 
 #ifdef SNOOZE_BUZZER
 	buzzer.snooze();
@@ -1181,13 +1187,11 @@ void Autopilot::buzzer_setup() {
 
 // Initial buzzer test
 void Autopilot::buzzer_IBIT() {
-	//DEBUG_sprintf("Buzzer test on PIN %i ...\n", get_PIN_BUZZER());
-	DEBUG_sprintfree("Buzzer test on PIN %i ...\n", PIN_BUZZER);
+	DEBUG_sprintfree("Buzzer PIN %i\n", PIN_BUZZER);
 
 	// Performs an initial test of the buzzer
 	buzzer.startMelody(DevBuzzer::START);
 	while (buzzer.updateMelody()) {;};
-	//tone(PIN_BUZZER, 1000, 1000); // Send 1KHz sound signal...
 }
 
 // Buzzer melodies
@@ -1682,4 +1686,95 @@ void Autopilot::setLoopMillis(void) {
 			counter=0;
 		}
 	}
+}
+
+void Autopilot::updateWindFeedforwardEvaluation() {
+    WindFeedforwardEvaluator::Input input = {};
+    WindFeedforwardEvaluator::Result result = {};
+
+    input.nowMs = millis();
+
+    input.flags = 0U;
+
+    if (isOpsMode()) {
+        input.flags |=
+            WindFeedforwardEvaluator::INPUT_PILOT_CONTROLLING;
+    }
+    if (isValid_AWA()) {
+        input.flags |=
+            WindFeedforwardEvaluator::INPUT_WIND_VALID;
+    }
+
+    if (isValid_AWA()) {
+        input.flags |=
+            WindFeedforwardEvaluator::INPUT_WIND_ACTIVE;
+    }
+
+    if (isPermitirIntegral()) {
+        input.flags |=
+            WindFeedforwardEvaluator::INPUT_INTEGRATOR_ENABLED;
+    }
+
+//    if (isPermitirIntegral()) {
+//        input.flags |=
+//            WindFeedforwardEvaluator::INPUT_REFERENCE_CHANGED;
+//    }
+
+    if (isIntegralSaturada()) {
+        input.flags |=
+            WindFeedforwardEvaluator::INPUT_INTEGRATOR_LIMITED;
+    		//DEBUG_sprintf("!IntegralSaturada");
+    }
+
+    if (ActuatorManager::isWindFFSaturated()) {
+        input.flags |=
+            WindFeedforwardEvaluator::INPUT_FEEDFORWARD_SATURATED;
+        	//DEBUG_sprintf("!WindFFSaturated");
+    }
+
+    if (isRudderSaturated()) {
+        input.flags |=
+            WindFeedforwardEvaluator::INPUT_RUDDER_SATURATED;
+    }
+
+    input.headingErrorDeg = BearingMonitor::getHeadingTforControl();
+
+    input.integralRudderDeg = getITerm()/10.0f;//unidades de timón a deg
+
+    input.unitWindFeedforwardRudderDeg = getWindFeedForward();
+
+    input.appliedWindFeedforwardRudderDeg = getWindFeedForward();
+
+    input.currentWindScale = getWindFeedForward();
+
+//    if (hasFrequencyElapsed(
+//    	TimerRegister::TR_WINDFFinput,
+//    	2000)) {
+//        WindFeedforwardEvaluator::printInput(input);
+//    }
+
+    windFFEvaluator.update(
+        input,
+        result);
+
+//    if (hasFrequencyElapsed(
+//    	TimerRegister::TR_WINDFFresult,
+//    	7000)) {
+//    }
+
+    if (result.estimateAvailable != 0U) {
+        WindFeedforwardEvaluator::printResult(result);
+
+//        const float adaptationGain = 0.20f;
+//
+//        const float proposedWindScale =
+//        		1 +
+//            adaptationGain * result.scaleCorrection/input.currentWindScale;
+
+//        DEBUG_sprintf("WindFF", proposedWindScale);
+        setWindFFratio (constrain (result.Cwind, 0.8f,-0.8f)*getWindFFratio());
+        //applyProposedWindScale(proposedWindScale);
+
+        windFFEvaluator.acknowledgeEstimate();
+    }
 }

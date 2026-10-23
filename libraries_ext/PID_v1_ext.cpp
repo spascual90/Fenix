@@ -82,31 +82,32 @@ bool PID_ext::Compute(int rudder_error, float factor)
 
     if (timeChange >= SampleTime) {
 
-        // Captura contribución feedforward en grados y pasa a unidades de timon
+    	// Captura contribución feedforward en grados y pasa a unidades de timon
     	double FF = getRefFeedForward()*10.0f;
+
+    	// Captura contribución wind feedforward en grados y pasa a unidades de timon
+    	double windFF = getWindFeedForward()*10.0f;
 
     	/* Entrada y error */
         double input = *myInput;
         double error = *mySetpoint - input;
 
         /* Deadband: aplica zona muerta proporcional */
-        if (calcDeadband(error, error_prev)) {
-        	return false;
-        }
+        //if (calcDeadband(error, error_prev) and abs(windFF) <1.0f and abs(FF) <1.0f) {
+        //	return false;
+        //}
 
         /* Escalado dinámico de ganancias */
-        // limits and smoothen applied out of the function
-        //factor = (getSpeed_ref() / fmax(speed, 1))* ALFA_10 + ALFA_90 * factor;
-        //factor = speedRatio* ALFA_10 + ALFA_90 * factor;
+        // factor limits and smoothen applied out of the function
         factor = fmin (factor, abs(outMax/(kp*MAX_PID_TURN)));
-        // ATENCION: SOLO PARA TEST!
-        //factor = 1; // DESABILITA SPEED GAIN
-        double kp_eff = kp * factor * factor;
-        double ki_eff = ki * factor * factor;
-        double kd_eff = kd / factor;
+    	float  sqr_factor = factor * factor;
 
-        double outMaxeff = fmin (outMax * factor* factor, outMax);
-        double outMineff = fmax (outMin * factor* factor, outMin);
+        double kp_eff = kp * sqr_factor;
+        double ki_eff = ki * sqr_factor;
+        double kd_eff = kd / factor;
+        // windFF ya tiene aplicado el factor de velocidad
+        double outMaxeff = fmin (outMax * sqr_factor, outMax);
+        double outMineff = fmax (outMin * sqr_factor, outMin);
         //TODO: Si no se modifica se puede simplificar
         //double IoutMaxeff = fmin (IoutMax * factor * factor, IoutMax);
         //double IoutMineff = fmax (IoutMin * factor * factor, IoutMin);
@@ -140,18 +141,24 @@ bool PID_ext::Compute(int rudder_error, float factor)
 //        	sin_reaccion = false;
 //        }
         /* Condición de integración */
-        bool permitir_integral = !(clamp_I or isInDeadband());
+        _permitir_integral = !(clamp_I or isInDeadband());
 
-        if (timon_en_posicion && !sin_reaccion) permitir_integral = false;
+        if (timon_en_posicion && !sin_reaccion) _permitir_integral = false;
 
         // No permite integrar cuando el modelo de referencia está trabajando
-        if (FF!= 0) permitir_integral =false;
+        if (FF!= 0) _permitir_integral =false;
 
-        if (permitir_integral) ITerm += (ki_eff * error_eff);
+        if (_permitir_integral) ITerm += (ki_eff * error_eff);
 
         /* Límite integral */
-        if (ITerm > IoutMaxeff) ITerm = IoutMaxeff;
-        else if (ITerm < IoutMineff) ITerm = IoutMineff;
+        _integral_saturada=false;
+        if (ITerm > IoutMaxeff) {
+        	ITerm = IoutMaxeff;
+        	_integral_saturada=true;
+        } else if (ITerm < IoutMineff) {
+        	ITerm = IoutMineff;
+        	_integral_saturada=true;
+        }
 
         /* Derivada filtrada */
         double dInput = (input - lastInput);
@@ -161,7 +168,14 @@ bool PID_ext::Compute(int rudder_error, float factor)
 
         /* Salida PID */
 
-        double output_libre = _kpContrib + ITerm + _kdContrib + FF;
+        double output_libre = _kpContrib + ITerm + _kdContrib + FF + windFF;
+
+//        if (hasFrequencyElapsed(
+//            TimerRegister::TR_WINDFF,
+//            1000)) {
+//        	DEBUG_sprintf("windFF", float(windFF));
+//        }
+
         *myOutput = output_libre;
         bool saturated = false;
         if (output_libre > outMaxeff) {
@@ -170,6 +184,12 @@ bool PID_ext::Compute(int rudder_error, float factor)
         } else if (output_libre < outMineff) {
         	*myOutput = outMineff;
         	saturated = true;
+        }
+
+        if (hasFrequencyElapsed(
+        	TimerRegister::TR_saturated,
+        	1000)) {
+        	if (saturated) DEBUG_sprintf("!Sat:", float(outMaxeff));
         }
 
         /* Anti-windup */

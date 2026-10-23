@@ -12,7 +12,9 @@ ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int Controller
 	  RudderFeedback(MRA, error, deltaCenterOfRudder, minFeedback, maxFeedback),
 	  CurrentFeedback(maxCurrent),
 	  referenceModel(),
-	  feedForward()
+	  feedForward(),
+	  windFF(0.50f)
+
 {
 
 // *** 1. Implement PID gain initial values
@@ -25,7 +27,7 @@ ActuatorManager::ActuatorManager(double Kp, double Ki, double Kd, int Controller
 	_KdIni = Kd;
 
 //*** 2. Implement Reference Model initial parameters
-    referenceModel.setReferenceModelParams(0.3, 1.0);
+    referenceModel.setReferenceModelParams(0.3, 1.0, 0.1);
     referenceModel.setLimits(radians(3.0), radians(0.5));
 
     referenceModel.setFinishTolerances(
@@ -90,6 +92,8 @@ void ActuatorManager::setup(void){
 
 	// Print Reference Model parameters
 	referenceModel.printParam();
+	// Apply ref.model param to PID
+	PID_ext::SetTunings(referenceModel.getKp(), referenceModel.getKi(), referenceModel.getKd());
 
 }
 
@@ -147,6 +151,8 @@ int ActuatorManager::Compute(float TargetBearing, float CurrentHeadingT, float b
 	setInput (PIDerrorPrima); // should be a value between -/+180. Fn does not check it!!!
 	//setSetpoint(0); If always 0 it is not necessary to update value...
 	PID_ext::setRefFeedForward(delta_FF);
+	PID_ext::setWindFeedForward(windFF.getWindFF()*windFF.getWindFFratio(), boatSpeedRatio);
+
 	PID_ext::Compute(delta_PID, boatSpeedRatio);
 	delta_PID = controlActuator (getOutput());
 
@@ -263,7 +269,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     const unsigned long change_delay = ACTUATOR_STOP_TIME; // 300–500 ms típico
     const uint8_t slow_threshold = 30;   // grados para entrar en modo SLOW
     const uint8_t stop_threshold = max (1, toRudder(getErrorFeedback ()));   // en este rango paramos
-    const uint8_t restart_threshold = stop_threshold * 5;
+    const uint8_t restart_threshold = stop_threshold * 4;
 
     bool min_limit = getCurrentFeedback() < getLimitMinFeedback();
     bool max_limit = getCurrentFeedback() > getLimitMaxFeedback();
@@ -326,7 +332,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
     if (abs(delta) <= (stop_threshold))
     {
 
-		#ifdef DEBUG_ACTUATOR
+		#ifdef DEBUG_ACTUATOR2
 		DEBUG_sprintf("3.stop", stop_threshold);
 		delay(10);
 		#endif
@@ -336,7 +342,7 @@ int ActuatorManager::controlActuator(int target_rudder_deg)
 
 	if (current_speed ==0 and restart_threshold > abs(delta))
 	{
-		#ifdef DEBUG_ACTUATOR
+		#ifdef DEBUG_ACTUATOR2
 		DEBUG_print(F("3.dont_start\n"));
 		delay(10);
 		#endif
@@ -493,4 +499,35 @@ void ActuatorManager::ResetTunings(){
 
 void ActuatorManager::setDirectDeltaParams(float Kffeff, float Teff) {
 	feedForward.setDirectDeltaParams(Kffeff, Teff);
+}
+
+void ActuatorManager::update_windFF(float windSpeed, float windDir, bool valid) {
+	float yawMoment = windFF.update(windSpeed, windDir, valid);
+
+#ifdef DEBUG_WINDFF
+	if (hasFrequencyElapsed(
+		TimerRegister::TR_TEST3,
+		2000)) {
+		DEBUG_sprintf("yawMoment",yawMoment);
+		uint8_t status = windFF.getStatus();
+		if ((status & windFF.Status::STATUS_VALID) != 0U) {
+			DEBUG_print(F("Current input was valid.\n"));
+		}
+		if ((status & windFF.Status::STATUS_LOW_WIND) != 0U){
+			DEBUG_print(F("Wind below thresh\n"));
+		}
+		if ((status & windFF.Status::STATUS_INPUT_INVALID) != 0U){
+			DEBUG_print(F("Input or dt invalid\n"));
+		}
+		if ((status & windFF.Status::STATUS_SATURATED) != 0U){
+			DEBUG_print(F("Moment reached limit\n"));
+		}
+		if ((status & windFF.Status::STATUS_INITIALIZED) != 0U){
+			DEBUG_print(F("First sample processed\n"));
+		}
+		if ((status & windFF.Status::STATUS_WIND_ACTIVE) != 0U){
+			DEBUG_print(F("Wind in limits\n"));
+		}
+	}
+#endif
 }
